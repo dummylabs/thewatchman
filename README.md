@@ -28,8 +28,8 @@ Go to Developer Tools -> Services, type `watchman` and select `Watchman: report`
 
 Key | Required | Description | Default 
 ------------ | ------------- | ------------- | ------------- 
-`service` | False | Home assistant notification service to sent report via, e.g. notify.telegram  | `None` 
-`data` | False| A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-watchmanyaml) below
+`service` | False | Home assistant notification service to sent report via, e.g. `notify.telegram`  | `None` 
+`data` | False| A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-configurationyaml) below
 `included_folders` | False | List of folders to scan for entities and services recursively | `"/config"`
 `report_header` | False | Custom header for watchman report | `"-== Watchman Report ==-"`
 `report_path` | False | Report file location | `"/config/watchman_report.txt"`
