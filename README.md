@@ -8,24 +8,26 @@ The watchman is a custom integration for Home Assistant, which collects all the 
 ### Disclaimer and some internal details
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line in the given folders and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To reduce false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases. 
 
-## Quick start
 
 ### Installation using Home Assistant Community Store  
 This is a recommended way to install watchman. Installation in HACS is done in three simple steps:
 1. Go to the "Integrations" section on HACS, tap the three-dots menu in the upper right corner, go to "Custom repositories". Add new repository `dummylabs/thewatchman` with Integration category. If Custom Repositories is hidden, wait until background task of HACS finished and custom repositories are unblocked. 
 2. Click the big blue button "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS". 
 
-### Basic Configuration
+## Quick start
 Add watchman section to Home Assistant configuration file and restart Home Assistant.
 ```yaml
 watchman:
 ```
-
-### Usage
 Go to Developer Tools, Services, type `watchman` and select `Watchman: report` service and press Call Service button. Check `thewatchman_report.txt` file in your configuration directory.
 
 
-## Advanced configuration
+## Configuration
+Minimal working configuration is:
+```yaml
+watchman:
+```
+
 Options:
 ---
 
@@ -42,13 +44,8 @@ Key | Required | Description | Default
 `ignored_files` | False | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/watchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
 `check_lovelace` | False | Parse Lovelace UI editor files stored in .storage folder (experimental) | `False`
 
-### Minimal working configuration
 
-```yaml
-watchman:
-```
-
-### Advanced configuration
+### Advanced configuration example
 
 ```yaml
 watchman:
@@ -57,8 +54,8 @@ watchman:
     - /config/custom_components
     - /config/appdaemon
     - /config/www
-  notify_service: notify.telegram
-  report_path: /config/watchman_report.txt
+  service: notify.telegram
+  report_path: /config/report.txt
   chunk_size: 2000
   ignored_items: 
     - timer.cancelled
@@ -75,26 +72,27 @@ watchman:
 
 ## Usage
 
-The audit can be triggered by firing event `ad.watchman.audit` from Developer Tools UI, an automation or a script. Once the event is fired, the report will be prepared and saved to `/config/watchman_report.txt`. 
-By default, the event handler will create a text file with the report and send a notification via notification service from `watchman.yaml` configuration. A long report may be split into several messages due to limitations imposed by some notification services (e.g. telegram). This behavior can be altered with three optional parameters in the event data:
+The report can be initiated by calling `watchman.report` service from Developer Tools UI, an automation or a script. Default report location is `/config/thewatchman_report.txt`, it can be altered by `report_path` parameter. 
+If no parameters set, the service will create a text report and send a notification via notification service from configuration parameter `service`. A long report will be split into several messages due to limitations imposed by some notification services (e.g. telegram). Service behavior can be altered with optional parameters:
 
  - `create_file` (optional, default=true)
  - `send_notification` (optional, default=true)
- - `notify_service` (optional, overrides eponymous setting from `watchman.yaml`)
+ - `service` (optional, overrides eponymous parameter from `configuration.yaml`)
+ - `data`(optional, overrides eponymous parameter from `configuration.yaml`)
 
-If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `notify_service` allows sending report via notification service of choice. It overrides `notify_service` setting from `watchman.yaml` file. Also see [Advanced usage examples](https://github.com/dummylabs/watchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
+If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report via notification service of choice. It overrides `service` setting from `configuration.yaml` file. Also see [Advanced usage examples](https://github.com/dummylabs/watchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
 
-### Trigger event from Home Assistant UI
+### Call service from Home Assistant UI
 
 ![Event example](./images/event_example.png)
 
 ### Automation example
 
 ```yaml
-event: ad.watchman.audit
-event_data:
-  notify_service: persistent_notification.create
-  send_notification: true
+service: ad.watchman.audit
+create_file: false
+data:
+  service: persistent_notification.create
 ```
 
 Besides of the report, a few sensors will be automatically created or updated:
@@ -121,6 +119,7 @@ Besides of the report, a few sensors will be automatically created or updated:
 | sensor.xiaomi_miio_sensor      | unavail | automations.yaml:231,1348                |
 | vacuum.roborock_s5max          | unavail | automations.yaml:589,603,610,1569        |
 +--------------------------------+---------+------------------------------------------+
+
 -== Report created on 03 Feb 2022 17:18:55
 -== Parsed 200 files in 0.96s., ignored 66 files 
 -== Generated in: 0.01s. Validated in: 0.00s.
