@@ -186,8 +186,16 @@ def setup(hass, config):
         hass.data[DOMAIN]["check_duration"] = time.time() - start_time
         hass.data[DOMAIN]["entities_missing"] = entities_missing
         hass.data[DOMAIN]["services_missing"] = services_missing
-        hass.states.set("watchman.missing_entities", len(entities_missing))
-        hass.states.set("watchman.missing_services", len(services_missing))
+        hass.states.set(
+            "watchman.missing_entities",
+            len(entities_missing),
+            {"unit_of_measurement": "items"},
+        )
+        hass.states.set(
+            "watchman.missing_services",
+            len(services_missing),
+            {"unit_of_measurement": "items"},
+        )
 
     def handle_event(event):
         typ = event.event_type
@@ -226,8 +234,12 @@ def setup(hass, config):
     if not DOMAIN in hass.data:
         hass.data[DOMAIN] = {}
 
-    hass.states.set("watchman.missing_entities", STATE_UNKNOWN)
-    hass.states.set("watchman.missing_services", STATE_UNKNOWN)
+    hass.states.set(
+        "watchman.missing_entities", STATE_UNKNOWN, {"unit_of_measurement": "items"}
+    )
+    hass.states.set(
+        "watchman.missing_services", STATE_UNKNOWN, {"unit_of_measurement": "items"}
+    )
     hass.bus.listen(EVENT_HOMEASSISTANT_STARTED, handle_event)
     hass.bus.listen(EVENT_CALL_SERVICE, handle_event)
     hass.bus.listen(EVENT_AUTOMATION_RELOADED, handle_event)
