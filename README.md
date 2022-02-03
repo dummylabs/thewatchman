@@ -81,13 +81,12 @@ If no parameters set, the service will create a text report and send a notificat
  - `data`(optional, overrides eponymous parameter from `configuration.yaml`)
  - `parse_config` (optional, default=false)
 
-If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report via notification service of choice. It overrides `service` setting from `configuration.yaml` file.
-`parse_config` forces parsing of configuration files. Usually this is not required as watchman will automatically re-parse files once Home Assistant tries to reload configuration.
+If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report dat via notification service of choice. It overrides `service` setting from `configuration.yaml` file.
+`parse_config` forces watchman to parse Home Assistant configuration files to gather entity and services information. Usually this is not required as watchman will automatically re-parse files once Home Assistant tries to reload configuration.
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
 
 ### Call service from Home Assistant UI
-
-![Event example](./images/event_example.png)
+![service example](./images/service_example.png)
 
 ### Automation example
 
