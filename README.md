@@ -25,7 +25,7 @@ Go to Developer Tools -> Services, type `watchman` and select `Watchman: report`
 ## Configuration
 
 Options:
----
+----
 
 Key | Required | Description | Default 
 ------------ | ------------- | ------------- | ------------- 
