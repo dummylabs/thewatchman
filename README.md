@@ -112,6 +112,7 @@ Besides of the report, a few sensors will be automatically created or updated:
 +--------------------------------+---------+------------------------------------------+
 | xiaomi_miio.vacuum_goto        | missing | automations.yaml:599,605                 |
 +--------------------------------+---------+------------------------------------------+
+
 -== Missing 3 entity(-es) from 216 found in your config:
 +--------------------------------+---------+------------------------------------------+
 | Entity                         | State   | Location                                 |
