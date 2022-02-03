@@ -148,7 +148,7 @@ data:
 ```
 
 ### Send report text file via telegram bot
-Important: you should add report folder to a Home Assistant white list otherwise, telegram_bot will be unable to pick files from the folder (see example configuration below). 
+You should add report folder to a Home Assistant whitelist, otherwise telegram_bot will be unable to pick files from the folder (see example configuration below). 
 ```yaml
 service: watchman.report
 data:
