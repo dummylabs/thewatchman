@@ -72,7 +72,7 @@ watchman:
 
 ## Usage
 
-The report can be initiated by calling `watchman.report` service from Developer Tools UI, an automation or a script. Default report location is `/config/thewatchman_report.txt`, it can be altered by `report_path` parameter. 
+The report can be initiated by calling `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, it can be altered by `report_path` parameter. 
 If no parameters set, the service will create a text report and send a notification via notification service from configuration parameter `service`. A long report will be split into several messages due to limitations imposed by some notification services (e.g. telegram). Service behavior can be altered with optional parameters:
 
  - `create_file` (optional, default=true)
@@ -81,7 +81,8 @@ If no parameters set, the service will create a text report and send a notificat
  - `data`(optional, overrides eponymous parameter from `configuration.yaml`)
  - `parse_config` (optional, default=false)
 
-If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report via notification service of choice. It overrides `service` setting from `configuration.yaml` file. `parse_config` forces parsing of configuration files. Usually this is not required as watchman will automatically re-parse files once Home Assistant tries to reload configuration.
+If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report via notification service of choice. It overrides `service` setting from `configuration.yaml` file.
+`parse_config` forces parsing of configuration files. Usually this is not required as watchman will automatically re-parse files once Home Assistant tries to reload configuration.
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
 
 ### Call service from Home Assistant UI
