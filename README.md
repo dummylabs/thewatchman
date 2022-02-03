@@ -156,7 +156,6 @@ data:
   data:
     file: '/config/thewatchman_report.txt'
 ```
-#### Whitelisting configuration folder
 :warning: Whitelisting the configuration folder can be unsafe, use it at your own risk or put report file in a separate folder.
 ```yaml
 homeassistant:
