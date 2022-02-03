@@ -44,11 +44,12 @@ Key | Required | Description | Default
 
 ```yaml
 watchman:
-  excluded_folders: 
-    - /config/esphome
-    - /config/custom_components
-    - /config/appdaemon
-    - /config/www
+  ignored_files: 
+    - "*/automations.yaml" # a file (entries with leading wildcards must be enclosed in quotes)
+    - /config/esphome/* # a whole folder
+    - /config/custom_components/*
+    - /config/appdaemon/*
+    - /config/www/*
   service: notify.telegram
   report_path: /config/report.txt
   chunk_size: 2000
@@ -58,8 +59,7 @@ watchman:
     - timer.started
     - timer.restarted
     - timer.paused
-    # wildcards must be enclosed in quotes!
-    - "sensor.*" # ignore everything in sensor domain 
+    - sensor.* # ignore everything in sensor domain 
     - "*.*_ble"  # ignore any entity/service which name ends with "_ble" 
   ignored_states:
     - unknown
