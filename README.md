@@ -15,11 +15,11 @@ This is a recommended way to install watchman. Installation in HACS is done in t
 2. Click the big blue button "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS". 
 
 ## Quick start
-Add watchman section to Home Assistant configuration file and restart Home Assistant.
+Add `watchman` section to `configuration.yaml` file and restart Home Assistant.
 ```yaml
 watchman:
 ```
-Go to Developer Tools, Services, type `watchman` and select `Watchman: report` service and press Call Service button. Check `thewatchman_report.txt` file in your configuration directory.
+Go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `thewatchman_report.txt` file in your configuration directory.
 
 
 ## Configuration
