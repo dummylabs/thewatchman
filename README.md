@@ -23,10 +23,6 @@ Go to Developer Tools, Services, type `watchman` and select `Watchman: report` s
 
 
 ## Configuration
-Minimal working configuration is:
-```yaml
-watchman:
-```
 
 Options:
 ---
@@ -103,7 +99,7 @@ Besides of the report, a few sensors will be automatically created or updated:
 - watchman.missing_services
 
 ## Example of a watchman report
-Please note that the ascii table format is only used when report is saved to a file. For notification services watchman uses plain text list due to presentation limitations.
+Please note that the ASCII table format is only used when report is saved to a file. For notification services watchman uses plain text list due to presentation limitations.
 ```
 -== WATCHMAN REPORT ==-  
 
