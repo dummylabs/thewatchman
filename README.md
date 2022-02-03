@@ -107,19 +107,19 @@ Besides of the report, a few sensors will be automatically created or updated:
 -== WATCHMAN REPORT ==-  
 
 -== Missing 1 service(-s) from 38 found in your config:
-+--------------------------------+---------+--------------------------------------------------------------+
-| Service                        | State   | Location                                                     |
-+--------------------------------+---------+--------------------------------------------------------------+
-| xiaomi_miio.vacuum_goto        | missing | automations.yaml:599,605                                     |
-+--------------------------------+---------+--------------------------------------------------------------+
++--------------------------------+---------+------------------------------------------+
+| Service                        | State   | Location                                 |
++--------------------------------+---------+------------------------------------------+
+| xiaomi_miio.vacuum_goto        | missing | automations.yaml:599,605                 |
++--------------------------------+---------+------------------------------------------+
 -== Missing 3 entity(-es) from 216 found in your config:
-+--------------------------------+---------+--------------------------------------------------------------+
-| Entity                         | State   | Location                                                     |
-+--------------------------------+---------+--------------------------------------------------------------+
-| sensor.stats_pm25_10_median    | unavail | customize.yaml:14                                            |
-| sensor.xiaomi_miio_sensor      | unavail | automations.yaml:231,1348                                    |
-| vacuum.roborock_s5max          | unavail | automations.yaml:589,603,610,1569                            |
-+--------------------------------+---------+--------------------------------------------------------------+
++--------------------------------+---------+------------------------------------------+
+| Entity                         | State   | Location                                 |
++--------------------------------+---------+------------------------------------------+
+| sensor.stats_pm25_10_median    | unavail | customize.yaml:14                        |
+| sensor.xiaomi_miio_sensor      | unavail | automations.yaml:231,1348                |
+| vacuum.roborock_s5max          | unavail | automations.yaml:589,603,610,1569        |
++--------------------------------+---------+------------------------------------------+
 -== Report created on 03 Feb 2022 17:18:55
 -== Parsed 200 files in 0.96s., ignored 66 files 
 -== Generated in: 0.01s. Validated in: 0.00s.
