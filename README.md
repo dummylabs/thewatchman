@@ -157,8 +157,8 @@ data:
     file: '/config/thewatchman_report.txt'
 ```
 #### Whitelisting configuration folder
-(!) Caution: whitelisting the configuration folder can be insecure, use it at our own risk or put report file in a separate folder.
-```
+:warning: Caution: whitelisting the configuration folder can be insecure, use it at your own risk or put report file in a separate folder.
+```yaml
 homeassistant:
   allowlist_external_dirs:
     - /config/
