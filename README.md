@@ -103,7 +103,7 @@ Besides of the report, a few sensors will be automatically created or updated:
 - watchman.missing_services
 
 ## Example of a watchman report
-Please note that the table format is only used when report is saved to a file. For notification services watchman uses plain text lists due to presentation specific.
+Please note that the table format is only used when report is saved to a file. For notification services watchman uses plain text list due to presentation limitations.
 ```
 -== WATCHMAN REPORT ==-  
 
