@@ -3,7 +3,7 @@
 The world around us is constantly changing and so is Home Assistant. How often have you found yourself in a situation when your automations had stopped working because some entities become permanently unavailable or services changed their name? For example, Home Assistant companion app can easily change the name of its services and sensors it exposes to Home Assistant if you changed the device name in the app configuration. The watchman is an attempt to control such changes and make you able to react proactively, before some critical automation will break.
 
 ## What does it do
-The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the app checks their state one by one and reports those not available or missing. For services it checks whether service is available in the HA service registry and reports missing services via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/watchman#example-of-a-watchman-report) is given below.
+The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the app checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry and reports missing services via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
 
 ### Disclaimer and some internal details
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line in the given folders and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To reduce false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases. 
@@ -41,7 +41,7 @@ Key | Required | Description | Default
 `ignored_items` | False | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Advanced Configuration](https://github.com/dummylabs/thewatchman#advanced-configuration) example below. | `None`
 `ignored_states` | False | List of entity states which should be ignored. Possible values are: `missing`, `unavailable`, `unknown` | `None`
 `chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications | `3500`
-`ignored_files` | False | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/watchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
+`ignored_files` | False | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/thewatchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
 `check_lovelace` | False | Parse Lovelace UI editor files stored in .storage folder (experimental) | `False`
 
 
@@ -86,7 +86,7 @@ If `create_file` or `send_notification` event pafameters were not set, they are 
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
 
 ### Call service from Home Assistant UI
-![service example](./images/service_example.png)
+![service example](./images/service_examp le.png)
 
 ### Automation example
 
