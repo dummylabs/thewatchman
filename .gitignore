@@ -1,5 +1,6 @@
 .DS_Store
 .vscode
+sync_repo.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
