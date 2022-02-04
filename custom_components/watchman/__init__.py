@@ -77,13 +77,13 @@ CONFIG_SCHEMA = vol.Schema(
 def setup(hass, config):
     """Set up is called when Home Assistant is loading our component."""
 
-    def notification(title, message):
+    def notification(title, message, n_id="watchman"):
         """Show a persistent notification"""
         persistent_notification.create(
             hass,
             message,
             title=title,
-            notification_id="some",
+            notification_id=n_id,
         )
 
     def report_to_file(hass, config, path):
