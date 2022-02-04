@@ -4,7 +4,7 @@ DEFAULT_REPORT_FILENAME = "thewatchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 
 CONF_IGNORED_FILES = "ignored_files"
-CONF_HEADER = "header"
+CONF_HEADER = "report_header"
 CONF_REPORT_PATH = "report_path"
 CONF_IGNORED_ITEMS = "ignored_items"
 CONF_SERVICE_NAME = "service"
