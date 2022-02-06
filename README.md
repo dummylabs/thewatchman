@@ -66,7 +66,7 @@ watchman:
     - unknown
 ```
 
-## Usage
+## Using watchman service to create the report
 
 The report can be initiated by calling `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, it can be altered by `report_path` parameter. 
 If no parameters set, the service will create a text report and send a notification via notification service from configuration parameter `service`. A long report will be split into several messages due to limitations imposed by some notification services (e.g. telegram). Service behavior can be altered with optional parameters:
@@ -78,7 +78,7 @@ If no parameters set, the service will create a text report and send a notificat
  - `parse_config` (optional, default=false)
  - `chunk_size` (optional, default is 3500 or whatever specified in `configuration.yaml`)
 
-If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report dat via notification service of choice. Along with `data` and `chunk_size` it overrides settings from `configuration.yaml` file.
+If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides settings from `configuration.yaml` file.
 `parse_config` forces watchman to parse Home Assistant configuration files to gather entity and services information. Usually this is not required as watchman will automatically re-parse files once Home Assistant tries to reload configuration.
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
 
