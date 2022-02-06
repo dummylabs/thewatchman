@@ -9,7 +9,7 @@ The watchman is a custom integration for Home Assistant, which collects all the 
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line in the given folders and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To reduce false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases. 
 
 
-### Installation using Home Assistant Community Store  
+## Installation using Home Assistant Community Store  
 This is a recommended way to install watchman. Installation in HACS is done in three simple steps:
 1. Go to the "Integrations" section on HACS, tap the three-dots menu in the upper right corner, go to "Custom repositories". Add new repository `dummylabs/thewatchman` with Integration category. If Custom Repositories is hidden, wait until background task of HACS finished and custom repositories are unblocked. 
 2. Click the big blue button "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS". 
