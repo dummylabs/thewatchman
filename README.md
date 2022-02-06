@@ -125,6 +125,7 @@ Please note that the ASCII table format is only used when report is saved to a f
 -== Parsed 200 files in 0.96s., ignored 66 files 
 -== Generated in: 0.01s. Validated in: 0.00s.
 ```
+The legend at the bottom of the report shows time consumed by 3 different stages: parse configuration files, validate each entity/service state and generate text version of the report.
 
 ## Advanced usage examples
 
