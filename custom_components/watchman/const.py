@@ -22,7 +22,7 @@ CONF_STARTUP_DELAY = "startup_delay"
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
 
-SENSOR_LAST_UPDATE = "sensor.watchman_last_update"
+SENSOR_LAST_UPDATE = "sensor.watchman_last_updated"
 SENSOR_MISSING_ENTITIES = "sensor.watchman_missing_entities"
 SENSOR_MISSING_SERVICES = "sensor.watchman_missing_services"
 
