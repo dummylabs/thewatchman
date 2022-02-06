@@ -4,7 +4,7 @@
   "documentation": "https://github.com/dummylabs/thewatchman",
   "issuetracker": "https://github.com/dummylabs/thewatchman/issues",
   "iot_class": "local_push",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "requirements": ["prettytable==3.0.0"],
   "codeowners": [
     "@dummylabs"

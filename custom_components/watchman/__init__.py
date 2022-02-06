@@ -95,15 +95,18 @@ def setup(hass, config):
             notification_id=n_id,
         )
 
-    def report_to_file(hass, config, path):
-        """ "save report to a file"""
+    def get_report_path(path):
         # if path not specified, create report in config directory with default filename
         if not path:
             path = os.path.join(hass.config.config_dir, DEFAULT_REPORT_FILENAME)
         folder, _ = os.path.split(path)
         if not os.path.exists(folder):
             _LOGGER.error(f"Incorrect `report_path` {path}.")
+            raise Exception
+        return path
 
+    def report_to_file(hass, config, path):
+        """ "save report to a file"""
         delayed_refresh(0)
         report_chunks = report(hass, config, table_renderer, chunk_size=0)
 
@@ -116,6 +119,7 @@ def setup(hass, config):
         if not service_str:
             service_str = config[DOMAIN].get(CONF_SERVICE_NAME, None)
             service_data = config[DOMAIN].get(CONF_SERVICE_DATA, {})
+
         if not service_str:
             notification(
                 "Watchman Error",
@@ -144,21 +148,35 @@ def setup(hass, config):
                 )
                 break
 
+    def onboarding(service, path):
+        service = service or config[DOMAIN].get(CONF_SERVICE_NAME, None)
+        return not (service or os.path.exists(path))
+
     def handle_report(call):
         """Handle the service call"""
 
         if call.data.get(CONF_PARSE_CONFIG, False):
             parse_config()
 
-        if call.data.get(CONF_CREATE_FILE, True):
-            path = config[DOMAIN].get(CONF_REPORT_PATH, None)
-            report_to_file(hass, config, path)
+        path = get_report_path(config[DOMAIN].get(CONF_REPORT_PATH, None))
 
         if call.data.get(CONF_SEND_NITIFICATION, True):
             chunk_size = call.data.get(CONF_CHUNK_SIZE, None)
             service = call.data.get(CONF_SERVICE_NAME, None)
             service_data = call.data.get(CONF_SERVICE_DATA, None)
-            report_to_notification(hass, config, service, service_data, chunk_size)
+            if onboarding(service, path):
+                notification(
+                    "🖖 Achievement unlocked: first report!",
+                    f"Your first watchman report was stored in `{path}` \n\n "
+                    "TIP: set `service` parameter in configuration.yaml file to "
+                    "receive report via notification service of choice. \n\n "
+                    "This is one-time message, it will not bother you in the future.",
+                )
+            else:
+                report_to_notification(hass, config, service, service_data, chunk_size)
+
+        if call.data.get(CONF_CREATE_FILE, True):
+            report_to_file(hass, config, path)
 
     def get_included_folders(config):
         """gather the list of folders to parse"""
