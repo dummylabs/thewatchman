@@ -17,6 +17,25 @@ CONF_CREATE_FILE = "create_file"
 CONF_SEND_NITIFICATION = "send_notification"
 CONF_PARSE_CONFIG = "parse_config"
 CONF_COLUMNS_WIDTH = "columns_width"
+CONF_STARTUP_DELAY = "startup_delay"
 
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
+
+SENSOR_LAST_UPDATE = "sensor.watchman_last_update"
+SENSOR_MISSING_ENTITIES = "sensor.watchman_missing_entities"
+SENSOR_MISSING_SERVICES = "sensor.watchman_missing_services"
+
+TRACKED_EVENT_DOMAINS = [
+    "homeassistant",
+    "input_boolean",
+    "input_button",
+    "input_select",
+    "input_number",
+    "input_datetime",
+    "person",
+    "input_text",
+    "script",
+    "timer",
+    "zone",
+]

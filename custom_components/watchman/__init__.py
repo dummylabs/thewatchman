@@ -3,7 +3,8 @@ import json
 import time
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from git import refresh
 import pytz
 from .utils import (
     is_service,
@@ -17,6 +18,9 @@ from .utils import (
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
+from homeassistant.util import dt as dt_util
+from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.helpers.event import track_point_in_utc_time
 
 from homeassistant.const import (
     EVENT_CORE_CONFIG_UPDATE,
@@ -42,8 +46,13 @@ from .const import (
     CONF_SEND_NITIFICATION,
     CONF_PARSE_CONFIG,
     CONF_COLUMNS_WIDTH,
+    CONF_STARTUP_DELAY,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
+    SENSOR_LAST_UPDATE,
+    SENSOR_MISSING_ENTITIES,
+    SENSOR_MISSING_SERVICES,
+    TRACKED_EVENT_DOMAINS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,6 +76,7 @@ CONFIG_SCHEMA = vol.Schema(
                     "unknown",
                 ],
                 vol.Optional(CONF_COLUMNS_WIDTH): cv.ensure_list,
+                vol.Optional(CONF_STARTUP_DELAY, default=0): cv.positive_int,
             }
         )
     },
@@ -95,7 +105,7 @@ def setup(hass, config):
         if not os.path.exists(folder):
             _LOGGER.error(f"Incorrect `report_path` {path}.")
 
-        refresh_states()
+        delayed_refresh(0)
         report_chunks = report(hass, config, table_renderer, chunk_size=0)
 
         with open(path, "w", encoding="utf-8") as report_file:
@@ -125,7 +135,7 @@ def setup(hass, config):
         if service_data is None:
             service_data = {}
 
-        refresh_states()
+        delayed_refresh(0)
         report_chunks = report(hass, config, text_renderer, chunk_size)
         for chunk in report_chunks:
             service_data["message"] = chunk
@@ -162,7 +172,7 @@ def setup(hass, config):
             )
         return folders
 
-    def parse_config():
+    def parse_config(reason=None):
         """parse home assistant configuration files"""
         start_time = time.time()
         included_folders = get_included_folders(config)
@@ -177,8 +187,11 @@ def setup(hass, config):
         hass.data[DOMAIN]["files_parsed"] = files_parsed
         hass.data[DOMAIN]["files_ignored"] = files_ignored
         hass.data[DOMAIN]["parse_duration"] = time.time() - start_time
+        _LOGGER.info(
+            f"Configuration files parsed in {hass.data[DOMAIN]['parse_duration']:.2f}s. due to {reason}"
+        )
 
-    def refresh_states():
+    def refresh_states(time_date):
         # parse_config should be invoked beforehand
         start_time = time.time()
         services_missing = check_services(hass, config)
@@ -187,63 +200,83 @@ def setup(hass, config):
         hass.data[DOMAIN]["entities_missing"] = entities_missing
         hass.data[DOMAIN]["services_missing"] = services_missing
         hass.states.set(
-            "watchman.missing_entities",
+            SENSOR_MISSING_ENTITIES,
             len(entities_missing),
-            {"unit_of_measurement": "items"},
+            {"unit_of_measurement": "items", "friendly_name": "Missing entities"},
+            force_update=True,
         )
         hass.states.set(
-            "watchman.missing_services",
+            SENSOR_MISSING_SERVICES,
             len(services_missing),
-            {"unit_of_measurement": "items"},
+            {"unit_of_measurement": "items", "friendly_name": "Missing services"},
+            force_update=True,
         )
+        hass.states.set(
+            SENSOR_LAST_UPDATE,
+            dt_util.now(),
+            {
+                "device_class": "timestamp",
+                "friendly_name": "Watchman updated",
+            },
+        )
+        _LOGGER.info("Watchman sensors updated")
 
-    def handle_event(event):
+    def delayed_refresh(delay):
+        if delay == 0:
+            refresh_states(None)
+        else:
+            now = dt_util.utcnow()
+            next_interval = now + timedelta(seconds=delay)
+            unsub = track_point_in_utc_time(hass, refresh_states, next_interval)
+
+    def on_home_assistant_started(event):
+        parse_config("HA restart")
+        startup_delay = config[DOMAIN].get(CONF_STARTUP_DELAY)
+        delayed_refresh(startup_delay)
+
+    def on_configuration_changed(event):
         typ = event.event_type
         if typ == EVENT_CALL_SERVICE:
             domain = event.data.get("domain", None)
             service = event.data.get("service", None)
-            if (
-                domain
-                in [
-                    "homeassistant",
-                    "input_boolean",
-                    "input_button",
-                    "input_select",
-                    "input_number",
-                    "input_datetime",
-                    "person",
-                    "input_text",
-                    "script",
-                    "timer",
-                    "zone",
-                ]
-                and service in ["reload_core_config", "reload"]
-            ):
-                parse_config()
-                refresh_states()
-                _LOGGER.info("Watchman sensors refreshed due to config change")
+            if domain in TRACKED_EVENT_DOMAINS and service in [
+                "reload_core_config",
+                "reload",
+            ]:
+                parse_config("configuration changes")
+                delayed_refresh(0)
+
         elif typ in [
             EVENT_AUTOMATION_RELOADED,
             EVENT_SCENE_RELOADED,
-            EVENT_HOMEASSISTANT_STARTED,
+            # EVENT_HOMEASSISTANT_STARTED,
         ]:
-            parse_config()
-            refresh_states()
-            _LOGGER.info("Watchman sensors refreshed due to config change")
+            parse_config("configuration changes")
+            delayed_refresh(0)
 
     if not DOMAIN in hass.data:
         hass.data[DOMAIN] = {}
 
     hass.states.set(
-        "watchman.missing_entities", STATE_UNKNOWN, {"unit_of_measurement": "items"}
+        SENSOR_MISSING_ENTITIES,
+        STATE_UNKNOWN,
+        {"unit_of_measurement": "items", "friendly_name": "Missing entities"},
     )
     hass.states.set(
-        "watchman.missing_services", STATE_UNKNOWN, {"unit_of_measurement": "items"}
+        SENSOR_MISSING_SERVICES,
+        STATE_UNKNOWN,
+        {"unit_of_measurement": "items", "friendly_name": "Missing services"},
     )
-    hass.bus.listen(EVENT_HOMEASSISTANT_STARTED, handle_event)
-    hass.bus.listen(EVENT_CALL_SERVICE, handle_event)
-    hass.bus.listen(EVENT_AUTOMATION_RELOADED, handle_event)
-    hass.bus.listen(EVENT_SCENE_RELOADED, handle_event)
+    hass.states.set(
+        SENSOR_LAST_UPDATE,
+        STATE_UNKNOWN,
+        {"device_class": "timestamp", "friendly_name": "Watchman updated"},
+    )
+
+    hass.bus.listen(EVENT_HOMEASSISTANT_STARTED, on_home_assistant_started)
+    hass.bus.listen(EVENT_CALL_SERVICE, on_configuration_changed)
+    hass.bus.listen(EVENT_AUTOMATION_RELOADED, on_configuration_changed)
+    hass.bus.listen(EVENT_SCENE_RELOADED, on_configuration_changed)
 
     hass.services.register(DOMAIN, "report", handle_report)
 

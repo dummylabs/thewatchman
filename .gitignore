@@ -1,6 +1,7 @@
 .DS_Store
 .vscode
 sync_repo.sh
+custom_components/watchman/sensor.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
