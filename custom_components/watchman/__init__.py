@@ -4,7 +4,6 @@ import time
 import os
 import logging
 from datetime import datetime, timedelta
-from git import refresh
 import pytz
 from .utils import (
     is_service,
