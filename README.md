@@ -86,9 +86,8 @@ Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#addi
 ![service example](./images/service_examp le.png)
 
 ### Automation example
-
 ```yaml
-service: ad.watchman.audit
+service: watchman.report
 create_file: false
 data:
   service: persistent_notification.create
