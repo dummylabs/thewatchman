@@ -78,7 +78,7 @@ If no parameters set, the service will create a text report and send a notificat
  - `parse_config` (optional, default=false)
  - `chunk_size` (optional, default is 3500 or whatever specified in `configuration.yaml`)
 
-If `create_file` or `send_notification` event pafameters were not set, they are `true` by default. The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides settings from `configuration.yaml` file.
+If `create_file` or `send_notification` service pafameters were not set, they are `true` by default. The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides settings from `configuration.yaml` file.
 `parse_config` forces watchman to parse Home Assistant configuration files to gather entity and services information. Usually this is not required as watchman will automatically re-parse files once Home Assistant tries to reload configuration.
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
 
