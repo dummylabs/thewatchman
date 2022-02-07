@@ -20,6 +20,7 @@ from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers.event import track_point_in_utc_time
+from homeassistant.exceptions import HomeAssistantError
 
 from homeassistant.const import (
     EVENT_CORE_CONFIG_UPDATE,
@@ -101,8 +102,8 @@ def setup(hass, config):
             path = os.path.join(hass.config.config_dir, DEFAULT_REPORT_FILENAME)
         folder, _ = os.path.split(path)
         if not os.path.exists(folder):
-            _LOGGER.error(f"Incorrect `report_path` {path}.")
-            raise Exception
+            # _LOGGER.error(f"Incorrect `report_path` {path}.")
+            raise HomeAssistantError(f"Incorrect report_path: {path}.")
         return path
 
     def report_to_file(hass, config, path):

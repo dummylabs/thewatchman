@@ -9,6 +9,7 @@ import pytz
 from prettytable import PrettyTable
 from textwrap import wrap
 import os
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
     DOMAIN,
@@ -143,8 +144,7 @@ def check_services(hass, config):
     """check if entries from config file are services"""
     ignored_items = config[DOMAIN].get(CONF_IGNORED_ITEMS, [])
     if DOMAIN not in hass.data or "service_list" not in hass.data[DOMAIN]:
-        _LOGGER.error("Service list not found")
-        raise Exception("Service list not found")
+        raise HomeAssistantError("Service list not found")
     service_list = hass.data[DOMAIN]["service_list"]
     excluded_services = []
     services_missing = {}
@@ -244,8 +244,7 @@ def fill(t, width):
 def report(hass, config, render, chunk_size):
     """generates watchman report either as a table or as a list"""
     if not DOMAIN in hass.data:
-        _LOGGER.error(f"No data for report, refresh required.")
-        return None
+        raise HomeAssistantError(f"No data for report, refresh required.")
 
     start_time = time.time()
     header = config[DOMAIN].get(CONF_HEADER)
