@@ -47,7 +47,7 @@ Key | Required | Description | Default
 watchman:
   ignored_files: 
     - "*/automations.yaml" # a file (entries with leading wildcards must be enclosed in quotes)
-    - /config/esphome/* # a whole folder
+    - /config/esphome/* # all files in the folder
     - /config/custom_components/*
     - /config/appdaemon/*
     - /config/www/*
