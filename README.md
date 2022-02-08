@@ -91,7 +91,7 @@ service: watchman.report
 create_file: false
 data:
   service: telegram_bot.send_message
-  data:
+  data: # additional paramaters for your notification service
     parse_mode: html
     target: 111111111 # can be omitted
 ```
