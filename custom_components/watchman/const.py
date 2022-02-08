@@ -40,3 +40,11 @@ TRACKED_EVENT_DOMAINS = [
     "timer",
     "zone",
 ]
+
+BUNDLED_IGNORED_ITEMS = [
+    "timer.cancelled",
+    "timer.finished",
+    "timer.started",
+    "timer.restarted",
+    "timer.paused",
+]

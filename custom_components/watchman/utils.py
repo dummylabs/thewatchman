@@ -29,6 +29,7 @@ from .const import (
     CONF_SEND_NITIFICATION,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
+    BUNDLED_IGNORED_ITEMS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -153,6 +154,7 @@ def get_entity_state(hass, entry, friendly_names=False):
 def check_services(hass, config):
     """check if entries from config file are services"""
     ignored_items = config[DOMAIN].get(CONF_IGNORED_ITEMS, [])
+    ignored_items = list(set(ignored_items + BUNDLED_IGNORED_ITEMS))
     if DOMAIN not in hass.data or "service_list" not in hass.data[DOMAIN]:
         raise HomeAssistantError("Service list not found")
     service_list = hass.data[DOMAIN]["service_list"]
@@ -175,6 +177,7 @@ def check_entitites(hass, config):
     """check if entries from config file are entities with an active state"""
     ignored_states = config[DOMAIN].get(CONF_IGNORED_STATES, [])
     ignored_items = config[DOMAIN].get(CONF_IGNORED_ITEMS, [])
+    ignored_items = list(set(ignored_items + BUNDLED_IGNORED_ITEMS))
     if DOMAIN not in hass.data or "entity_list" not in hass.data[DOMAIN]:
         _LOGGER.error("Entity list not found")
         raise Exception("Entity list not found")
