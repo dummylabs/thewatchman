@@ -38,7 +38,7 @@ Key | Required | Description | Default
 `chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications | `3500`
 `ignored_files` | False | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/thewatchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
 `check_lovelace` | False | Parse Lovelace UI configuration data stored in `.storage` folder (experimental) | `False`
-`columns_with` | False | The list of column widths for text version of the report | `[30, 7, 60]`
+`columns_width` | False | The list of column widths for text version of the report | `[30, 7, 60]`
 `startup_delay` | False | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`    
 
 
