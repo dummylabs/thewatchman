@@ -67,7 +67,7 @@ watchman:
 ## Using watchman service to create the report
 
 The report can be initiated by calling `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, it can be altered by `report_path` option. 
-If no parameters were set, the service will create a text report and send a notification via notification service from configuration option `service`. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g. telegram). Service behavior can be altered with optional parameters:
+If no parameters were set, the service will create a text report and send a notification via notification service from configuration option `service`. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with optional parameters:
 
  - `create_file` (optional, default=true)
  - `send_notification` (optional, default=true)
