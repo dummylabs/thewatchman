@@ -52,8 +52,8 @@ watchman:
     - /config/appdaemon/*
     - /config/www/*
   service: telegram_bot.send_message
-  data:
-    parse_mode: html
+  data: # any additional parametes for the notification service 
+    parse_mode: html 
   report_path: /config/report.txt
   chunk_size: 2000
   ignored_items: 
