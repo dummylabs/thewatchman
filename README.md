@@ -38,6 +38,7 @@ Key | Required | Description | Default
 `chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications | `3500`
 `ignored_files` | False | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/thewatchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
 `check_lovelace` | False | Parse Lovelace UI configuration data stored in `.storage` folder (experimental) | `False`
+`columns_with` | False | The list of column widths for text version of the report | `[30, 7, 60]`
 `startup_delay` | False | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`    
 
 
@@ -179,3 +180,21 @@ watchman:
     - "/config/entities/*" # exclude all files in /config/entities
     - "*/automations.yaml" # exclude automations.yaml file only
 ```
+
+
+Our business provided us with the list of services they want to use as the building blocks for our telco products. E.g. local bundle may consist of incoming calls, outgoing calls, incoming SMS, outgoing SMS, data traffic service, etc. 
+Those services (let's call it Customer Facing Services, CFS) may serve different purposes:
+- used to render detailed bill(account) report
+- identify provisioning configuration for the service
+- manage service state, etc.
+
+Once we get the list of CFS, we have to come up with the mapping schema between CDRs we receive, and these CFS. Attached table is an approach for this mapping. The idea is to transform CDR data into a few properties which will help us to identify a CFS:
+- Traffic Kind (OnNet, OnMNO, OnPSTN, etc, the legend is given under the table)
+- Traffic Direction (IN/OUT)
+- Service Type (VOICE/SMS/DATA, etc)
+- Location Info (subscriber's current location)
+- Destination (destination location of a call/sms)
+- Traffic Rating Group (to be able to distinguish Humans mobile app/site data traffic from the rest)
+- Extra parameters for specific cases like content services (i.e. MSISDN) or local MNO calls (i.e. operator).
+
+So our question is whether this mapping can be done for each CDR, i.e. every CDR can be explicitely transformed into a set of these 6 properties? If this is not possible, obviously, we should stick to another classification of CFS which are native to Vodafone. 
