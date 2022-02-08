@@ -28,6 +28,7 @@ from .const import (
     CONF_CREATE_FILE,
     CONF_SEND_NITIFICATION,
     CONF_COLUMNS_WIDTH,
+    CONF_FRIENDLY_NAMES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,30 +56,32 @@ def table_renderer(hass, config, entry_type):
     if entry_type == "service_list":
         services_missing = hass.data[DOMAIN]["services_missing"]
         service_list = hass.data[DOMAIN]["service_list"]
-        table.field_names = ["Service", "State", "Location"]
+        table.field_names = ["Service ID", "State", "Location"]
         for service in services_missing:
-            table.add_row(
-                [
-                    fill(service, cw[0]),
-                    fill("missing", cw[1]),
-                    fill(service_list[service], cw[2]),
-                ]
-            )
+            row = [
+                fill(service, cw[0]),
+                fill("missing", cw[1]),
+                fill(service_list[service], cw[2]),
+            ]
+            table.add_row(row)
         table.align = "l"
         return table.get_string()
     elif entry_type == "entity_list":
         entities_missing = hass.data[DOMAIN]["entities_missing"]
         entity_list = hass.data[DOMAIN]["entity_list"]
-        table.field_names = ["Entity", "State", "Location"]
+        friendly_names = config[DOMAIN].get(CONF_FRIENDLY_NAMES)
+        header = ["Entity ID", "State", "Location"]
+        table.field_names = header
         for entity in entities_missing:
-            state = get_entity_state(hass, entity)
+            state, name = get_entity_state(hass, entity, friendly_names)
             table.add_row(
                 [
-                    fill(entity, cw[0]),
+                    fill(entity, cw[0], name),
                     fill(state, cw[1]),
                     fill(entity_list[entity], cw[2]),
                 ]
             )
+
         table.align = "l"
         return table.get_string()
 
@@ -98,9 +101,11 @@ def text_renderer(hass, config, entry_type):
     elif entry_type == "entity_list":
         entities_missing = hass.data[DOMAIN]["entities_missing"]
         entity_list = hass.data[DOMAIN]["entity_list"]
+        friendly_names = config[DOMAIN].get(CONF_FRIENDLY_NAMES)
         for entity in entities_missing:
-            state = get_entity_state(hass, entity)
-            result += f"{entity}[{state}] in: {fill(entity_list[entity], 0)}\n"
+            state, name = get_entity_state(hass, entity, friendly_names)
+            entity_col = entity if not name else f"{entity} ('{name}')"
+            result += f"{entity_col} [{state}] in: {fill(entity_list[entity], 0)}\n"
 
         return result
     else:
@@ -134,10 +139,15 @@ def is_service(hass, entry):
     return hass.services.has_service(domain, service)
 
 
-def get_entity_state(hass, entry):
+def get_entity_state(hass, entry, friendly_names=False):
     """returns entity state or missing if entity does not extst"""
     entity = hass.states.get(entry)
-    return "missing" if not entity else entity.state.replace("unavailable", "unavail")
+    name = None
+    if entity and entity.attributes.get("friendly_name", None):
+        if friendly_names:
+            name = entity.name
+    state = "missing" if not entity else entity.state.replace("unavailable", "unavail")
+    return state, name
 
 
 def check_services(hass, config):
@@ -179,7 +189,7 @@ def check_entitites(hass, config):
     for entry, occurences in entity_list.items():
         if is_service(hass, entry):  # this is a service, not entity
             continue
-        state = get_entity_state(hass, entry)
+        state, _ = get_entity_state(hass, entry)
         if state in ignored_states:
             continue
         if state in ["missing", "unknown", "unavail"]:
@@ -231,12 +241,12 @@ def parse(folders, ignored_files, root=None, logger=None):
     return (entity_list, service_list, files_parsed, len(effectively_ignored))
 
 
-def fill(t, width):
+def fill(t, width, extra=None):
     if t and isinstance(t, dict):
         key, val = next(iter(t.items()))
         s = f"{key}:{','.join([str(v) for v in val])}"
     else:
-        s = str(t)
+        s = str(t) if not extra else f"{t} ('{extra}')"
 
     return "\n".join([s.ljust(width) for s in wrap(s, width)]) if width > 0 else s
 

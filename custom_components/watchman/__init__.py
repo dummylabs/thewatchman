@@ -47,6 +47,7 @@ from .const import (
     CONF_PARSE_CONFIG,
     CONF_COLUMNS_WIDTH,
     CONF_STARTUP_DELAY,
+    CONF_FRIENDLY_NAMES,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
     SENSOR_LAST_UPDATE,
@@ -77,6 +78,7 @@ CONFIG_SCHEMA = vol.Schema(
                 ],
                 vol.Optional(CONF_COLUMNS_WIDTH): cv.ensure_list,
                 vol.Optional(CONF_STARTUP_DELAY, default=0): cv.positive_int,
+                vol.Optional(CONF_FRIENDLY_NAMES, default=False): cv.boolean,
             }
         )
     },

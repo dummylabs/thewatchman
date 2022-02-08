@@ -18,6 +18,7 @@ CONF_SEND_NITIFICATION = "send_notification"
 CONF_PARSE_CONFIG = "parse_config"
 CONF_COLUMNS_WIDTH = "columns_width"
 CONF_STARTUP_DELAY = "startup_delay"
+CONF_FRIENDLY_NAMES = "friendly_names"
 
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
