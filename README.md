@@ -155,7 +155,7 @@ data:
 ```
 
 ### Send report as a text file via telegram bot
-You should add report folder to a Home Assistant whitelist, otherwise telegram_bot will be unable to pick files from the folder (see example configuration below). 
+You should add report folder to the Home Assistant whitelist, otherwise telegram_bot will be unable to pick files from the folder (see example configuration below). 
 ```yaml
 service: watchman.report
 data:
@@ -180,21 +180,3 @@ watchman:
     - "/config/entities/*" # exclude all files in /config/entities
     - "*/automations.yaml" # exclude automations.yaml file only
 ```
-
-
-Our business provided us with the list of services they want to use as the building blocks for our telco products. E.g. local bundle may consist of incoming calls, outgoing calls, incoming SMS, outgoing SMS, data traffic service, etc. 
-Those services (let's call it Customer Facing Services, CFS) may serve different purposes:
-- used to render detailed bill(account) report
-- identify provisioning configuration for the service
-- manage service state, etc.
-
-Once we get the list of CFS, we have to come up with the mapping schema between CDRs we receive, and these CFS. Attached table is an approach for this mapping. The idea is to transform CDR data into a few properties which will help us to identify a CFS:
-- Traffic Kind (OnNet, OnMNO, OnPSTN, etc, the legend is given under the table)
-- Traffic Direction (IN/OUT)
-- Service Type (VOICE/SMS/DATA, etc)
-- Location Info (subscriber's current location)
-- Destination (destination location of a call/sms)
-- Traffic Rating Group (to be able to distinguish Humans mobile app/site data traffic from the rest)
-- Extra parameters for specific cases like content services (i.e. MSISDN) or local MNO calls (i.e. operator).
-
-So our question is whether this mapping can be done for each CDR, i.e. every CDR can be explicitely transformed into a set of these 6 properties? If this is not possible, obviously, we should stick to another classification of CFS which are native to Vodafone. 
