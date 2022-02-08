@@ -30,7 +30,7 @@ Key | Required | Description | Default
 `data` | False| A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-configurationyaml) below
 `included_folders` | False | List of folders to scan for entities and services recursively | `"/config"`
 `report_header` | False | Custom header for watchman report | `"-== Watchman Report ==-"`
-`report_path` | False | Report file location | `"/config/watchman_report.txt"`
+`report_path` | False | Report file location | `"/config/thewatchman_report.txt"`
 `ignored_items` | False | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Configuration example](https://github.com/dummylabs/thewatchman#configuration-example) below. | `None`
 `ignored_states` | False | List of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
 `chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
