@@ -33,7 +33,7 @@ Key | Required | Description | Default
 `report_path` | False | Report file location | `"/config/watchman_report.txt"`
 `ignored_items` | False | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Configuration example](https://github.com/dummylabs/thewatchman#configuration-example) below. | `None`
 `ignored_states` | False | List of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
-`chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications | `3500`
+`chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
 `ignored_files` | False | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/thewatchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
 `check_lovelace` | False | Parse Lovelace UI configuration data stored in `.storage` folder (experimental) | `False`
 `columns_width` | False | The list of column widths for text version of the report | `[30, 7, 60]`
