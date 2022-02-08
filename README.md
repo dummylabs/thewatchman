@@ -84,7 +84,7 @@ Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#adva
 ### Call service from Home Assistant UI
 ![service example](./images/service_example.png)
 
-### Complex automation example
+### Extra notification service parameters example
 ```yaml
 service: watchman.report
 create_file: false
