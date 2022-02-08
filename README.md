@@ -11,7 +11,7 @@ The integration has very simple internals, it knows nothing about complex relati
 
 ## Installation using Home Assistant Community Store  
 This is a recommended way to install watchman. Installation in HACS is done in three simple steps:
-1. Go to the "Integrations" section on HACS, tap the three-dots menu in the upper right corner, go to "Custom repositories". Add new repository `dummylabs/thewatchman` with Integration category. If Custom Repositories menu item is hidden, wait until background task of HACS finished and custom repositories are unblocked. 
+1. Go to the "Integrations" section on HACS, tap the three-dots menu in the upper right corner, go to "Custom repositories". Add new repository `dummylabs/thewatchman` with **Integration** category. If Custom Repositories menu item is hidden, wait until background task of HACS finished and custom repositories are unblocked. 
 2. Click the big blue button "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS". 
 
 ## Quick start
