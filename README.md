@@ -85,13 +85,17 @@ Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#addi
 ### Call service from Home Assistant UI
 ![service example](./images/service_example.png)
 
-### Automation example
+### Complex automation example
 ```yaml
 service: watchman.report
 create_file: false
 data:
-  service: persistent_notification.create
+  service: telegram_bot.send_message
+  data:
+    parse_mode: html
+    target: 111111111 # can be omitted
 ```
+
 
 Besides of the report, a few sensors will be automatically created or updated:
 
