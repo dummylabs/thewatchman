@@ -83,7 +83,7 @@ If `create_file` or `send_notification` service pafameters were not set, they ar
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-adwatchmanaudit-event) section at the bottom of this document. 
 
 ### Call service from Home Assistant UI
-![service example](./images/service_examp le.png)
+![service example](./images/service_example.png)
 
 ### Automation example
 ```yaml
