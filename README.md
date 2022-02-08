@@ -95,8 +95,8 @@ data:
     target: 111111111 # can be omitted, see telegram_bot documentation
 ```
 
-
-Besides of the report, a few sensors will be automatically created or updated:
+## Sensors
+Besides of the report, a few sensors will be added to Home Assistant:
 
 - sensor.watchman_missing_entities
 - sensor.watchman_missing_services
