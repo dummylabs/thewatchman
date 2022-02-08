@@ -92,7 +92,7 @@ data:
   service: telegram_bot.send_message
   data: # additional paramaters for your notification service
     parse_mode: html
-    target: 111111111 # can be omitted
+    target: 111111111 # can be omitted, see telegram_bot documentation
 ```
 
 
