@@ -12,7 +12,7 @@ watchman:
 ```
 4. Restart Home Assistant again, go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `thewatchman_report.txt` file in your configuration directory.
 
-Refer to the [Configutation section](https://github.com/dummylabs/thewatchman#configuration) for the fine tuning.
+Refer to the [Configutation section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
 ## What does it do
 The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the app checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry. The report can be stored as a nice looking text table or it can be send via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below. 
