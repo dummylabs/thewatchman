@@ -175,7 +175,10 @@ def check_services(hass, config):
 
 def check_entitites(hass, config):
     """check if entries from config file are entities with an active state"""
-    ignored_states = config[DOMAIN].get(CONF_IGNORED_STATES, [])
+    ignored_states = [
+        "unavail" if s == "unavailable" else s
+        for s in config[DOMAIN].get(CONF_IGNORED_STATES, [])
+    ]
     ignored_items = config[DOMAIN].get(CONF_IGNORED_ITEMS, [])
     ignored_items = list(set(ignored_items + BUNDLED_IGNORED_ITEMS))
     if DOMAIN not in hass.data or "entity_list" not in hass.data[DOMAIN]:
