@@ -18,8 +18,9 @@ import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
-from homeassistant.helpers.event import track_point_in_utc_time
+from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.typing import HomeAssistantType
 
 from homeassistant.const import (
     EVENT_CORE_CONFIG_UPDATE,
@@ -85,12 +86,12 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-def setup(hass, config):
+async def async_setup(hass: HomeAssistantType, config: dict):
     """Set up is called when Home Assistant is loading our component."""
 
-    def notification(title, message, n_id="watchman"):
+    async def async_notification(title, message, n_id="watchman"):
         """Show a persistent notification"""
-        persistent_notification.create(
+        persistent_notification.async_create(
             hass,
             message,
             title=title,
@@ -107,30 +108,32 @@ def setup(hass, config):
             raise HomeAssistantError(f"Incorrect report_path: {path}.")
         return path
 
-    def report_to_file(hass, config, path):
+    async def async_report_to_file(hass, config, path):
         """ "save report to a file"""
-        delayed_refresh(0)
+        await async_delayed_refresh(0)
         report_chunks = report(hass, config, table_renderer, chunk_size=0)
 
         with open(path, "w", encoding="utf-8") as report_file:
             for chunk in report_chunks:
                 report_file.write(chunk)
 
-    def report_to_notification(hass, config, service_str, service_data, chunk_size):
+    async def async_report_to_notification(
+        hass, config, service_str, service_data, chunk_size
+    ):
         """send report via notification service"""
         if not service_str:
             service_str = config[DOMAIN].get(CONF_SERVICE_NAME, None)
             service_data = config[DOMAIN].get(CONF_SERVICE_DATA, {})
 
         if not service_str:
-            notification(
+            await async_notification(
                 "Watchman Error",
                 "You should specify `service` parameter (in configuration.yaml file or as `service` parameter) in order to send report via notification",
             )
             return
 
         if not is_service(hass, service_str):
-            notification(
+            await async_notification(
                 "Watchman Error",
                 f"{service_str} is not a valid service for notification",
             )
@@ -140,11 +143,14 @@ def setup(hass, config):
         if service_data is None:
             service_data = {}
 
-        delayed_refresh(0)
+        await async_delayed_refresh(0)
         report_chunks = report(hass, config, text_renderer, chunk_size)
         for chunk in report_chunks:
             service_data["message"] = chunk
-            if not hass.services.call(domain, service, service_data, blocking=True):
+            # blocking=True ensures execution order
+            if not await hass.services.async_call(
+                domain, service, service_data, blocking=True
+            ):
                 _LOGGER.error(
                     f"Unable to call service {domain}.{service} due to an error."
                 )
@@ -154,7 +160,7 @@ def setup(hass, config):
         service = service or config[DOMAIN].get(CONF_SERVICE_NAME, None)
         return not (service or os.path.exists(path))
 
-    def handle_report(call):
+    async def async_handle_report(call):
         """Handle the service call"""
 
         if call.data.get(CONF_PARSE_CONFIG, False):
@@ -167,7 +173,7 @@ def setup(hass, config):
             service = call.data.get(CONF_SERVICE_NAME, None)
             service_data = call.data.get(CONF_SERVICE_DATA, None)
             if onboarding(service, path):
-                notification(
+                await async_notification(
                     "🖖 Achievement unlocked: first report!",
                     f"Your first watchman report was stored in `{path}` \n\n "
                     "TIP: set `service` parameter in configuration.yaml file to "
@@ -175,10 +181,12 @@ def setup(hass, config):
                     "This is one-time message, it will not bother you in the future.",
                 )
             else:
-                report_to_notification(hass, config, service, service_data, chunk_size)
+                await async_report_to_notification(
+                    hass, config, service, service_data, chunk_size
+                )
 
         if call.data.get(CONF_CREATE_FILE, True):
-            report_to_file(hass, config, path)
+            await async_report_to_file(hass, config, path)
 
     def get_included_folders(config):
         """gather the list of folders to parse"""
@@ -210,7 +218,7 @@ def setup(hass, config):
             f"Configuration files parsed in {hass.data[DOMAIN]['parse_duration']:.2f}s. due to {reason}"
         )
 
-    def refresh_states(time_date):
+    async def async_refresh_states(time_date):
         # parse_config should be invoked beforehand
         start_time = time.time()
         services_missing = check_services(hass, config)
@@ -218,19 +226,19 @@ def setup(hass, config):
         hass.data[DOMAIN]["check_duration"] = time.time() - start_time
         hass.data[DOMAIN]["entities_missing"] = entities_missing
         hass.data[DOMAIN]["services_missing"] = services_missing
-        hass.states.set(
+        hass.states.async_set(
             SENSOR_MISSING_ENTITIES,
             len(entities_missing),
             {"unit_of_measurement": "items", "friendly_name": "Missing entities"},
             force_update=True,
         )
-        hass.states.set(
+        hass.states.async_set(
             SENSOR_MISSING_SERVICES,
             len(services_missing),
             {"unit_of_measurement": "items", "friendly_name": "Missing services"},
             force_update=True,
         )
-        hass.states.set(
+        hass.states.async_set(
             SENSOR_LAST_UPDATE,
             dt_util.now(),
             {
@@ -240,20 +248,20 @@ def setup(hass, config):
         )
         _LOGGER.info("Watchman sensors updated")
 
-    def delayed_refresh(delay):
+    async def async_delayed_refresh(delay):
         if delay == 0:
-            refresh_states(None)
+            await async_refresh_states(None)
         else:
             now = dt_util.utcnow()
             next_interval = now + timedelta(seconds=delay)
-            unsub = track_point_in_utc_time(hass, refresh_states, next_interval)
+            async_track_point_in_utc_time(hass, async_refresh_states, next_interval)
 
-    def on_home_assistant_started(event):
-        parse_config("HA restart")
+    async def async_on_home_assistant_started(event):
+        parse_config(reason="HA restart")
         startup_delay = config[DOMAIN].get(CONF_STARTUP_DELAY)
-        delayed_refresh(startup_delay)
+        await async_delayed_refresh(startup_delay)
 
-    def on_configuration_changed(event):
+    async def async_on_configuration_changed(event):
         typ = event.event_type
         if typ == EVENT_CALL_SERVICE:
             domain = event.data.get("domain", None)
@@ -263,7 +271,7 @@ def setup(hass, config):
                 "reload",
             ]:
                 parse_config("configuration changes")
-                delayed_refresh(0)
+                await async_delayed_refresh(0)
 
         elif typ in [
             EVENT_AUTOMATION_RELOADED,
@@ -271,33 +279,31 @@ def setup(hass, config):
             # EVENT_HOMEASSISTANT_STARTED,
         ]:
             parse_config("configuration changes")
-            delayed_refresh(0)
+            await async_delayed_refresh(0)
 
     if not DOMAIN in hass.data:
         hass.data[DOMAIN] = {}
 
-    hass.states.set(
+    hass.states.async_set(
         SENSOR_MISSING_ENTITIES,
         STATE_UNKNOWN,
         {"unit_of_measurement": "items", "friendly_name": "Missing entities"},
     )
-    hass.states.set(
+    hass.states.async_set(
         SENSOR_MISSING_SERVICES,
         STATE_UNKNOWN,
         {"unit_of_measurement": "items", "friendly_name": "Missing services"},
     )
-    hass.states.set(
+    hass.states.async_set(
         SENSOR_LAST_UPDATE,
         STATE_UNKNOWN,
         {"device_class": "timestamp", "friendly_name": "Watchman updated"},
     )
 
-    hass.bus.listen(EVENT_HOMEASSISTANT_STARTED, on_home_assistant_started)
-    hass.bus.listen(EVENT_CALL_SERVICE, on_configuration_changed)
-    hass.bus.listen(EVENT_AUTOMATION_RELOADED, on_configuration_changed)
-    hass.bus.listen(EVENT_SCENE_RELOADED, on_configuration_changed)
-
-    hass.services.register(DOMAIN, "report", handle_report)
-
+    hass.bus.async_listen(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+    hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
+    hass.bus.async_listen(EVENT_AUTOMATION_RELOADED, async_on_configuration_changed)
+    hass.bus.async_listen(EVENT_SCENE_RELOADED, async_on_configuration_changed)
+    hass.services.async_register(DOMAIN, "report", async_handle_report)
     # Return boolean to indicate that initialization was successful.
     return True
