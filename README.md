@@ -29,7 +29,7 @@ The integration has very simple internals, it knows nothing about complex relati
 Key | Required | Description | Default
 ------------ | ------------- | ------------- | -------------
 `service` | False | Home assistant notification service to sent report via, e.g. `notify.telegram`  | `None`
-`data` | False| A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-configurationyaml) below
+`data` | False| A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-configurationyaml) below | `None`
 `included_folders` | False | List of folders to scan for entities and services recursively | `["/config"]`
 `report_header` | False | Custom header for watchman report | `"-== Watchman Report ==-"`
 `report_path` | False | Report file location | `"/config/thewatchman_report.txt"`
