@@ -278,7 +278,7 @@ def report(hass, config, render, chunk_size):
 
     rep = f"{header} \n"
     if services_missing:
-        rep += f"\n-== Missing {len(services_missing)} service(-s) from "
+        rep += f"\n-== Missing {len(services_missing)} service(s) from "
         rep += f"{len(service_list)} found in your config:\n"
         rep += render(hass, config, "service_list")
         rep += "\n"
@@ -289,7 +289,7 @@ def report(hass, config, render, chunk_size):
         rep += "\n-== No services found in configuration files!\n"
 
     if entities_missing:
-        rep += f"\n-== Missing {len(entities_missing)} entity(-es) from "
+        rep += f"\n-== Missing {len(entities_missing)} entity(ies) from "
         rep += f"{len(entity_list)} found in your config:\n"
         rep += render(hass, config, "entity_list")
         rep += "\n"
