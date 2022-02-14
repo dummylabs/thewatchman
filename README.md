@@ -109,14 +109,14 @@ Please note that the ASCII table format is only used when report is saved to a f
 ```
 -== WATCHMAN REPORT ==-
 
--== Missing 1 service(-s) from 38 found in your config:
+-== Missing 1 service(s) from 38 found in your config:
 +--------------------------------+---------+------------------------------------------+
 | Service                        | State   | Location                                 |
 +--------------------------------+---------+------------------------------------------+
 | xiaomi_miio.vacuum_goto        | missing | automations.yaml:599,605                 |
 +--------------------------------+---------+------------------------------------------+
 
--== Missing 3 entity(-es) from 216 found in your config:
+-== Missing 3 entity(ies) from 216 found in your config:
 +--------------------------------+---------+------------------------------------------+
 | Entity                         | State   | Location                                 |
 +--------------------------------+---------+------------------------------------------+
