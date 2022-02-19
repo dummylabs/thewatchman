@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import voluptuous as vol
+from homeassistant.loader import async_get_integration
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
@@ -119,7 +120,14 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
     else:
         # first run, home assistant is loading
         # parse_config will be scheduled once HA is fully loaded
-        _LOGGER.info("Watchman started")
+        version = ""
+        try:
+            int_data = await async_get_integration(hass, DOMAIN)
+            version = int_data.version
+        except Exception:
+            pass
+
+        _LOGGER.info("Watchman started [%s]", version)
         await init_sensors(hass)
 
     return True
