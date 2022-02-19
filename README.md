@@ -8,11 +8,8 @@ The world around us is constantly changing and so is Home Assistant. How often h
 
 1. Go to the "Integrations" section on HACS, tap the three-dots menu in the upper right corner, go to "Custom repositories". Add new repository `dummylabs/thewatchman` with **Integration** category.
 2. Click the big blue button "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS".
-3. Restart Home Assistant and add `watchman` section to `configuration.yaml` file.
-```yaml
-watchman:
-```
-4. Restart Home Assistant again, go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `thewatchman_report.txt` file in your configuration directory.
+3. Restart Home Assistant, go to Configuration->Devices and Services->Add Integration and select watchman integration.
+4. Go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `watchman_report.txt` file in your configuration directory.
 
 Refer to the [Configutation section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
@@ -24,15 +21,19 @@ The integration has very simple internals, it knows nothing about complex relati
 
 ## Configuration
 
+### Migration from previous versions of watchman
+Starting from version 0.4.0 watchman supports both configuration.yaml and UI settings. The `watchman` entry from `configuration.yaml` will be automatically imported to UI settings upon the first run of version 0.4.0 or newer. Further changes to `configuration.yaml` will be ignored unless the integration was removed and Home Assistant was restarted afterwards.
+UI settings are available in Configuration->Devices and Services section of Home Assistant.
+
 ### Options:
 
-Key | Required | Description | Default
+yaml key | Required | Description | Default
 ------------ | ------------- | ------------- | -------------
 `service` | False | Home assistant notification service to sent report via, e.g. `notify.telegram`  | `None`
 `data` | False| A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-configurationyaml) below | `None`
 `included_folders` | False | List of folders to scan for entities and services recursively | `["/config"]`
 `report_header` | False | Custom header for watchman report | `"-== Watchman Report ==-"`
-`report_path` | False | Report file location | `"/config/thewatchman_report.txt"`
+`report_path` | False | Report file location | `"/config/watchman_report.txt"`
 `ignored_items` | False | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Configuration example](https://github.com/dummylabs/thewatchman#configuration-example) below. | `None`
 `ignored_states` | False | List of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
 `chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
@@ -43,7 +44,7 @@ Key | Required | Description | Default
 `friendly_names` | False | Add friendly names to the report whenever possible | `False`
 
 
-### Configuration example
+### yaml configuration example
 
 ```yaml
 watchman:
@@ -72,13 +73,13 @@ The report can be created by calling `watchman.report` service from Developer To
 If no parameters were set, the service will both create a text report and send a notification. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional parameters:
 
  - `create_file` (optional, default=true)
- - `send_notification` (optional, default=true)
- - `service` (optional, overrides eponymous parameter from `configuration.yaml`)
- - `data`(optional, overrides eponymous parameter from `configuration.yaml`)
+ - `send_notification` (optional, default=false)
+ - `service` (optional, overrides eponymous parameter from integration settings)
+ - `data`(optional, overrides eponymous parameter from integration settings)
  - `parse_config` (optional, default=false)
- - `chunk_size` (optional, default is 3500 or whatever specified in `configuration.yaml`)
+ - `chunk_size` (optional, default is 3500 or whatever specified in integration settings)
 
-If `create_file` or `send_notification` flags were not set, they are `true` by default. The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides settings from `configuration.yaml` file.
+If `create_file` or `send_notification` flags were not set, they are `true` by default. The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides integration settings.
 
 `parse_config` forces watchman to parse Home Assistant configuration files and rebuild entity and services list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration.
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#advanced-usage-examples) section at the bottom of this document.
