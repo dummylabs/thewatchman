@@ -26,22 +26,23 @@ Starting from version 0.4.0 watchman supports both `configuration.yaml` and UI s
 UI settings are available in Configuration->Devices and Services section of Home Assistant.
 
 ### Options:
+All settings are available as UI options thus it is not required to have `watchman` entry in `configuration.yaml` to use integration.
 
-yaml key | Required | Description | Default
------------- | ------------- | ------------- | -------------
-`service` | False | Home assistant notification service to sent report via, e.g. `notify.telegram`  | `None`
-`data` | False| A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-configurationyaml) below | `None`
-`included_folders` | False | List of folders to scan for entities and services recursively | `["/config"]`
-`report_header` | False | Custom header for watchman report | `"-== Watchman Report ==-"`
-`report_path` | False | Report file location | `"/config/watchman_report.txt"`
-`ignored_items` | False | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Configuration example](https://github.com/dummylabs/thewatchman#configuration-example) below. | `None`
-`ignored_states` | False | List of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
-`chunk_size` | False | Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. This key allows to set average size of a message in bytes. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
-`ignored_files` | False | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/thewatchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
-`check_lovelace` | False | Parse Lovelace UI configuration data stored in `.storage` folder (experimental) | `False`
-`columns_width` | False | The list of column widths for text version of the report | `[30, 7, 60]`
-`startup_delay` | False | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
-`friendly_names` | False | Add friendly names to the report whenever possible | `False`
+yaml key | Description | Default
+------------ | ------------- | -------------
+`service` | Home assistant notification service to sent report via, e.g. `notify.telegram`  | `None`
+`data` | A yaml dictionary with additional notification service parameters, see [Advanced usage examples](https://github.com/dummylabs/thewatchman#additional-notification-service-parameters-in-configurationyaml) below | `None`
+`included_folders` | List of folders to scan for entities and services recursively | `["/config"]`
+`report_header` | Custom header for watchman report | `"-== Watchman Report ==-"`
+`report_path` | Report file location | `"/config/watchman_report.txt"`
+`ignored_items` | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Configuration example](https://github.com/dummylabs/thewatchman#configuration-example) below. | `None`
+`ignored_states` | List of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
+`chunk_size` | Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
+`ignored_files` | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/thewatchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
+`check_lovelace` | Parse Lovelace UI configuration data stored in `.storage` folder (experimental) | `False`
+`columns_width` | Report's columns width. The list of column widths for the table version of the report | `[30, 7, 60]`
+`startup_delay` | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
+`friendly_names` | Add friendly names to the report whenever possible | `False`
 
 
 ### yaml configuration example
