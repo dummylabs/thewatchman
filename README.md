@@ -22,7 +22,7 @@ The integration has very simple internals, it knows nothing about complex relati
 ## Configuration
 
 ### Migration from previous versions of watchman
-Starting from version 0.4.0 watchman supports both configuration.yaml and UI settings. The `watchman` entry from `configuration.yaml` will be automatically imported to UI settings upon the first run of version 0.4.0 or newer. Further changes to `configuration.yaml` will be ignored unless the integration was removed and Home Assistant was restarted afterwards.
+Starting from version 0.4.0 watchman supports both `configuration.yaml` and UI settings. The `watchman` entry from `configuration.yaml` will be automatically imported to UI settings upon the first run of version 0.4.0 or newer. Further changes to `configuration.yaml` will be ignored unless the integration was removed and Home Assistant was restarted afterwards.
 UI settings are available in Configuration->Devices and Services section of Home Assistant.
 
 ### Options:
