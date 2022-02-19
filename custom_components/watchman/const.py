@@ -1,7 +1,9 @@
 DOMAIN = "watchman"
+DOMAIN_DATA = "watchman_data"
 
 DEFAULT_REPORT_FILENAME = "thewatchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
+DEFAULT_CHUNK_SIZE = 3500
 
 CONF_IGNORED_FILES = "ignored_files"
 CONF_HEADER = "report_header"
@@ -9,16 +11,19 @@ CONF_REPORT_PATH = "report_path"
 CONF_IGNORED_ITEMS = "ignored_items"
 CONF_SERVICE_NAME = "service"
 CONF_SERVICE_DATA = "data"
+CONF_SERVICE_DATA2 = "service_data"
 CONF_INCLUDED_FOLDERS = "included_folders"
 CONF_CHECK_LOVELACE = "check_lovelace"
 CONF_IGNORED_STATES = "ignored_states"
 CONF_CHUNK_SIZE = "chunk_size"
 CONF_CREATE_FILE = "create_file"
-CONF_SEND_NITIFICATION = "send_notification"
+CONF_SEND_NOTIFICATION = "send_notification"
 CONF_PARSE_CONFIG = "parse_config"
 CONF_COLUMNS_WIDTH = "columns_width"
 CONF_STARTUP_DELAY = "startup_delay"
 CONF_FRIENDLY_NAMES = "friendly_names"
+#configuration parameters allowed in watchman.report service data
+CONF_ALLOWED_SERVICE_PARAMS = [CONF_SERVICE_NAME, CONF_CHUNK_SIZE, CONF_CREATE_FILE, CONF_SEND_NOTIFICATION, CONF_PARSE_CONFIG, CONF_SERVICE_DATA]
 
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"

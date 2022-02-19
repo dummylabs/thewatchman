@@ -5,7 +5,7 @@ report:
       description: Whether report file should be created (optional, true by default)
       example: true
     send_notification:
-      description: Whether report should be sent via notification service (optional, true by default)
+      description: Whether report should be sent via notification service (optional, false by default)
       example: true
     service:
       description: Notification service to send report via (optional). Overrides "service" setting from watchman configuration
@@ -14,5 +14,5 @@ report:
       description: Additional data in form of key:value pairs for notification service (optional)
       example: "parse_mode: html"
     parse_config:
-      description: Forces reparsing of Home Assistant configuration files. Usually this is not required (optional, false by default)
+      description: Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required. (optional, false by default)
       example: true

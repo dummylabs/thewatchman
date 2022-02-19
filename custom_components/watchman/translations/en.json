@@ -1,0 +1,37 @@
+{
+    "config": {
+        "abort": {
+            "single_instance_allowed": "Only one instance of watchman is allowed"
+        }
+    },
+    "options": {
+        "error": {
+            "invalid_included_folders": "included_folders should be a comma separated list of configuration folders",
+            "invalid_columns_width": "columns_width should be a list of 3 positive integers",
+            "wrong_value_ignored_states": "Accepted values are: 'unavailable', 'missing' and 'unknown'",
+            "malformed_json": "service data should be a valid json dictionary",
+            "unknown_service": "unknown service: `{service}`"
+        },
+        "step": {
+            "init": {
+                "title": "Watchman settings",
+                "data": {
+                    "service": "Notification service",
+                    "service_data": "Notification service data (JSON)",
+                    "included_folders": "Included folders (comma-separated)",
+                    "report_header": "Custom header for the report",
+                    "report_path": "Report location",
+                    "ignored_items": "Ignored entities and services (comma-separated)",
+                    "ignored_states": "Igored entity states (comma-separated)",
+                    "chunk_size": "Maximum message size in bytes",
+                    "ignored_files": "Ignored files (comma-separated)",
+                    "check_lovelace": "Add lovelace UI configuration to report",
+                    "columns_width": "Report's columns width (comma-separated)",
+                    "startup_delay": "Startup delay for sensors initialization",
+                    "friendly_names": "Add friendly names to the report"
+                },
+                "description": "[Help on settings](https://github.com/dummylabs/thewatchman#configuration)"
+            }
+        }
+    }
+}
