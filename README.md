@@ -1,4 +1,6 @@
 # The Watchman
+[![GitHub Release][releases-shield]][releases]
+[![hacs][hacs-shield]][hacs]
 
 The world around us is constantly changing and so is Home Assistant. How often have you found yourself in a situation when your automations had stopped working because some entities become permanently unavailable or services changed their names? For example, Home Assistant companion app can easily change the name of its services and sensors it exposes to Home Assistant if you changed the device name in the app configuration. The watchman is an attempt to control such unwelcome changes and make you able to react proactively, before some critical automation gets broken.
 
@@ -6,10 +8,9 @@ The world around us is constantly changing and so is Home Assistant. How often h
 
 ## Quick start
 
-1. Go to the "Integrations" section on HACS, tap the three-dots menu in the upper right corner, go to "Custom repositories". Add new repository `dummylabs/thewatchman` with **Integration** category.
-2. Click the big blue button "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS".
-3. Restart Home Assistant, go to Configuration->Devices and Services->Add Integration and select watchman integration.
-4. Go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `watchman_report.txt` file in your configuration directory.
+1. Go to the "Integrations" section on HACS, click "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS".
+2. Restart Home Assistant, go to Configuration->Devices and Services->Add Integration and select watchman integration.
+3. Go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `watchman_report.txt` file in your configuration directory.
 
 Refer to the [Configutation section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
