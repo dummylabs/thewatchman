@@ -53,6 +53,7 @@ from .const import (
     CONF_STARTUP_DELAY,
     CONF_FRIENDLY_NAMES,
     CONF_ALLOWED_SERVICE_PARAMS,
+    CONF_TEST_MODE,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
     SENSOR_LAST_UPDATE,
@@ -108,6 +109,7 @@ async def async_setup(hass: HomeAssistantType, config: dict):
 async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
     """Set up this integration using UI"""
     _LOGGER.debug(entry.options)
+    _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN_DATA] = entry.options
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -170,6 +172,7 @@ async def add_services(hass: HomeAssistant):
         path = get_report_path(config.get(CONF_REPORT_PATH, None))
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
         create_file = call.data.get(CONF_CREATE_FILE, True)
+        test_mode = call.data.get(CONF_TEST_MODE, False)
         # validate service params
         for param in call.data:
             if param not in CONF_ALLOWED_SERVICE_PARAMS:
@@ -201,7 +204,7 @@ async def add_services(hass: HomeAssistant):
                 )
 
         if create_file:
-            await async_report_to_file(hass, path)
+            await async_report_to_file(hass, path, test_mode=test_mode)
 
     hass.services.async_register(DOMAIN, "report", async_handle_report)
 
@@ -294,10 +297,10 @@ def get_included_folders(hass):
 
     return folders
 
-async def async_report_to_file(hass, path):
+async def async_report_to_file(hass, path, test_mode):
     """save report to a file"""
     await refresh_states(hass)
-    report_chunks = report(hass, table_renderer, chunk_size=0)
+    report_chunks = report(hass, table_renderer, chunk_size=0, test_mode=test_mode)
 
     with open(path, "w", encoding="utf-8") as report_file:
         for chunk in report_chunks:

@@ -8,6 +8,7 @@ from datetime import datetime
 from textwrap import wrap
 import os
 import pytz
+from typing import Any
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
@@ -27,6 +28,26 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+async def read_file(hass: HomeAssistant, path: str) -> Any:
+    """Read a file."""
+
+    def read():
+        with open(hass.config.path(path), "r") as open_file:
+            return open_file.read()
+
+    return await hass.async_add_executor_job(read)
+
+async def write_file(
+    hass: HomeAssistant, path: str, content: Any
+) -> None:
+    """Write a file."""
+
+    def write():
+        with open(hass.config.path(path), "w") as open_file:
+            open_file.write(content)
+
+    await hass.async_add_executor_job(write)
 
 def get_config(hass: HomeAssistant, key, default):
     """get configuration value"""
@@ -127,6 +148,7 @@ def get_next_file(folder_list, ignored_files, logger):
 
 def add_entry(_list, entry, yaml_file, lineno):
     """Add entry to list of missing entities/services with line number information"""
+    _LOGGER.debug("Added %s to the list", entry)
     if entry in _list:
         if yaml_file in _list[entry]:
             _list[entry].get(yaml_file, []).append(lineno)
@@ -222,8 +244,6 @@ def check_entitites(hass):
 
 def parse(folders, ignored_files, root=None, logger=None):
     """Parse a yaml or json file for entities/services"""
-    if logger:
-        logger.log(f"::parse:: ignored_files={ignored_files}")
     files_parsed = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?"
@@ -237,7 +257,7 @@ def parse(folders, ignored_files, root=None, logger=None):
     entity_list = {}
     service_list = {}
     effectively_ignored = []
-    _LOGGER.debug("::parse")
+    _LOGGER.debug("::parse started")
     for yaml_file, ignored in get_next_file(folders, ignored_files, logger):
         short_path = os.path.relpath(yaml_file, root)
         if ignored:
@@ -248,6 +268,7 @@ def parse(folders, ignored_files, root=None, logger=None):
         _LOGGER.debug("%s parsed", yaml_file)
         for i, line in enumerate(open(yaml_file, encoding="utf-8")):
             line = re.sub(comment_pattern, "", line)
+            _LOGGER.debug("line: %s", line)
             for match in re.finditer(entity_pattern, line):
                 typ, val = match.group(1), match.group(2)
                 if typ != "service:" and "*" not in val and not val.endswith(".yaml"):
@@ -258,6 +279,8 @@ def parse(folders, ignored_files, root=None, logger=None):
 
     _LOGGER.debug("Parsed files: %s", files_parsed)
     _LOGGER.debug("Ignored files: %s", effectively_ignored)
+    _LOGGER.debug("Found entities: %s", len(entity_list))
+    _LOGGER.debug("Found services: %s", len(service_list))
     return (entity_list, service_list, files_parsed, len(effectively_ignored))
 
 
@@ -272,7 +295,7 @@ def fill(t, width, extra=None):
     return "\n".join([s.ljust(width) for s in wrap(s, width)]) if width > 0 else s
 
 
-def report(hass, render, chunk_size):
+def report(hass, render, chunk_size, test_mode=False):
     """generates watchman report either as a table or as a list"""
     if not DOMAIN in hass.data:
         raise HomeAssistantError("No data for report, refresh required.")
@@ -285,8 +308,6 @@ def report(hass, render, chunk_size):
     entity_list = hass.data[DOMAIN]["entity_list"]
     files_parsed = hass.data[DOMAIN]["files_parsed"]
     files_ignored = hass.data[DOMAIN]["files_ignored"]
-    parse_duration = hass.data[DOMAIN]["parse_duration"]
-    check_duration = hass.data[DOMAIN]["check_duration"]
     chunk_size = get_config(hass, CONF_CHUNK_SIZE, DEFAULT_CHUNK_SIZE) \
         if chunk_size is None else chunk_size
 
@@ -314,9 +335,21 @@ def report(hass, render, chunk_size):
     else:
         rep += "\n-== No entities found in configuration files!\n"
     tz = pytz.timezone(hass.config.time_zone)
-    rep += f"\n-== Report created on {datetime.now(tz).strftime('%d %b %Y %H:%M:%S')}\n"
+
+    if not test_mode:
+        report_datetime = datetime.now(tz).strftime('%d %b %Y %H:%M:%S')
+        parse_duration = hass.data[DOMAIN]["parse_duration"]
+        check_duration = hass.data[DOMAIN]["check_duration"]
+        render_duration = (time.time()-start_time)
+    else:
+        report_datetime = "01 Jan 1970 00:00:00"
+        parse_duration = 0.01
+        check_duration = 0.105
+        render_duration = 0.0003
+
+    rep += f"\n-== Report created on {report_datetime}\n"
     rep += f"-== Parsed {files_parsed} files in {parse_duration:.2f}s., ignored {files_ignored} files \n"
-    rep += f"-== Generated in: {(time.time()-start_time):.2f}s. Validated in: {check_duration:.2f}s."
+    rep += f"-== Generated in: {render_duration:.2f}s. Validated in: {check_duration:.2f}s."
     report_chunks = []
     chunk = ""
     for line in iter(rep.splitlines()):
