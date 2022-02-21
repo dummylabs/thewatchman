@@ -48,6 +48,8 @@ yaml key | Description | Default
 
 ### yaml configuration example
 
+Not required, starting from 0.4.0 all integration settings can be managed from UI options.
+
 ```yaml
 watchman:
   ignored_files:
@@ -137,7 +139,11 @@ The legend at the bottom of the report shows time consumed by 3 coherent stages:
 ## Advanced usage examples
 
 ### Additional notification service parameters in configuration.yaml
-Notification service can be specified in extended format along with additional service parameters.
+Notification service name can be specified in integration options along with additional service parameters.
+#### UI configuration example
+![service data example](./images/service_data_ui.png)
+
+#### yaml example
 ```yaml
 watchman:
   service: telegram_bot.send_message
@@ -146,7 +152,7 @@ watchman:
     parse_mode: html
 ```
 
-### Additional notification service parameters in Watchman: report service
+### Additional notification service parameters in Watchman:report service
 You can use an arbitrary notification service with `watchman.report` service. Service paramaters takes precedence over eponymous settings in `configuration.yaml`.
 ```yaml
 service: watchman.report
@@ -174,12 +180,17 @@ homeassistant:
 ```
 
 ### Exclude specific file or folder from the report
-Specific files or even whole folders can be excluded from the report using wildcards, see example below. Wildcards in configuration file should be enclosed in quotes. This is more powerful alternative to `excluded_folders` parameter which will be deprecated in the future.
+Specific files or even whole folders can be excluded from the report using wildcards, see example below. Wildcards in configuration file should be enclosed in quotes.
+
+#### UI configuration example
+![ignored files example](./images/ignored_files_ui.png)
+
+#### yaml example
 ```yaml
 watchman:
   ignored_files:
     # wildcards must be enclosed in quotes!
-    - "*.yaml" # exclude all yaml files from the report
+    - "*.yaml" # exclude all yaml files from the report (useless)
     - "/config/entities/*" # exclude all files in /config/entities
     - "*/automations.yaml" # exclude automations.yaml file only
 ```
