@@ -7,8 +7,8 @@ import logging
 from datetime import datetime
 from textwrap import wrap
 import os
-import pytz
 from typing import Any
+import pytz
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
@@ -33,7 +33,7 @@ async def read_file(hass: HomeAssistant, path: str) -> Any:
     """Read a file."""
 
     def read():
-        with open(hass.config.path(path), "r") as open_file:
+        with open(hass.config.path(path), "r", encoding="utf-8") as open_file:
             return open_file.read()
 
     return await hass.async_add_executor_job(read)
@@ -44,7 +44,7 @@ async def write_file(
     """Write a file."""
 
     def write():
-        with open(hass.config.path(path), "w") as open_file:
+        with open(hass.config.path(path), "w", encoding="utf-8") as open_file:
             open_file.write(content)
 
     await hass.async_add_executor_job(write)
@@ -73,17 +73,17 @@ def get_columns_width(user_width):
 def table_renderer(hass, entry_type):
     """Render ASCII tables in the report"""
     table = PrettyTable()
-    cw = get_config(hass, CONF_COLUMNS_WIDTH, None)
-    cw = get_columns_width(cw)
+    columns_width = get_config(hass, CONF_COLUMNS_WIDTH, None)
+    columns_width = get_columns_width(columns_width)
     if entry_type == "service_list":
         services_missing = hass.data[DOMAIN]["services_missing"]
         service_list = hass.data[DOMAIN]["service_list"]
         table.field_names = ["Service ID", "State", "Location"]
         for service in services_missing:
             row = [
-                fill(service, cw[0]),
-                fill("missing", cw[1]),
-                fill(service_list[service], cw[2]),
+                fill(service, columns_width[0]),
+                fill("missing", columns_width[1]),
+                fill(service_list[service], columns_width[2]),
             ]
             table.add_row(row)
         table.align = "l"
@@ -98,9 +98,9 @@ def table_renderer(hass, entry_type):
             state, name = get_entity_state(hass, entity, friendly_names)
             table.add_row(
                 [
-                    fill(entity, cw[0], name),
-                    fill(state, cw[1]),
-                    fill(entity_list[entity], cw[2]),
+                    fill(entity, columns_width[0], name),
+                    fill(state, columns_width[1]),
+                    fill(entity_list[entity], columns_width[2]),
                 ]
             )
 
@@ -134,7 +134,7 @@ def text_renderer(hass, entry_type):
         return f"Text render error: unknown entry type: {entry_type}"
 
 
-def get_next_file(folder_list, ignored_files, logger):
+def get_next_file(folder_list, ignored_files):
     """Returns next file for scan"""
     if not ignored_files:
         ignored_files = ""
@@ -242,7 +242,7 @@ def check_entitites(hass):
     return entities_missing
 
 
-def parse(folders, ignored_files, root=None, logger=None):
+def parse(folders, ignored_files, root=None):
     """Parse a yaml or json file for entities/services"""
     files_parsed = 0
     entity_pattern = re.compile(
@@ -258,7 +258,7 @@ def parse(folders, ignored_files, root=None, logger=None):
     service_list = {}
     effectively_ignored = []
     _LOGGER.debug("::parse started")
-    for yaml_file, ignored in get_next_file(folders, ignored_files, logger):
+    for yaml_file, ignored in get_next_file(folders, ignored_files):
         short_path = os.path.relpath(yaml_file, root)
         if ignored:
             effectively_ignored.append(short_path)
@@ -283,15 +283,15 @@ def parse(folders, ignored_files, root=None, logger=None):
     return (entity_list, service_list, files_parsed, len(effectively_ignored))
 
 
-def fill(t, width, extra=None):
+def fill(data, width, extra=None):
     """arrange data by table column width"""
-    if t and isinstance(t, dict):
-        key, val = next(iter(t.items()))
-        s = f"{key}:{','.join([str(v) for v in val])}"
+    if data and isinstance(data, dict):
+        key, val = next(iter(data.items()))
+        out = f"{key}:{','.join([str(v) for v in val])}"
     else:
-        s = str(t) if not extra else f"{t} ('{extra}')"
+        out = str(data) if not extra else f"{data} ('{extra}')"
 
-    return "\n".join([s.ljust(width) for s in wrap(s, width)]) if width > 0 else s
+    return "\n".join([out.ljust(width) for out in wrap(out, width)]) if width > 0 else out
 
 
 def report(hass, render, chunk_size, test_mode=False):
@@ -333,10 +333,10 @@ def report(hass, render, chunk_size, test_mode=False):
         rep += "your config are available!\n"
     else:
         rep += "\n-== No entities found in configuration files!\n"
-    tz = pytz.timezone(hass.config.time_zone)
+    timezone = pytz.timezone(hass.config.time_zone)
 
     if not test_mode:
-        report_datetime = datetime.now(tz).strftime('%d %b %Y %H:%M:%S')
+        report_datetime = datetime.now(timezone).strftime('%d %b %Y %H:%M:%S')
         parse_duration = hass.data[DOMAIN]["parse_duration"]
         check_duration = hass.data[DOMAIN]["check_duration"]
         render_duration = (time.time()-start_time)
@@ -347,7 +347,8 @@ def report(hass, render, chunk_size, test_mode=False):
         render_duration = 0.0003
 
     rep += f"\n-== Report created on {report_datetime}\n"
-    rep += f"-== Parsed {files_parsed} files in {parse_duration:.2f}s., ignored {files_ignored} files \n"
+    rep += f"-== Parsed {files_parsed} files in {parse_duration:.2f}s., "\
+    f"ignored {files_ignored} files \n"
     rep += f"-== Generated in: {render_duration:.2f}s. Validated in: {check_duration:.2f}s."
     report_chunks = []
     chunk = ""

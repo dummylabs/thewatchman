@@ -1,19 +1,22 @@
 """Test table reports"""
 import os.path
 import asyncio
-from homeassistant.exceptions import ConfigEntryNotReady
-import pytest
-from homeassistant.setup import async_setup_component
-from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry, assert_setup_component
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.watchman import (
     async_setup_entry,
-    async_unload_entry,
 )
-from custom_components.watchman.const import CONF_COLUMNS_WIDTH, CONF_IGNORED_STATES, CONF_REPORT_PATH, DOMAIN, DOMAIN_DATA, CONF_INCLUDED_FOLDERS, CONF_IGNORED_FILES
+from custom_components.watchman.const import (
+    CONF_IGNORED_STATES,
+    DOMAIN,
+    CONF_INCLUDED_FOLDERS,
+    CONF_IGNORED_FILES,
+    CONF_REPORT_PATH,
+    CONF_COLUMNS_WIDTH
+)
 from custom_components.watchman.config_flow import DEFAULT_DATA
 
 async def test_table_default(hass, tmpdir):
+    """test table rendering"""
     options = DEFAULT_DATA
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = []
@@ -32,9 +35,11 @@ async def test_table_default(hass, tmpdir):
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
     while not os.path.exists(test_report):
         await asyncio.sleep(0.1)
-    assert [row for row in open(test_report)] == [row for row in open(base_report)]
+    assert [row for row in open(test_report, encoding="utf-8")] ==\
+        [row for row in open(base_report, encoding="utf-8")]
 
 async def test_table_no_missing(hass, tmpdir):
+    """test table rendering with no missing elements"""
     options = DEFAULT_DATA
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = ["missing"]
@@ -53,9 +58,11 @@ async def test_table_no_missing(hass, tmpdir):
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
     while not os.path.exists(test_report):
         await asyncio.sleep(0.1)
-    assert [row for row in open(test_report)] == [row for row in open(base_report)]
+    assert [row for row in open(test_report, encoding="utf-8")] ==\
+        [row for row in open(base_report, encoding="utf-8")]
 
 async def test_table_all_clear(hass, tmpdir):
+    """test table rendering with no entries"""
     options = DEFAULT_DATA
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = ["missing","unknown","unavailable"]
@@ -74,9 +81,11 @@ async def test_table_all_clear(hass, tmpdir):
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
     while not os.path.exists(test_report):
         await asyncio.sleep(0.1)
-    assert [row for row in open(test_report)] == [row for row in open(base_report)]
+    assert [row for row in open(test_report, encoding="utf-8")] ==\
+        [row for row in open(base_report, encoding="utf-8")]
 
 async def test_column_resize(hass, tmpdir):
+    """test table rendering with narrow columns"""
     options = DEFAULT_DATA
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = []
@@ -96,4 +105,5 @@ async def test_column_resize(hass, tmpdir):
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
     while not os.path.exists(test_report):
         await asyncio.sleep(0.1)
-    assert [row for row in open(test_report)] == [row for row in open(base_report)]
+    assert [row for row in open(test_report, encoding="utf-8")] ==\
+        [row for row in open(base_report, encoding="utf-8")]

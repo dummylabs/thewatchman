@@ -1,12 +1,12 @@
-from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
-from homeassistant.helpers import config_validation as cv
-import voluptuous as vol
-from homeassistant.core import callback
+"ConfigFlow definition for watchman"
 from typing import Dict
 import json
 from json.decoder import JSONDecodeError
 import logging
-
+from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
+from homeassistant.core import callback
+from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 from .utils import is_service, get_columns_width
 
 from .const import (
@@ -26,8 +26,6 @@ from .const import (
     CONF_STARTUP_DELAY,
     CONF_FRIENDLY_NAMES
 )
-
-
 
 DEFAULT_DATA = {
     CONF_SERVICE_NAME: "",
@@ -86,7 +84,6 @@ class OptionsFlowHandler(OptionsFlow):
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         self.config_entry = config_entry
-
 
     def default(self, key, uinput=None):
         """provide default value for an OptionsFlow field"""
