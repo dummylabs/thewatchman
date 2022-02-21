@@ -145,6 +145,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):
     if hass.services.has_service(DOMAIN, "report"):
         hass.services.async_remove(DOMAIN, "report")
 
+    for sensor in [SENSOR_LAST_UPDATE, SENSOR_MISSING_ENTITIES, SENSOR_MISSING_SERVICES]:
+        if hass.states.get(sensor):
+            hass.states.async_remove(sensor)
+
     for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
         if cancel_handle:
             cancel_handle()
