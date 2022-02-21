@@ -268,7 +268,6 @@ def parse(folders, ignored_files, root=None, logger=None):
         _LOGGER.debug("%s parsed", yaml_file)
         for i, line in enumerate(open(yaml_file, encoding="utf-8")):
             line = re.sub(comment_pattern, "", line)
-            _LOGGER.debug("line: %s", line)
             for match in re.finditer(entity_pattern, line):
                 typ, val = match.group(1), match.group(2)
                 if typ != "service:" and "*" not in val and not val.endswith(".yaml"):
