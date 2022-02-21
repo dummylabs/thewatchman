@@ -1,6 +1,7 @@
 # The Watchman
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 ![version](https://img.shields.io/github/v/release/dummylabs/thewatchman)
+[![Community Forum][forum-shield]][forum]
 
 The world around us is constantly changing and so is Home Assistant. How often have you found yourself in a situation when your automations had stopped working because some entities become permanently unavailable or services changed their names? For example, Home Assistant companion app can easily change the name of its services and sensors it exposes to Home Assistant if you changed the device name in the app configuration. The watchman is an attempt to control such unwelcome changes and make you able to react proactively, before some critical automation gets broken.
 
@@ -194,3 +195,6 @@ watchman:
     - "/config/entities/*" # exclude all files in /config/entities
     - "*/automations.yaml" # exclude automations.yaml file only
 ```
+
+[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
+[forum]: https://community.home-assistant.io/t/watchman-keeps-track-of-missing-entities-and-services-in-your-config-files/390391
