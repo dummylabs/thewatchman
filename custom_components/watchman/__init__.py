@@ -27,7 +27,9 @@ from .utils import (
     parse,
     table_renderer,
     text_renderer,
-    get_config
+    get_config,
+    fill,
+    get_entity_state
 )
 
 from .const import (
@@ -369,16 +371,39 @@ async def refresh_states(hass):
     hass.data[DOMAIN]["check_duration"] = time.time() - start_time
     hass.data[DOMAIN]["entities_missing"] = entities_missing
     hass.data[DOMAIN]["services_missing"] = services_missing
+
+    entity_attrs = []
+    entity_list = hass.data[DOMAIN]["entity_list"]
+    for entity in entities_missing:
+        state, name = get_entity_state(hass, entity, friendly_names=True)
+        entity_attrs.append({
+            "id": entity,
+            "state": state,
+            "friendly_name": name or "",
+            "occurrences": fill(entity_list[entity], 0)
+            }
+        )
+
     hass.states.async_set(
         SENSOR_MISSING_ENTITIES,
         len(entities_missing),
-        {"unit_of_measurement": "items", "friendly_name": "Missing entities"},
+        {"unit_of_measurement": "items", "friendly_name": "Missing entities", "entities": entity_attrs},
         force_update=True,
     )
+
+    service_attrs = []
+    service_list = hass.data[DOMAIN]["service_list"]
+    for service in services_missing:
+        service_attrs.append({
+            "id": service,
+            "occurrences": fill(service_list[service], 0)
+            }
+        )
+
     hass.states.async_set(
         SENSOR_MISSING_SERVICES,
         len(services_missing),
-        {"unit_of_measurement": "items", "friendly_name": "Missing services"},
+        {"unit_of_measurement": "items", "friendly_name": "Missing services", "services": service_attrs},
         force_update=True,
     )
     hass.states.async_set(
