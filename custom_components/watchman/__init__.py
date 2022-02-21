@@ -15,6 +15,9 @@ from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
 from homeassistant.core import HomeAssistant
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
+    EVENT_SERVICE_REGISTERED,
+    EVENT_SERVICE_REMOVED,
+    EVENT_STATE_CHANGED,
     EVENT_CALL_SERVICE,
     STATE_UNKNOWN,
 )
@@ -142,16 +145,16 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, config_entry):
     """Handle integration unload"""
+    for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
+        if cancel_handle:
+            cancel_handle()
+
     if hass.services.has_service(DOMAIN, "report"):
         hass.services.async_remove(DOMAIN, "report")
 
     for sensor in [SENSOR_LAST_UPDATE, SENSOR_MISSING_ENTITIES, SENSOR_MISSING_SERVICES]:
         if hass.states.get(sensor):
             hass.states.async_remove(sensor)
-
-    for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
-        if cancel_handle:
-            cancel_handle()
 
     if DOMAIN_DATA in hass.data:
         hass.data.pop(DOMAIN_DATA)
@@ -252,6 +255,18 @@ async def add_event_handlers(hass: HomeAssistant):
             parse_config(hass, "configuration changes")
             await refresh_states(hass)
 
+    async def async_on_service_changed(event):
+        service = f"{event.data['domain']}.{event.data['service']}"
+        if service in hass.data[DOMAIN].get("service_list", []):
+            _LOGGER.debug("Monitored service changed: %s", service)
+            await refresh_states(hass)
+
+
+    async def async_on_state_changed(event):
+        if event.data["entity_id"] in hass.data[DOMAIN].get("entity_list", []):
+            _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
+            await refresh_states(hass)
+
     ch = []
 
     # hass is not started yet, schedule config parsing once it loaded
@@ -261,6 +276,9 @@ async def add_event_handlers(hass: HomeAssistant):
     ch.append(hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed))
     ch.append(hass.bus.async_listen(EVENT_AUTOMATION_RELOADED, async_on_configuration_changed))
     ch.append(hass.bus.async_listen(EVENT_SCENE_RELOADED, async_on_configuration_changed))
+    ch.append(hass.bus.async_listen(EVENT_SERVICE_REGISTERED, async_on_service_changed))
+    ch.append(hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed))
+    ch.append(hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed))
     hass.data[DOMAIN]["cancel_handlers"] = ch
 
 def parse_config(hass: HomeAssistant, reason=None):
@@ -419,7 +437,7 @@ async def refresh_states(hass):
         },
     )
     _LOGGER.info("Watchman sensors updated")
-    _LOGGER.debug("entities issing: %s",len(entities_missing))
+    _LOGGER.debug("entities missing: %s",len(entities_missing))
     _LOGGER.debug("services missing: %s", len(services_missing))
 
 async def init_sensors(hass):
