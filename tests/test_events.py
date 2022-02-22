@@ -1,4 +1,5 @@
 """Test table reports"""
+from copy import deepcopy
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.core import callback
 from custom_components.watchman import (
@@ -13,7 +14,7 @@ async def test_add_service(hass):
     def dummy_service_handler(event): # pylint: disable=unused-argument
         """dummy service handler."""
 
-    options = DEFAULT_DATA
+    options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
@@ -33,7 +34,7 @@ async def test_add_service(hass):
 
 async def test_change_state(hass):
     """test change entity state events"""
-    options = DEFAULT_DATA
+    options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")

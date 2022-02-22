@@ -1,4 +1,5 @@
 """Test table reports"""
+from copy import deepcopy
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.watchman import (
     async_setup_entry,
@@ -15,7 +16,7 @@ from custom_components.watchman.config_flow import DEFAULT_DATA
 
 async def test_table_default(hass, tmpdir):
     """test table rendering"""
-    options = DEFAULT_DATA
+    options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = []
     options[CONF_IGNORED_FILES] = []
@@ -37,7 +38,7 @@ async def test_table_default(hass, tmpdir):
 
 async def test_table_no_missing(hass, tmpdir):
     """test table rendering with no missing elements"""
-    options = DEFAULT_DATA
+    options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = ["missing"]
     options[CONF_IGNORED_FILES] = []
@@ -59,7 +60,7 @@ async def test_table_no_missing(hass, tmpdir):
 
 async def test_table_all_clear(hass, tmpdir):
     """test table rendering with no entries"""
-    options = DEFAULT_DATA
+    options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = ["missing","unknown","unavailable"]
     options[CONF_IGNORED_FILES] = []
@@ -81,7 +82,7 @@ async def test_table_all_clear(hass, tmpdir):
 
 async def test_column_resize(hass, tmpdir):
     """test table rendering with narrow columns"""
-    options = DEFAULT_DATA
+    options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
     options[CONF_IGNORED_STATES] = []
     options[CONF_IGNORED_FILES] = []
