@@ -1,5 +1,4 @@
 """Test table reports"""
-import asyncio
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.core import callback
 from custom_components.watchman import (
@@ -11,8 +10,8 @@ from custom_components.watchman.config_flow import DEFAULT_DATA
 async def test_add_service(hass):
     """test adding and removing service events"""
     @callback
-    def record_event(event): # pylint: disable=unused-argument
-        """Add recorded event to set."""
+    def dummy_service_handler(event): # pylint: disable=unused-argument
+        """dummy service handler."""
 
     options = DEFAULT_DATA
     options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
@@ -24,12 +23,12 @@ async def test_add_service(hass):
     assert await async_setup_entry(hass, config_entry)
     assert len(hass.data[DOMAIN]["entities_missing"]) == 3
     assert len(hass.data[DOMAIN]["services_missing"]) == 3
-    hass.services.async_register('fake', 'service1', record_event)
-    while len(hass.data[DOMAIN]["services_missing"]) != 2:
-        await asyncio.sleep(0.1)
+    hass.services.async_register('fake', 'service1', dummy_service_handler)
+    await hass.async_block_till_done()
+    assert len(hass.data[DOMAIN]["services_missing"]) == 2
     hass.services.async_remove("fake", "service1")
-    while len(hass.data[DOMAIN]["services_missing"]) != 3:
-        await asyncio.sleep(0.1)
+    await hass.async_block_till_done()
+    assert len(hass.data[DOMAIN]["services_missing"]) == 3
 
 
 async def test_change_state(hass):
@@ -45,5 +44,5 @@ async def test_change_state(hass):
     assert len(hass.data[DOMAIN]["entities_missing"]) == 3
     assert len(hass.data[DOMAIN]["services_missing"]) == 3
     hass.states.async_set("sensor.test1_unknown", "available")
-    while len(hass.data[DOMAIN]["entities_missing"]) != 2:
-        await asyncio.sleep(0.1)
+    await hass.async_block_till_done()
+    assert len(hass.data[DOMAIN]["entities_missing"]) == 2

@@ -1,6 +1,4 @@
 """Test table reports"""
-import os.path
-import asyncio
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.watchman import (
     async_setup_entry,
@@ -33,8 +31,7 @@ async def test_table_default(hass, tmpdir):
     assert await async_setup_entry(hass, config_entry)
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
-    while not os.path.exists(test_report):
-        await asyncio.sleep(0.1)
+    await hass.async_block_till_done()
     assert [row for row in open(test_report, encoding="utf-8")] ==\
         [row for row in open(base_report, encoding="utf-8")]
 
@@ -56,8 +53,7 @@ async def test_table_no_missing(hass, tmpdir):
     assert await async_setup_entry(hass, config_entry)
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
-    while not os.path.exists(test_report):
-        await asyncio.sleep(0.1)
+    await hass.async_block_till_done()
     assert [row for row in open(test_report, encoding="utf-8")] ==\
         [row for row in open(base_report, encoding="utf-8")]
 
@@ -79,8 +75,7 @@ async def test_table_all_clear(hass, tmpdir):
     assert await async_setup_entry(hass, config_entry)
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
-    while not os.path.exists(test_report):
-        await asyncio.sleep(0.1)
+    await hass.async_block_till_done()
     assert [row for row in open(test_report, encoding="utf-8")] ==\
         [row for row in open(base_report, encoding="utf-8")]
 
@@ -103,7 +98,6 @@ async def test_column_resize(hass, tmpdir):
     assert await async_setup_entry(hass, config_entry)
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode":True})
-    while not os.path.exists(test_report):
-        await asyncio.sleep(0.1)
+    await hass.async_block_till_done()
     assert [row for row in open(test_report, encoding="utf-8")] ==\
         [row for row in open(base_report, encoding="utf-8")]
