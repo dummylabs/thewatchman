@@ -138,7 +138,7 @@ Please note that the ASCII table format is only used when report is saved to a f
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/service state and generate text version of the report.
 
 ## Markdown card example
-Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have all required information to make your own report using a lovelace card. Below is an example of missing entities report for markdown card:
+Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have all required information to make your own report using a lovelace card. Below is an example of missing entities report for the Lovelace markdown card:
 
 ```yaml
 type: markdown
