@@ -39,6 +39,7 @@ EVENT_SCENE_RELOADED = "scene_reloaded"
 SENSOR_LAST_UPDATE = "sensor.watchman_last_updated"
 SENSOR_MISSING_ENTITIES = "sensor.watchman_missing_entities"
 SENSOR_MISSING_SERVICES = "sensor.watchman_missing_services"
+MONITORED_STATES = ["unavailable", "unknown", "missing"]
 
 TRACKED_EVENT_DOMAINS = [
     "homeassistant",

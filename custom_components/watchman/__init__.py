@@ -66,6 +66,7 @@ from .const import (
     SENSOR_MISSING_ENTITIES,
     SENSOR_MISSING_SERVICES,
     TRACKED_EVENT_DOMAINS,
+    MONITORED_STATES
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -261,9 +262,19 @@ async def add_event_handlers(hass: HomeAssistant):
 
 
     async def async_on_state_changed(event):
+        """refresh monitored entities on state change"""
+        def state_or_missing(state_id):
+            """return missing state if entity not found"""
+            return "missing" if not event.data[state_id] else event.data[state_id].state
+
         if event.data["entity_id"] in hass.data[DOMAIN].get("entity_list", []):
-            _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
-            await refresh_states(hass)
+            ignored_states = get_config(hass, CONF_IGNORED_STATES, [])
+            old_state = state_or_missing("old_state")
+            new_state = state_or_missing("new_state")
+            checked_states = set(MONITORED_STATES) - set(ignored_states)
+            if new_state in checked_states or old_state in checked_states:
+                _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
+                await refresh_states(hass)
 
     # hass is not started yet, schedule config parsing once it loaded
     if not hass.is_running:

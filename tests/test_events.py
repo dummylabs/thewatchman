@@ -47,3 +47,33 @@ async def test_change_state(hass):
     hass.states.async_set("sensor.test1_unknown", "available")
     await hass.async_block_till_done()
     assert len(hass.data[DOMAIN]["entities_missing"]) == 2
+
+async def test_remove_entity(hass):
+    """test entity removal"""
+    options = deepcopy(DEFAULT_DATA)
+    options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
+    hass.states.async_set("sensor.test1_unknown", "unknown")
+    hass.states.async_set("sensor.test2_missing", "missing")
+    hass.states.async_set("sensor.test3_unavail", "unavailable")
+    hass.states.async_set("sensor.test4_avail", "42")
+    config_entry = MockConfigEntry(domain='watchman', data={}, options=options, entry_id="test")
+    assert await async_setup_entry(hass, config_entry)
+    assert len(hass.data[DOMAIN]["entities_missing"]) == 3
+    hass.states.async_remove("sensor.test4_avail")
+    await hass.async_block_till_done()
+    assert len(hass.data[DOMAIN]["entities_missing"]) == 4
+
+async def test_add_entity(hass):
+    """test entity addition"""
+    options = deepcopy(DEFAULT_DATA)
+    options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/*"]
+    hass.states.async_set("sensor.test1_unknown", "unknown")
+    hass.states.async_set("sensor.test2_missing", "missing")
+    hass.states.async_set("sensor.test3_unavail", "unavailable")
+    config_entry = MockConfigEntry(domain='watchman', data={}, options=options, entry_id="test")
+    assert await async_setup_entry(hass, config_entry)
+    assert len(hass.data[DOMAIN]["entities_missing"]) == 4
+    # missing -> 42
+    hass.states.async_set("sensor.test4_avail", "42")
+    await hass.async_block_till_done()
+    assert len(hass.data[DOMAIN]["entities_missing"]) == 3
