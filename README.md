@@ -137,6 +137,39 @@ Please note that the ASCII table format is only used when report is saved to a f
 ```
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/service state and generate text version of the report.
 
+## Markdown card example
+Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have all required information to make your own report using a lovelace card. Below is an example of missing entities report for markdown card:
+
+```yaml
+type: markdown
+content: >-
+  <h2> <ha-icon icon='mdi:shield-half-full'></ha-icon> Watchman report<h2>
+  <h3>Missing Entities: {{ states.sensor.watchman_missing_entities.state }} </h3>
+  {%- for item in state_attr("sensor.watchman_missing_entities", "entities") %}
+  <hr> <table><tr> <td>
+  <ha-icon icon='mdi:
+  {%- if item.state=="missing"-%}cloud-alert'
+  {%- elif item.state=="unavail" -%}cloud-off-outline' {%- else-%}cloud-question'
+  {%- endif -%} ></ha-icon>
+  {{ item.id }} [{{item.state}}] <a title="{{item.occurrences}}">
+  {{item.occurrences.split('/')[-1].split(':')[0]}}</a>
+  </td></tr></table>
+  {%- endfor %}
+card_mod:
+  style:
+    ha-markdown:
+      $: |
+        ha-markdown-element:first-of-type hr{
+          border-color: #303030;
+        }
+
+```
+Important notes:
+1. Make sure you are in code editor mode before pasting this code into the markdown card.
+2. `card_mod` section is optional and requires a custom lovelace card for extra styling
+
+![markdown card example](./images/markdown_card_example.png)
+
 ## Advanced usage examples
 
 ### Additional notification service parameters in configuration.yaml
