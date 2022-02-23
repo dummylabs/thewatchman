@@ -2,7 +2,7 @@
 DOMAIN = "watchman"
 DOMAIN_DATA = "watchman_data"
 
-DEFAULT_REPORT_FILENAME = "thewatchman_report.txt"
+DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
 

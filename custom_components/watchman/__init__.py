@@ -32,7 +32,8 @@ from .utils import (
     text_renderer,
     get_config,
     fill,
-    get_entity_state
+    get_entity_state,
+    get_report_path
 )
 
 from .const import (
@@ -166,19 +167,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry): # pylint: disab
 async def add_services(hass: HomeAssistant):
     """adds report service"""
 
-    def get_report_path(path):
-        # if path not specified, create report in config directory with default filename
-        if not path:
-            path = os.path.join(hass.config.config_dir, DEFAULT_REPORT_FILENAME)
-        folder, _ = os.path.split(path)
-        if not os.path.exists(folder):
-            raise HomeAssistantError(f"Incorrect report_path: {path}.")
-        return path
-
     async def async_handle_report(call):
         """Handle the service call"""
         config = hass.data.get(DOMAIN_DATA, {})
-        path = get_report_path(config.get(CONF_REPORT_PATH, None))
+        path = get_report_path(hass, config.get(CONF_REPORT_PATH, None))
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
         create_file = call.data.get(CONF_CREATE_FILE, True)
         test_mode = call.data.get(CONF_TEST_MODE, False)

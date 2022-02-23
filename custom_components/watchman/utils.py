@@ -25,6 +25,7 @@ from .const import (
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
     BUNDLED_IGNORED_ITEMS,
+    DEFAULT_REPORT_FILENAME
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,6 +55,15 @@ def get_config(hass: HomeAssistant, key, default):
     if DOMAIN_DATA not in hass.data:
         return default
     return hass.data[DOMAIN_DATA].get(key, default)
+
+def get_report_path(hass, path):
+    """ if path not specified, create report in config directory with default filename"""
+    if not path:
+        path = hass.config.path(DEFAULT_REPORT_FILENAME)
+    folder, _ = os.path.split(path)
+    if not os.path.exists(folder):
+        raise HomeAssistantError(f"Incorrect report_path: {path}.")
+    return path
 
 def get_columns_width(user_width):
     """define width of the report columns"""
