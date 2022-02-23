@@ -167,6 +167,7 @@ card_mod:
 Important notes:
 1. Make sure you are in code editor mode before pasting this code into the markdown card.
 2. `card_mod` section is optional and requires a custom lovelace card for extra styling
+3. Put mouse pointer above a file name to see full path to a file and line numbers
 
 ![markdown card example](./images/markdown_card_example.png)
 
