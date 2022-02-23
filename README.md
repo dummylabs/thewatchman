@@ -90,7 +90,7 @@ If `create_file` or `send_notification` flags were not set, they are `true` by d
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#advanced-usage-examples) section at the bottom of this document.
 
 ### Call service from Home Assistant UI
-![service example](./images/service_example.png)
+<img src="./images/service_example.png" width=70%>
 
 ### Extra notification service parameters example
 ```yaml
@@ -169,7 +169,7 @@ Important notes:
 2. `card_mod` section is optional and requires a custom lovelace card for extra styling
 3. Put mouse pointer above a file name to see full path to a file and line numbers
 
-<img src="./images/markdown_card_example.png" width="600">
+<img src="./images/markdown_card_example.png" width=50%>
 
 The code for the services report looks very similar:
 
@@ -197,7 +197,7 @@ card_mod:
 ### Additional notification service parameters in configuration.yaml
 Notification service name can be specified in integration options along with additional service parameters.
 #### UI configuration example
-![service data example](./images/service_data_ui.png)
+<img src="./images/service_data_ui.png" width=50%>
 
 #### yaml example
 ```yaml
@@ -239,7 +239,7 @@ homeassistant:
 Specific files or even whole folders can be excluded from the report using wildcards, see example below. Wildcards in configuration file should be enclosed in quotes.
 
 #### UI configuration example
-![ignored files example](./images/ignored_files_ui.png)
+<img src="./images/ignored_files_ui.png" width=50%>
 
 #### yaml example
 ```yaml
