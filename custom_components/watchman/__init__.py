@@ -192,6 +192,10 @@ async def add_services(hass: HomeAssistant):
             chunk_size = call.data.get(CONF_CHUNK_SIZE, config.get(CONF_CHUNK_SIZE))
             service = call.data.get(CONF_SERVICE_NAME, None)
             service_data = call.data.get(CONF_SERVICE_DATA, None)
+
+            if service_data and not service:
+                await async_notification(hass, "Watchman error", "Missing `service` parameter. The `data` parameter can only be used in conjunction with `service` parameter.", error=True)
+
             if onboarding(hass, service, path):
                 await async_notification(
                     hass,
