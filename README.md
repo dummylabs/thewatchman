@@ -169,7 +169,7 @@ Important notes:
 2. `card_mod` section is optional and requires a custom lovelace card for extra styling
 3. Put mouse pointer above a file name to see full path to a file and line numbers
 
-![](./images/markdown_card_example.png)
+<img src="./images/markdown_card_example.png" width="100">
 
 The code for the services report looks very similar:
 
