@@ -168,9 +168,10 @@ card_mod:
 
 ```
 Important notes:
-1. Make sure you are in code editor mode before pasting this code into the markdown card.
-2. `card_mod` section is optional and requires a custom lovelace card for extra styling
+1. Make sure you are in code editor mode before pasting this code into the markdown card
+2. `card_mod` section is optional and requires a custom lovelace card to be installed for extra styling
 3. Put mouse pointer above a file name to see full path to a file and line numbers
+4. To add line numbers to the card just remove `.split(':')[0]` from the card template
 
 The code for the services report looks very similar:
 
