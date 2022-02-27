@@ -138,9 +138,6 @@ Please note that the ASCII table format is only used when report is saved to a f
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/service state and generate text version of the report.
 
 ## Markdown card example
-
-<img src="./images/markdown_card_example.png" width=50%>
-
 Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have all required information to make your own report using a lovelace card. Below is an example of missing entities report for the Lovelace markdown card:
 
 ```yaml
@@ -167,11 +164,13 @@ card_mod:
         }
 
 ```
-Important notes:
+Important considerations:
 1. Make sure you are in code editor mode before pasting this code into the markdown card
 2. `card_mod` section is optional and requires a custom lovelace card to be installed for extra styling
-3. Put mouse pointer above a file name to see full path to a file and line numbers
+3. Put mouse pointer over a file name to see full path to a file and line numbers
 4. To display line numbers in the report just remove `.split(':')[0]` from the card template
+
+<img src="./images/markdown_card_example.png" width=50%>
 
 The code for the services report looks very similar:
 
