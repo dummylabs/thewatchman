@@ -195,12 +195,12 @@ card_mod:
 
 ## Advanced usage examples
 
-### Additional notification service parameters in configuration.yaml
+### Additional notification service parameters 
 Notification service name can be specified in integration options along with additional service parameters.
-#### UI configuration example
+#### UI settings example
 <img src="./images/service_data_ui.png" width=50%>
 
-#### yaml example
+#### configuration.yaml settings example
 ```yaml
 watchman:
   service: telegram_bot.send_message
