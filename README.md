@@ -66,7 +66,7 @@ watchman:
   chunk_size: 2000
   ignored_items:
     - person.dummylabs
-    - sensor.* # ignore everything in sensor domain
+    - sensor.* # ignore everything in sensor domain (useless, just for example)
     - "*.*_ble"  # ignore any entity/service which name ends with "_ble"
   ignored_states:
     - unknown
