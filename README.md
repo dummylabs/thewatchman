@@ -74,17 +74,16 @@ watchman:
 
 ## Watchman.report service
 
-The report can be created by calling `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, it can be altered by `report_path` configuration option.
-If no parameters were set, the service will both create a text report and send a notification. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional parameters:
+Text version of the report is available as `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, it can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional optional parameters:
 
- - `create_file` (optional, default=true)
- - `send_notification` (optional, default=false)
- - `service` (optional, overrides eponymous parameter from integration settings)
- - `data`(optional, overrides eponymous parameter from integration settings)
- - `parse_config` (optional, default=false)
+ - `create_file` create text version of the report (optional, default=true)
+ - `send_notification` send report via notification service (optional, default=false)
+ - `service` notification service name (optional, overrides eponymous parameter from integration settings)
+ - `data` notification service data (optional, overrides eponymous parameter from integration settings)
+ - `parse_config` see below (optional, default=false)
  - `chunk_size` (optional, default is 3500 or whatever specified in integration settings)
 
-If `create_file` or `send_notification` flags were not set, they are `true` by default. The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides integration settings.
+The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides integration settings.
 
 `parse_config` forces watchman to parse Home Assistant configuration files and rebuild entity and services list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration.
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#advanced-usage-examples) section at the bottom of this document.
