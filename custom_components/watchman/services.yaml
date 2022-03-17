@@ -38,7 +38,7 @@ report:
       selector:
         boolean:
     chunk_size:
-      description: Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional, default is 3500 or whatever specified in integration settings)
+      description: Maximum message size in bytes. If report size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional, default is 3500 or whatever specified in integration settings)
       example: true
       name: Chunk size
       default: false
