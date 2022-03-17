@@ -28,10 +28,7 @@ report:
       description: Additional data in form of key:value pairs for notification service (optional)
       example: "parse_mode: html"
       name: Notification service data parameters
-      required: false
-      selector:
-        text:
-          multiline: true
+
     parse_config:
       description: Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required. (optional, false by default)
       example: true
