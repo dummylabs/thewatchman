@@ -16,7 +16,7 @@ The world around us is constantly changing and so is Home Assistant. How often h
 Refer to the [Configutation section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
 ## What does it do
-The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the app checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry. The report can be stored as a nice looking text table or it can be send via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
+The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the integration checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry. The report can be stored as a nice looking text table or it can be send via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
 
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
 
@@ -165,7 +165,7 @@ card_mod:
 ```
 Important considerations:
 1. Make sure you are in code editor mode before pasting this code into the markdown card
-2. `card_mod` section is optional and requires a custom lovelace card to be installed for extra styling
+2. `card_mod` section is optional and requires a [custom lovelace card](https://github.com/thomasloven/lovelace-card-mod) to be installed for extra styling
 3. Put mouse pointer over a file name to see full path to a file and line numbers
 4. To display line numbers in the report just remove `.split(':')[0]` from the card template
 
