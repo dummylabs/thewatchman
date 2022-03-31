@@ -28,7 +28,7 @@ Starting from version 0.4.0 watchman supports both `configuration.yaml` and UI s
 UI settings are available in Configuration->Devices and Services section of Home Assistant.
 
 ### Options:
-All settings are available as UI options thus it is not required to have `watchman` entry in `configuration.yaml` to use integration.
+All settings are available as UI options thus it is not mandatory to have `watchman` entry in `configuration.yaml` to use integration.
 
 yaml key | Description | Default
 ------------ | ------------- | -------------
