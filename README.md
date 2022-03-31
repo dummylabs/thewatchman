@@ -74,7 +74,7 @@ watchman:
 
 ## Watchman.report service
 
-Text version of the report is available as `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, it can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional optional parameters:
+The text version of the report can be generated using `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional optional parameters:
 
  - `create_file` create text version of the report (optional, default=true)
  - `send_notification` send report via notification service (optional, default=false)
