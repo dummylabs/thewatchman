@@ -49,7 +49,7 @@ yaml key | Description | Default
 
 ### yaml configuration example
 
-Not required, starting from 0.4.0 all integration settings can be managed from UI options.
+Not recommended, starting from 0.4.0 all integration settings can be managed from UI options. See [migration](https://github.com/dummylabs/thewatchman/blob/main/README.md#migration-from-previous-versions-of-watchman) section for details.
 
 ```yaml
 watchman:
@@ -199,7 +199,8 @@ Notification service name can be specified in integration options along with add
 #### UI settings example
 <img src="./images/service_data_ui.png" width=50%>
 
-#### configuration.yaml settings example
+#### configuration.yaml settings equivalent
+Please note that yaml settings is not a recommended way to configure watchman, see [migration](https://github.com/dummylabs/thewatchman/blob/main/README.md#migration-from-previous-versions-of-watchman) section for details.
 ```yaml
 watchman:
   service: telegram_bot.send_message
@@ -241,7 +242,8 @@ Specific files or even whole folders can be excluded from the report using wildc
 #### UI configuration example
 <img src="./images/ignored_files_ui.png" width=50%>
 
-#### yaml example
+#### configuration.yaml settings equivalent
+Please note that yaml settings is not a recommended way to configure watchman, see [migration](https://github.com/dummylabs/thewatchman/blob/main/README.md#migration-from-previous-versions-of-watchman) section for details.
 ```yaml
 watchman:
   ignored_files:
