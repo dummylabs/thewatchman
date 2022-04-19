@@ -23,7 +23,7 @@
                     "report_header": "Custom header for the report",
                     "report_path": "Report location",
                     "ignored_items": "Ignored entities and services (comma-separated)",
-                    "ignored_states": "Igored entity states (comma-separated)",
+                    "ignored_states": "Ignored entity states (comma-separated)",
                     "chunk_size": "Maximum message size in bytes",
                     "ignored_files": "Ignored files (comma-separated)",
                     "check_lovelace": "Add lovelace UI configuration to report",
