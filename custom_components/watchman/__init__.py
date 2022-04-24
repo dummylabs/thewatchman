@@ -297,7 +297,7 @@ def parse_config(hass: HomeAssistant, reason=None):
     ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
 
     entity_list, service_list, files_parsed, files_ignored = parse(
-        included_folders, ignored_files, hass.config.config_dir
+        hass, included_folders, ignored_files, hass.config.config_dir
     )
     hass.data[DOMAIN]["entity_list"] = entity_list
     hass.data[DOMAIN]["service_list"] = service_list
