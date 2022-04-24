@@ -33,7 +33,7 @@ from .utils import (
     get_config,
     fill,
     get_entity_state,
-    get_report_path
+    get_report_path,
 )
 
 from .const import (
@@ -66,7 +66,7 @@ from .const import (
     SENSOR_MISSING_ENTITIES,
     SENSOR_MISSING_SERVICES,
     TRACKED_EVENT_DOMAINS,
-    MONITORED_STATES
+    MONITORED_STATES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -98,6 +98,7 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+
 async def async_setup(hass: HomeAssistantType, config: dict):
     """Set up is called when Home Assistant is loading our component."""
     if config.get(DOMAIN) is None:
@@ -112,6 +113,7 @@ async def async_setup(hass: HomeAssistantType, config: dict):
     )
     # Return boolean to indicate that initialization was successful.
     return True
+
 
 async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
     """Set up this integration using UI"""
@@ -133,7 +135,7 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
         try:
             int_data = await async_get_integration(hass, DOMAIN)
             version = int_data.version
-        except Exception: # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             pass
 
         _LOGGER.info("Watchman started [%s]", version)
@@ -141,11 +143,15 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
 
     return True
 
+
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Reload integration when options changed"""
     await hass.config_entries.async_reload(entry.entry_id)
 
-async def async_unload_entry(hass: HomeAssistant, config_entry): # pylint: disable=unused-argument
+
+async def async_unload_entry(
+    hass: HomeAssistant, config_entry
+):  # pylint: disable=unused-argument
     """Handle integration unload"""
     for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
         if cancel_handle:
@@ -154,7 +160,11 @@ async def async_unload_entry(hass: HomeAssistant, config_entry): # pylint: disab
     if hass.services.has_service(DOMAIN, "report"):
         hass.services.async_remove(DOMAIN, "report")
 
-    for sensor in [SENSOR_LAST_UPDATE, SENSOR_MISSING_ENTITIES, SENSOR_MISSING_SERVICES]:
+    for sensor in [
+        SENSOR_LAST_UPDATE,
+        SENSOR_MISSING_ENTITIES,
+        SENSOR_MISSING_SERVICES,
+    ]:
         if hass.states.get(sensor):
             hass.states.async_remove(sensor)
 
@@ -164,6 +174,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry): # pylint: disab
         hass.data.pop(DOMAIN)
 
     return True
+
 
 async def add_services(hass: HomeAssistant):
     """adds report service"""
@@ -178,12 +189,18 @@ async def add_services(hass: HomeAssistant):
         # validate service params
         for param in call.data:
             if param not in CONF_ALLOWED_SERVICE_PARAMS:
-                await async_notification(hass, "Watchman error", f"Unknown service "
-                f"parameter: `{param}`.", error=True)
+                await async_notification(
+                    hass,
+                    "Watchman error",
+                    f"Unknown service " f"parameter: `{param}`.",
+                    error=True,
+                )
 
         if not (send_notification or create_file):
-            message = "Either `send_nofification` or `create_file` should be set to `true` " \
-            "in service parameters."
+            message = (
+                "Either `send_nofification` or `create_file` should be set to `true` "
+                "in service parameters."
+            )
             await async_notification(hass, "Watchman error", message, error=True)
 
         if call.data.get(CONF_PARSE_CONFIG, False):
@@ -195,7 +212,12 @@ async def add_services(hass: HomeAssistant):
             service_data = call.data.get(CONF_SERVICE_DATA, None)
 
             if service_data and not service:
-                await async_notification(hass, "Watchman error", "Missing `service` parameter. The `data` parameter can only be used in conjunction with `service` parameter.", error=True)
+                await async_notification(
+                    hass,
+                    "Watchman error",
+                    "Missing `service` parameter. The `data` parameter can only be used in conjunction with `service` parameter.",
+                    error=True,
+                )
 
             if onboarding(hass, service, path):
                 await async_notification(
@@ -219,18 +241,19 @@ async def add_services(hass: HomeAssistant):
 
 async def add_event_handlers(hass: HomeAssistant):
     """add event handlers"""
+
     async def async_schedule_refresh_states(hass, delay):
         """schedule refresh of the sensors state"""
         now = dt_util.utcnow()
         next_interval = now + timedelta(seconds=delay)
         async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
 
-    async def async_delayed_refresh_states(timedate): # pylint: disable=unused-argument
+    async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
         """refresh sensors state"""
         # parse_config should be invoked beforehand
         await refresh_states(hass)
 
-    async def async_on_home_assistant_started(event): # pylint: disable=unused-argument
+    async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
         parse_config(hass, reason="HA restart")
         startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
         await async_schedule_refresh_states(hass, startup_delay)
@@ -247,10 +270,7 @@ async def add_event_handlers(hass: HomeAssistant):
                 parse_config(hass, "configuration changes")
                 await refresh_states(hass)
 
-        elif typ in [
-            EVENT_AUTOMATION_RELOADED,
-            EVENT_SCENE_RELOADED
-        ]:
+        elif typ in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
             parse_config(hass, "configuration changes")
             await refresh_states(hass)
 
@@ -260,9 +280,9 @@ async def add_event_handlers(hass: HomeAssistant):
             _LOGGER.debug("Monitored service changed: %s", service)
             await refresh_states(hass)
 
-
     async def async_on_state_changed(event):
         """refresh monitored entities on state change"""
+
         def state_or_missing(state_id):
             """return missing state if entity not found"""
             return "missing" if not event.data[state_id] else event.data[state_id].state
@@ -278,16 +298,27 @@ async def add_event_handlers(hass: HomeAssistant):
 
     # hass is not started yet, schedule config parsing once it loaded
     if not hass.is_running:
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+        hass.bus.async_listen_once(
+            EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started
+        )
 
     hdlr = []
-    hdlr.append(hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed))
-    hdlr.append(hass.bus.async_listen(EVENT_AUTOMATION_RELOADED, async_on_configuration_changed))
-    hdlr.append(hass.bus.async_listen(EVENT_SCENE_RELOADED, async_on_configuration_changed))
-    hdlr.append(hass.bus.async_listen(EVENT_SERVICE_REGISTERED, async_on_service_changed))
+    hdlr.append(
+        hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
+    )
+    hdlr.append(
+        hass.bus.async_listen(EVENT_AUTOMATION_RELOADED, async_on_configuration_changed)
+    )
+    hdlr.append(
+        hass.bus.async_listen(EVENT_SCENE_RELOADED, async_on_configuration_changed)
+    )
+    hdlr.append(
+        hass.bus.async_listen(EVENT_SERVICE_REGISTERED, async_on_service_changed)
+    )
     hdlr.append(hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed))
     hdlr.append(hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed))
     hass.data[DOMAIN]["cancel_handlers"] = hdlr
+
 
 def parse_config(hass: HomeAssistant, reason=None):
     """parse home assistant configuration files"""
@@ -304,8 +335,14 @@ def parse_config(hass: HomeAssistant, reason=None):
     hass.data[DOMAIN]["files_parsed"] = files_parsed
     hass.data[DOMAIN]["files_ignored"] = files_ignored
     hass.data[DOMAIN]["parse_duration"] = time.time() - start_time
-    _LOGGER.info("%s files parsed and %s files ignored in %.2fs. due to %s", \
-        files_parsed, files_ignored, hass.data[DOMAIN]['parse_duration'], reason)
+    _LOGGER.info(
+        "%s files parsed and %s files ignored in %.2fs. due to %s",
+        files_parsed,
+        files_ignored,
+        hass.data[DOMAIN]["parse_duration"],
+        reason,
+    )
+
 
 def get_included_folders(hass):
     """gather the list of folders to parse"""
@@ -321,11 +358,10 @@ def get_included_folders(hass):
         folders.append(os.path.join(fld, "**/*.yaml"))
 
     if DOMAIN_DATA in hass.data and hass.data[DOMAIN_DATA].get(CONF_CHECK_LOVELACE):
-        folders.append(
-            os.path.join(hass.config.config_dir, ".storage/**/lovelace*")
-        )
+        folders.append(os.path.join(hass.config.config_dir, ".storage/**/lovelace*"))
 
     return folders
+
 
 async def async_report_to_file(hass, path, test_mode):
     """save report to a file"""
@@ -336,9 +372,8 @@ async def async_report_to_file(hass, path, test_mode):
         for chunk in report_chunks:
             report_file.write(chunk)
 
-async def async_report_to_notification(
-    hass, service_str, service_data, chunk_size
-):
+
+async def async_report_to_notification(hass, service_str, service_data, chunk_size):
     """send report via notification service"""
     if not service_str:
         service_str = get_config(hass, CONF_SERVICE_NAME, None)
@@ -369,11 +404,12 @@ async def async_report_to_notification(
     for chunk in report_chunks:
         data["message"] = chunk
         # blocking=True ensures execution order
-        if not await hass.services.async_call(
-            domain, service, data, blocking=True
-        ):
-            _LOGGER.error("Unable to call service %s.%s due to an error.", domain, service)
+        if not await hass.services.async_call(domain, service, data, blocking=True):
+            _LOGGER.error(
+                "Unable to call service %s.%s due to an error.", domain, service
+            )
             break
+
 
 async def async_notification(hass, title, message, error=False, n_id="watchman"):
     """Show a persistent notification"""
@@ -384,12 +420,14 @@ async def async_notification(hass, title, message, error=False, n_id="watchman")
         notification_id=n_id,
     )
     if error:
-        raise HomeAssistantError(message.replace('`',''))
+        raise HomeAssistantError(message.replace("`", ""))
+
 
 def onboarding(hass, service, path):
     """check if the user runs report for the first time"""
     service = service or get_config(hass, CONF_SERVICE_NAME, None)
     return not (service or os.path.exists(path))
+
 
 async def refresh_states(hass):
     """refresh entity states"""
@@ -404,11 +442,12 @@ async def refresh_states(hass):
     entity_list = hass.data[DOMAIN]["entity_list"]
     for entity in entities_missing:
         state, name = get_entity_state(hass, entity, friendly_names=True)
-        entity_attrs.append({
-            "id": entity,
-            "state": state,
-            "friendly_name": name or "",
-            "occurrences": fill(entity_list[entity], 0)
+        entity_attrs.append(
+            {
+                "id": entity,
+                "state": state,
+                "friendly_name": name or "",
+                "occurrences": fill(entity_list[entity], 0),
             }
         )
 
@@ -418,7 +457,7 @@ async def refresh_states(hass):
         {
             "unit_of_measurement": "items",
             "friendly_name": "Missing entities",
-            "entities": entity_attrs
+            "entities": entity_attrs,
         },
         force_update=True,
     )
@@ -426,10 +465,8 @@ async def refresh_states(hass):
     service_attrs = []
     service_list = hass.data[DOMAIN]["service_list"]
     for service in services_missing:
-        service_attrs.append({
-            "id": service,
-            "occurrences": fill(service_list[service], 0)
-            }
+        service_attrs.append(
+            {"id": service, "occurrences": fill(service_list[service], 0)}
         )
 
     hass.states.async_set(
@@ -438,7 +475,7 @@ async def refresh_states(hass):
         {
             "unit_of_measurement": "items",
             "friendly_name": "Missing services",
-            "services": service_attrs
+            "services": service_attrs,
         },
         force_update=True,
     )
@@ -451,8 +488,9 @@ async def refresh_states(hass):
         },
     )
     _LOGGER.info("Watchman sensors updated")
-    _LOGGER.debug("entities missing: %s",len(entities_missing))
+    _LOGGER.debug("entities missing: %s", len(entities_missing))
     _LOGGER.debug("services missing: %s", len(services_missing))
+
 
 async def init_sensors(hass):
     """set sensors to unknown state"""
