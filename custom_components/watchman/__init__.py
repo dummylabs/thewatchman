@@ -481,7 +481,7 @@ async def refresh_states(hass):
     )
     hass.states.async_set(
         SENSOR_LAST_UPDATE,
-        dt_util.now(),
+        dt_util.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
         {
             "device_class": "timestamp",
             "friendly_name": "Watchman updated",
