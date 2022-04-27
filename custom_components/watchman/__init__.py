@@ -126,7 +126,7 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
     await add_event_handlers(hass)
     if hass.is_running:
         # integration reloaded or options changed via UI
-        parse_config(hass, "changes in watchman configuration")
+        parse_config(hass, reason="changes in watchman configuration")
         await refresh_states(hass)
     else:
         # first run, home assistant is loading
@@ -204,7 +204,7 @@ async def add_services(hass: HomeAssistant):
             await async_notification(hass, "Watchman error", message, error=True)
 
         if call.data.get(CONF_PARSE_CONFIG, False):
-            parse_config(hass, "service call")
+            parse_config(hass, reason="service call")
 
         if send_notification:
             chunk_size = call.data.get(CONF_CHUNK_SIZE, config.get(CONF_CHUNK_SIZE))
@@ -267,11 +267,11 @@ async def add_event_handlers(hass: HomeAssistant):
                 "reload_core_config",
                 "reload",
             ]:
-                parse_config(hass, "configuration changes")
+                parse_config(hass, reason="configuration changes")
                 await refresh_states(hass)
 
         elif typ in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
-            parse_config(hass, "configuration changes")
+            parse_config(hass, reason="configuration changes")
             await refresh_states(hass)
 
     async def async_on_service_changed(event):
