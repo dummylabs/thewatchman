@@ -22,7 +22,8 @@ The integration has very simple internals, it knows nothing about complex relati
 
 
 ## Configuration
-All settings are available as UI options thus it is not mandatory to have `watchman` entry in `configuration.yaml` to use integration.
+Integration settings are available in Settings->Devices & Services->Watchman->Configure.
+[![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/)
 
 Option | Description | Default
 ------------ | ------------- | -------------
