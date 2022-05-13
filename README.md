@@ -47,6 +47,7 @@ Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data store
 * Ignore a file: `*/automations.yaml`
 * Ignore all files in the folder: `/config/esphome/*`
 * Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
+<img src="./images/ignored_files_ui.png" width=50%>
 ### Ignored entities and services option example
 * Ignore an entity: `person.dummylabs`
 * Ignore everything in sensor domain: `sensor.*`
@@ -207,9 +208,6 @@ homeassistant:
   allowlist_external_dirs:
     - /config/
 ```
-
-#### UI configuration example
-<img src="./images/ignored_files_ui.png" width=50%>
 
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
 [forum]: https://community.home-assistant.io/t/watchman-keeps-track-of-missing-entities-and-services-in-your-config-files/390391
