@@ -215,7 +215,8 @@ async def add_services(hass: HomeAssistant):
                 await async_notification(
                     hass,
                     "Watchman error",
-                    "Missing `service` parameter. The `data` parameter can only be used in conjunction with `service` parameter.",
+                    "Missing `service` parameter. The `data` parameter can only be used "
+                    "in conjunction with `service` parameter.",
                     error=True,
                 )
 
