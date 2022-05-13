@@ -48,10 +48,12 @@ Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data store
 * Ignore all files in the folder: `/config/esphome/*`
 * Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
 <img src="./images/ignored_files_ui.png" width=50%>
+
 ### Ignored entities and services option example
 * Ignore an entity: `person.dummylabs`
 * Ignore everything in sensor domain: `sensor.*`
 * Ignore any entity/service which name ends with "_ble": `*.*_ble`
+
 ### Send report via telegram bot
 * *Notification service*: `telegram_bot.send_message`
 * *Notification service data*: `{parse_mode:html}`
