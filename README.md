@@ -27,7 +27,7 @@ All settings are available as UI options thus it is not mandatory to have `watch
 Option | Description | Default
 ------------ | ------------- | -------------
 Notification service | Home assistant notification service to sent report via, e.g. `notify.telegram`. | `None`
-Notification service data | A json object with additional notification service parameters. See [example] (https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
+Notification service data | A json object with additional notification service parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
 Included folders | Comma-separated list of folders to scan for entities and services recursively | `/config`
 Custom header for the report | Custom header for watchman report | `"-== Watchman Report ==-"`
 Report location | Report location and filename | `"/config/watchman_report.txt"`
@@ -42,16 +42,16 @@ Add dashboards UI | Parse Dashboards UI configuration data stored in `.storage` 
 
 
 ### Ignored files option example
-Ignore a file: `*/automations.yaml`
-Ignore all files in the folder: `/config/esphome/*`
-Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
+* Ignore a file: `*/automations.yaml`
+* Ignore all files in the folder: `/config/esphome/*`
+* Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
 ### Ignored items option example
-Ignore an entity: `person.dummylabs`
-Ignore everything in sensor domain: `sensor.*`
-Ignore any entity/service which name ends with "_ble": `*.*_ble`
+* Ignore an entity: `person.dummylabs`
+* Ignore everything in sensor domain: `sensor.*`
+* Ignore any entity/service which name ends with "_ble": `*.*_ble`
 ### Send report via telegram bot
-*Notification service*: `telegram_bot.send_message`
-*Notification service data*: `{parse_mode:html}`
+* *Notification service*: `telegram_bot.send_message`
+* *Notification service data*: `{parse_mode:html}`
 
 ## Watchman.report service
 The text version of the report can be generated using `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional optional parameters:
