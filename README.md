@@ -30,17 +30,17 @@ Option | Description | Default
 ------------ | ------------- | -------------
 Notification service | Home assistant notification service to sent report via, e.g. `notify.telegram`. | `None`
 Notification service data | A json object with additional notification service parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
-Included folders | Comma-separated list of folders to scan for entities and services recursively | `/config`
-Custom header for the report | Custom header for watchman report | `"-== Watchman Report ==-"`
-Report location | Report location and filename | `"/config/watchman_report.txt"`
+Included folders | Comma-separated list of folders to scan for entities and services recursively. | `/config`
+Custom header for the report | Custom header for watchman report. | `"-== Watchman Report ==-"`
+Report location | Report location and filename. | `"/config/watchman_report.txt"`
 Ignored entities and services | Comma-separated list of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-entities-and-services-option-example) below. | `None`
-Ignored entity states | Comma-separated list of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
-Message chunk size | Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
+Ignored entity states | Comma-separated list of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown`. | `None`
+Message chunk size | Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
 Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `None`
-Report's column width | Report's columns width. The list of column widths for the table version of the report | `30, 7, 60`
+Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`
 Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
-Add friendly names | Add friendly name of the entity to the report whenever possible | `False`
-Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration | `False`
+Add friendly names | Add friendly name of the entity to the report whenever possible. | `False`
+Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | `False`
 
 
 ### Ignored files option example
