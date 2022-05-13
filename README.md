@@ -21,42 +21,39 @@ The watchman is a custom integration for Home Assistant, which collects all the 
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
 
 
-## Configuration options
-
+## Configuration
 All settings are available as UI options thus it is not mandatory to have `watchman` entry in `configuration.yaml` to use integration.
 
 Option | Description | Default
 ------------ | ------------- | -------------
-Notification service | Home assistant notification service to sent report via, e.g. `notify.telegram`  | `None`
-Notification service data | A json dictionary with additional notification service parameters  | `None`
+Notification service | Home assistant notification service to sent report via, e.g. `notify.telegram`. | `None`
+Notification service data | A json object with additional notification service parameters. See [example] (https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
 Included folders | Comma-separated list of folders to scan for entities and services recursively | `/config`
 Custom header for the report | Custom header for watchman report | `"-== Watchman Report ==-"`
 Report location | Report location and filename | `"/config/watchman_report.txt"`
-Ignored entities and services | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Configuration example](https://github.com/dummylabs/thewatchman#configuration-example) below. | `None`
+Ignored entities and services | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [Configuration example](https://github.com/dummylabs/thewatchman#ignored-items-option-example) below. | `None`
 Ignored entity states | List of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
 Message chunk size | Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
-Ignored files | Allows to ignore a specific file or a whole folder using wildcards, see [Advanced usage examples below](https://github.com/dummylabs/thewatchman#exclude-specific-file-or-folder-from-the-report). Takes precedence over `included_folders`.| `None`
+Ignored files | Allows to ignore a specific file or a whole folder using wildcards, see [Configuration example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `None`
 Report's column width | Report's columns width. The list of column widths for the table version of the report | `30, 7, 60`
 Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
 Add friendly names | Add friendly names to the report whenever possible | `False`
 Add dashboards UI | Parse Dashboards UI configuration data stored in `.storage` folder | `False`
 
 
-### Configuration option examples
-#### Ignored files option example
+### Ignored files option example
 Ignore a file: `*/automations.yaml`
 Ignore all files in the folder: `/config/esphome/*`
 Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
-#### Ignored items option example
+### Ignored items option example
 Ignore an entity: `person.dummylabs`
 Ignore everything in sensor domain: `sensor.*`
 Ignore any entity/service which name ends with "_ble": `*.*_ble`
-#### Send report via telegram bot:
+### Send report via telegram bot
 *Notification service*: `telegram_bot.send_message`
 *Notification service data*: `{parse_mode:html}`
 
 ## Watchman.report service
-
 The text version of the report can be generated using `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional optional parameters:
 
  - `create_file` create text version of the report (optional, default=true)
