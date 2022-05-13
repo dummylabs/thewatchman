@@ -59,7 +59,7 @@ def get_config(hass: HomeAssistant, key, default):
 
 
 def get_report_path(hass, path):
-    """ if path not specified, create report in config directory with default filename"""
+    """if path not specified, create report in config directory with default filename"""
     if not path:
         path = hass.config.path(DEFAULT_REPORT_FILENAME)
     folder, _ = os.path.split(path)
@@ -250,17 +250,25 @@ def parse(hass, folders, ignored_files, root=None):
             effectively_ignored.append(short_path)
             _LOGGER.debug("%s ignored", yaml_file)
             continue
-        files_parsed += 1
-        _LOGGER.debug("%s parsed", yaml_file)
-        for i, line in enumerate(open(yaml_file, encoding="utf-8")):
-            line = re.sub(comment_pattern, "", line)
-            for match in re.finditer(entity_pattern, line):
-                typ, val = match.group(1), match.group(2)
-                if typ != "service:" and "*" not in val and not val.endswith(".yaml"):
-                    add_entry(entity_list, val, short_path, i + 1)
-            for match in re.finditer(service_pattern, line):
-                val = match.group(1)
-                add_entry(service_list, val, short_path, i + 1)
+
+        try:
+            for i, line in enumerate(open(yaml_file, encoding="utf-8")):
+                line = re.sub(comment_pattern, "", line)
+                for match in re.finditer(entity_pattern, line):
+                    typ, val = match.group(1), match.group(2)
+                    if (
+                        typ != "service:"
+                        and "*" not in val
+                        and not val.endswith(".yaml")
+                    ):
+                        add_entry(entity_list, val, short_path, i + 1)
+                for match in re.finditer(service_pattern, line):
+                    val = match.group(1)
+                    add_entry(service_list, val, short_path, i + 1)
+            files_parsed += 1
+            _LOGGER.debug("%s parsed", yaml_file)
+        except OSError as exception:
+            _LOGGER.error("Unable to parse %s: %s", yaml_file, exception)
 
     # remove ignored entities and services from resulting lists
     ignored_items = get_config(hass, CONF_IGNORED_ITEMS, [])

@@ -234,7 +234,15 @@ async def add_services(hass: HomeAssistant):
                 )
 
         if create_file:
-            await async_report_to_file(hass, path, test_mode=test_mode)
+            try:
+                await async_report_to_file(hass, path, test_mode=test_mode)
+            except OSError as exception:
+                await async_notification(
+                    hass,
+                    "Watchman error",
+                    f"Unable to write report: {exception}",
+                    error=True,
+                )
 
     hass.services.async_register(DOMAIN, "report", async_handle_report)
 
@@ -367,7 +375,7 @@ async def async_report_to_file(hass, path, test_mode):
     """save report to a file"""
     await refresh_states(hass)
     report_chunks = report(hass, table_renderer, chunk_size=0, test_mode=test_mode)
-
+    # OSError exception is handled in async_handle_report
     with open(path, "w", encoding="utf-8") as report_file:
         for chunk in report_chunks:
             report_file.write(chunk)
