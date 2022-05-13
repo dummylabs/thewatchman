@@ -34,7 +34,7 @@ Included folders | Comma-separated list of folders to scan for entities and serv
 Custom header for the report | Custom header for watchman report | `"-== Watchman Report ==-"`
 Report location | Report location and filename | `"/config/watchman_report.txt"`
 Ignored entities and services | List of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-entities-and-services-option-example) below. | `None`
-Ignored entity states | List of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
+Ignored entity states | Comma-separated list of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown` | `None`
 Message chunk size | Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking | `3500`
 Ignored files | Allows to ignore a specific file or a whole folder using wildcards, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `None`
 Report's column width | Report's columns width. The list of column widths for the table version of the report | `30, 7, 60`
