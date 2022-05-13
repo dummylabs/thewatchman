@@ -22,8 +22,7 @@ The integration has very simple internals, it knows nothing about complex relati
 
 
 ## Configuration
-Integration settings are available in Settings->Devices & Services->Watchman->Configure.
-[![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/)
+Integration settings are available in Settings->Devices & Services->Watchman->Configure. Click to open your integrations page: [![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/)
 
 Option | Description | Default
 ------------ | ------------- | -------------
