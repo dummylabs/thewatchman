@@ -40,7 +40,7 @@ Ignored files | Comma-separated list of files and folders to ignore. Wildcards a
 Report's column width | Report's columns width. The list of column widths for the table version of the report | `30, 7, 60`
 Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
 Add friendly names | Add friendly name of the entity to the report whenever possible | `False`
-Add dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder | `False`
+Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | `False`
 
 
 ### Ignored files option example
