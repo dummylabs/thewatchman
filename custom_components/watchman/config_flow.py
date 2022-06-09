@@ -29,7 +29,7 @@ from .const import (
 
 DEFAULT_DATA = {
     CONF_SERVICE_NAME: "",
-    CONF_SERVICE_DATA2: '{}',
+    CONF_SERVICE_DATA2: "{}",
     CONF_INCLUDED_FOLDERS: [],
     CONF_HEADER: "-== Watchman Report ==-",
     CONF_REPORT_PATH: "",
@@ -38,25 +38,26 @@ DEFAULT_DATA = {
     CONF_CHUNK_SIZE: 3500,
     CONF_IGNORED_FILES: [],
     CONF_CHECK_LOVELACE: False,
-    CONF_COLUMNS_WIDTH: [30,7,60],
+    CONF_COLUMNS_WIDTH: [30, 7, 60],
     CONF_STARTUP_DELAY: 0,
-    CONF_FRIENDLY_NAMES: False
+    CONF_FRIENDLY_NAMES: False,
 }
 
 INCLUDED_FOLDERS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 IGNORED_ITEMS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
-IGNORED_STATES_SCHEMA = vol.Schema(["missing","unavailable","unknown"])
+IGNORED_STATES_SCHEMA = vol.Schema(["missing", "unavailable", "unknown"])
 IGNORED_FILES_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 COLUMNS_WIDTH_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.positive_int]))
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     """Config flow"""
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
-            return self.async_abort(reason='single_instance_allowed')
+            return self.async_abort(reason="single_instance_allowed")
         return self.async_create_entry(title="Watchman", data={}, options=DEFAULT_DATA)
 
     async def async_step_import(self, import_data):
@@ -68,16 +69,21 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         import_data[CONF_SERVICE_DATA2] = import_data.get(CONF_SERVICE_DATA, {})
         if CONF_SERVICE_DATA in import_data:
             import_data.pop(CONF_SERVICE_DATA)
-        _LOGGER.info("watchman settings imported successfully and can be removed from "
-        "configuration.yaml")
+        _LOGGER.info(
+            "watchman settings imported successfully and can be removed from "
+            "configuration.yaml"
+        )
         _LOGGER.debug("configuration.yaml settings successfully imported to UI options")
-        return self.async_create_entry(title="configuration.yaml", data={}, options=import_data)
+        return self.async_create_entry(
+            title="configuration.yaml", data={}, options=import_data
+        )
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
         return OptionsFlowHandler(config_entry)
+
 
 class OptionsFlowHandler(OptionsFlow):
     """Handles options flow for the component."""
@@ -124,67 +130,97 @@ class OptionsFlowHandler(OptionsFlow):
             errors[key] = f"invalid_{key}"
         return val, errors
 
-    async def _show_options_form(self, uinput=None, errors=None, placehoders=None):  # pylint: disable=unused-argument
+    async def _show_options_form(
+        self, uinput=None, errors=None, placehoders=None
+    ):  # pylint: disable=unused-argument
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Optional(
                         CONF_SERVICE_NAME,
-                        description={"suggested_value": self.default(CONF_SERVICE_NAME, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_SERVICE_NAME, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_SERVICE_DATA2,
-                        description={"suggested_value": self.default(CONF_SERVICE_DATA2, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_SERVICE_DATA2, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_INCLUDED_FOLDERS,
-                        description={"suggested_value": self.default(CONF_INCLUDED_FOLDERS, uinput)}
+                        description={
+                            "suggested_value": self.default(
+                                CONF_INCLUDED_FOLDERS, uinput
+                            )
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_HEADER,
-                        description={"suggested_value": self.default(CONF_HEADER, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_HEADER, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_REPORT_PATH,
-                        description={"suggested_value": self.default(CONF_REPORT_PATH, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_REPORT_PATH, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_IGNORED_ITEMS,
-                        description={"suggested_value": self.default(CONF_IGNORED_ITEMS, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_IGNORED_ITEMS, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_IGNORED_STATES,
-                        description={"suggested_value": self.default(CONF_IGNORED_STATES, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_IGNORED_STATES, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_CHUNK_SIZE,
-                        description={"suggested_value": self.default(CONF_CHUNK_SIZE, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_CHUNK_SIZE, uinput)
+                        },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_IGNORED_FILES,
-                        description={"suggested_value": self.default(CONF_IGNORED_FILES, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_IGNORED_FILES, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_COLUMNS_WIDTH,
-                        description={"suggested_value": self.default(CONF_COLUMNS_WIDTH, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_COLUMNS_WIDTH, uinput)
+                        },
                     ): cv.string,
                     vol.Optional(
                         CONF_STARTUP_DELAY,
-                        description={"suggested_value": self.default(CONF_STARTUP_DELAY, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_STARTUP_DELAY, uinput)
+                        },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_FRIENDLY_NAMES,
-                        description={"suggested_value": self.default(CONF_FRIENDLY_NAMES, uinput)}
+                        description={
+                            "suggested_value": self.default(CONF_FRIENDLY_NAMES, uinput)
+                        },
                     ): cv.boolean,
                     vol.Optional(
                         CONF_CHECK_LOVELACE,
-                        description={"suggested_value": self.default(CONF_CHECK_LOVELACE, uinput)}
-                    ): cv.boolean
+                        description={
+                            "suggested_value": self.default(CONF_CHECK_LOVELACE, uinput)
+                        },
+                    ): cv.boolean,
                 }
             ),
-            errors = errors or {},
-            description_placeholders = placehoders or {}
+            errors=errors or {},
+            description_placeholders=placehoders or {},
         )
 
     async def async_step_init(self, user_input=None):
@@ -193,24 +229,32 @@ class OptionsFlowHandler(OptionsFlow):
         placehoders: Dict[str, str] = {}
 
         if user_input is not None:
-            user_input[CONF_INCLUDED_FOLDERS],err = self.to_list(user_input, CONF_INCLUDED_FOLDERS)
+            user_input[CONF_INCLUDED_FOLDERS], err = self.to_list(
+                user_input, CONF_INCLUDED_FOLDERS
+            )
             errors |= err
-            user_input[CONF_IGNORED_ITEMS],err = self.to_list(user_input, CONF_IGNORED_ITEMS)
+            user_input[CONF_IGNORED_ITEMS], err = self.to_list(
+                user_input, CONF_IGNORED_ITEMS
+            )
             errors |= err
-            ignored_states,err = self.to_list(user_input, CONF_IGNORED_STATES)
+            ignored_states, err = self.to_list(user_input, CONF_IGNORED_STATES)
             errors |= err
             try:
                 user_input[CONF_IGNORED_STATES] = IGNORED_STATES_SCHEMA(ignored_states)
             except vol.Invalid:
                 errors[CONF_IGNORED_STATES] = "wrong_value_ignored_states"
 
-            user_input[CONF_IGNORED_FILES], err = self.to_list(user_input, CONF_IGNORED_FILES)
+            user_input[CONF_IGNORED_FILES], err = self.to_list(
+                user_input, CONF_IGNORED_FILES
+            )
             errors |= err
 
             if CONF_COLUMNS_WIDTH in user_input:
                 columns_width = user_input[CONF_COLUMNS_WIDTH]
                 try:
-                    columns_width = [int(x) for x in columns_width.split(",") if x.strip()]
+                    columns_width = [
+                        int(x) for x in columns_width.split(",") if x.strip()
+                    ]
                     if len(columns_width) != 3:
                         raise ValueError()
                     columns_width = COLUMNS_WIDTH_SCHEMA(columns_width)
@@ -220,7 +264,9 @@ class OptionsFlowHandler(OptionsFlow):
 
             if CONF_SERVICE_DATA2 in user_input:
                 try:
-                    user_input[CONF_SERVICE_DATA2] = json.loads(user_input[CONF_SERVICE_DATA2])
+                    user_input[CONF_SERVICE_DATA2] = json.loads(
+                        user_input[CONF_SERVICE_DATA2]
+                    )
                     if not isinstance(user_input[CONF_SERVICE_DATA2], dict):
                         errors[CONF_SERVICE_DATA2] = "malformed_json"
                 except JSONDecodeError:
@@ -235,5 +281,5 @@ class OptionsFlowHandler(OptionsFlow):
             else:
                 # provide last entered values to display error
                 return await self._show_options_form(user_input, errors, placehoders)
-        #provide default values
-        return  await self._show_options_form()
+        # provide default values
+        return await self._show_options_form()

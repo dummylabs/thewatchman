@@ -24,14 +24,16 @@ CONF_COLUMNS_WIDTH = "columns_width"
 CONF_STARTUP_DELAY = "startup_delay"
 CONF_FRIENDLY_NAMES = "friendly_names"
 CONF_TEST_MODE = "test_mode"
-#configuration parameters allowed in watchman.report service data
-CONF_ALLOWED_SERVICE_PARAMS = [CONF_SERVICE_NAME,
-                                CONF_CHUNK_SIZE,
-                                CONF_CREATE_FILE,
-                                CONF_SEND_NOTIFICATION,
-                                CONF_PARSE_CONFIG,
-                                CONF_SERVICE_DATA,
-                                CONF_TEST_MODE]
+# configuration parameters allowed in watchman.report service data
+CONF_ALLOWED_SERVICE_PARAMS = [
+    CONF_SERVICE_NAME,
+    CONF_CHUNK_SIZE,
+    CONF_CREATE_FILE,
+    CONF_SEND_NOTIFICATION,
+    CONF_PARSE_CONFIG,
+    CONF_SERVICE_DATA,
+    CONF_TEST_MODE,
+]
 
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
