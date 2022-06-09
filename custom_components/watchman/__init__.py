@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import logging
 import os
 import time
+import json
 import voluptuous as vol
 from homeassistant.loader import async_get_integration
 from homeassistant.helpers import config_validation as cv
@@ -406,7 +407,7 @@ async def async_report_to_notification(hass, service_str, service_data, chunk_si
     domain = service_str.split(".")[0]
     service = ".".join(service_str.split(".")[1:])
 
-    data = {} if service_data is None else service_data.copy()
+    data = {} if service_data is None else json.loads(service_data)
 
     await refresh_states(hass)
     report_chunks = report(hass, text_renderer, chunk_size)

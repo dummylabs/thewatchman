@@ -5,7 +5,7 @@ from json.decoder import JSONDecodeError
 import logging
 from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
 from homeassistant.core import callback
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
 from .utils import is_service, get_columns_width, get_report_path
 
@@ -148,7 +148,7 @@ class OptionsFlowHandler(OptionsFlow):
                         description={
                             "suggested_value": self.default(CONF_SERVICE_DATA2, uinput)
                         },
-                    ): cv.string,
+                    ): selector.TemplateSelector(),
                     vol.Optional(
                         CONF_INCLUDED_FOLDERS,
                         description={
@@ -156,7 +156,9 @@ class OptionsFlowHandler(OptionsFlow):
                                 CONF_INCLUDED_FOLDERS, uinput
                             )
                         },
-                    ): cv.string,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(multiline=True)
+                    ),
                     vol.Optional(
                         CONF_HEADER,
                         description={
@@ -174,13 +176,17 @@ class OptionsFlowHandler(OptionsFlow):
                         description={
                             "suggested_value": self.default(CONF_IGNORED_ITEMS, uinput)
                         },
-                    ): cv.string,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(multiline=True)
+                    ),
                     vol.Optional(
                         CONF_IGNORED_STATES,
                         description={
                             "suggested_value": self.default(CONF_IGNORED_STATES, uinput)
                         },
-                    ): cv.string,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(multiline=True)
+                    ),
                     vol.Optional(
                         CONF_CHUNK_SIZE,
                         description={
@@ -192,7 +198,9 @@ class OptionsFlowHandler(OptionsFlow):
                         description={
                             "suggested_value": self.default(CONF_IGNORED_FILES, uinput)
                         },
-                    ): cv.string,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(multiline=True)
+                    ),
                     vol.Optional(
                         CONF_COLUMNS_WIDTH,
                         description={
@@ -264,10 +272,8 @@ class OptionsFlowHandler(OptionsFlow):
 
             if CONF_SERVICE_DATA2 in user_input:
                 try:
-                    user_input[CONF_SERVICE_DATA2] = json.loads(
-                        user_input[CONF_SERVICE_DATA2]
-                    )
-                    if not isinstance(user_input[CONF_SERVICE_DATA2], dict):
+                    result = json.loads(user_input[CONF_SERVICE_DATA2])
+                    if not isinstance(result, dict):
                         errors[CONF_SERVICE_DATA2] = "malformed_json"
                 except JSONDecodeError:
                     errors[CONF_SERVICE_DATA2] = "malformed_json"
