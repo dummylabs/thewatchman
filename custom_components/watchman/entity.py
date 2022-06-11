@@ -1,6 +1,5 @@
 """Represents Watchman service in the device registry of Home Assistant"""
 
-from tokenize import String
 from homeassistant.helpers.entity import DeviceInfo, EntityDescription
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.update_coordinator import (

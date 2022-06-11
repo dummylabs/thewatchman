@@ -1,4 +1,3 @@
-import homeassistant.util.dt as dt_util
 import logging
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -6,7 +5,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.loader import async_get_integration
 from homeassistant.core import callback
 from .entity import WatchmanEntity
 
