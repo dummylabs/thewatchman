@@ -30,7 +30,7 @@ from .const import (
 DEFAULT_DATA = {
     CONF_SERVICE_NAME: "",
     CONF_SERVICE_DATA2: "{}",
-    CONF_INCLUDED_FOLDERS: [],
+    CONF_INCLUDED_FOLDERS: ["/config"],
     CONF_HEADER: "-== Watchman Report ==-",
     CONF_REPORT_PATH: "",
     CONF_IGNORED_ITEMS: [],

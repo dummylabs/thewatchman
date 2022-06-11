@@ -32,11 +32,11 @@
                     "friendly_names": "Add friendly names to the report"
                 },
                 "data_description": {
-                    "service_data": "JSON object with notification service data",
-                    "included_folders": "Comma-separated list of configuration folders, leave empty for default (/config)",
-                    "ignored_items": "Comma-separated list of ignored entities and services",
-                    "ignored_states": "Comma-separated list of the states excluded from the report",
-                    "ignored_files": "Comma-separated list of config files excluded from the report"
+                    "service_data": "JSON object with notification service data, see documentation for details",
+                    "included_folders": "Comma-separated list of folders where watchman should look for config files",
+                    "ignored_items": "Comma-separated list of entities and services excluded from tracking",
+                    "ignored_states": "Comma-separated list of the states excluded from tracking",
+                    "ignored_files": "Comma-separated list of config files excluded from tracking"
                 },
                 "description": "[Help on settings](https://github.com/dummylabs/thewatchman#configuration)"
             }
