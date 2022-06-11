@@ -1,6 +1,9 @@
 "definition of constants"
+from homeassistant.const import Platform
+
 DOMAIN = "watchman"
 DOMAIN_DATA = "watchman_data"
+VERSION = "0.6.0"
 
 DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
@@ -38,9 +41,9 @@ CONF_ALLOWED_SERVICE_PARAMS = [
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
 
-SENSOR_LAST_UPDATE = "sensor.watchman_last_updated"
-SENSOR_MISSING_ENTITIES = "sensor.watchman_missing_entities"
-SENSOR_MISSING_SERVICES = "sensor.watchman_missing_services"
+SENSOR_LAST_UPDATE = "watchman_last_updated"
+SENSOR_MISSING_ENTITIES = "watchman_missing_entities"
+SENSOR_MISSING_SERVICES = "watchman_missing_services"
 MONITORED_STATES = ["unavailable", "unknown", "missing"]
 
 TRACKED_EVENT_DOMAINS = [
@@ -64,3 +67,6 @@ BUNDLED_IGNORED_ITEMS = [
     "timer.restarted",
     "timer.paused",
 ]
+
+# Platforms
+PLATFORMS = [Platform.SENSOR]
