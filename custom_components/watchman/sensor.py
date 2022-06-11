@@ -1,3 +1,4 @@
+"""Watchman sensors definition"""
 import logging
 from homeassistant.components.sensor import (
     SensorDeviceClass,
