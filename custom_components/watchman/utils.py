@@ -232,7 +232,7 @@ def parse(hass, folders, ignored_files, root=None):
     """Parse a yaml or json file for entities/services"""
     files_parsed = 0
     entity_pattern = re.compile(
-        r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?"
+        r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
         r"((air_quality|alarm_control_panel|alert|automation|binary_sensor|button|calendar|camera|"
         r"climate|counter|device_tracker|fan|group|humidifier|input_boolean|input_datetime|"
         r"input_number|input_select|light|lock|media_player|number|person|plant|proximity|remote|"
