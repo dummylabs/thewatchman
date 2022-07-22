@@ -13,10 +13,10 @@ The world around us is constantly changing and so is Home Assistant. How often h
 2. Restart Home Assistant, go to Settings->Devices and Services->Add Integration and select Watchman integration. If integration not found, try to empty your browser cache and reload page.
 3. Go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `watchman_report.txt` file in your configuration directory.
 
-Refer to the [Configutation section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
+Refer to the [Configuration section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
 ## What does it do
-The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the integration checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry. The report can be stored as a nice looking text table or it can be send via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
+The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the integration checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry. The report can be stored as a nice-looking text table or it can be sent via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
 
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
 
@@ -28,7 +28,7 @@ Integration settings are available in Settings->Devices & Services->Watchman->Co
 
 Option | Description | Default
 ------------ | ------------- | -------------
-Notification service | Home assistant notification service to sent report via, e.g. `notify.telegram`. | `None`
+Notification service | Home assistant notification service to send report via, e.g. `notify.telegram`. | `None`
 Notification service data | A json object with additional notification service parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
 Included folders | Comma-separated list of folders to scan for entities and services recursively. | `/config`
 Custom header for the report | Custom header for watchman report. | `"-== Watchman Report ==-"`
@@ -38,7 +38,7 @@ Ignored entity states | Comma-separated list of entity states which should be ex
 Message chunk size | Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
 Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `None`
 Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`
-Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intitialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
+Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
 Add friendly names | Add friendly name of the entity to the report whenever possible. | `False`
 Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | `False`
 
@@ -59,7 +59,7 @@ Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data store
 * *Notification service data*: `{"parse_mode":"html"}`
 
 ## Watchman.report service
-The text version of the report can be generated using `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional optional parameters:
+The text version of the report can be generated using `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behaviour can be altered with additional optional parameters:
 
  - `create_file` create text version of the report (optional, default=true)
  - `send_notification` send report via notification service (optional, default=false)
