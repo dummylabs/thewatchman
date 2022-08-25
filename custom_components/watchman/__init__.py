@@ -1,17 +1,15 @@
-"""https://github.com/dummylabs/thewatchman§"""
+"""https://github.com/dummylabs/thewatchman."""
 from datetime import timedelta
 import logging
 import os
 import time
 import json
 import voluptuous as vol
-from homeassistant.loader import async_get_integration
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -21,7 +19,7 @@ from homeassistant.const import (
     EVENT_SERVICE_REMOVED,
     EVENT_STATE_CHANGED,
     EVENT_CALL_SERVICE,
-    STATE_UNKNOWN,
+    Platform
 )
 
 from .coordinator import WatchmanCoordinator
@@ -63,9 +61,10 @@ from .const import (
     EVENT_SCENE_RELOADED,
     TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
-    PLATFORMS,
     VERSION,
 )
+
+PLATFORMS = [Platform.SENSOR]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,7 +96,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup(hass: HomeAssistantType, config: dict):
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up is called when Home Assistant is loading our component."""
     if config.get(DOMAIN) is None:
         # We get here if the integration is set up using config flow
@@ -109,11 +108,10 @@ async def async_setup(hass: HomeAssistantType, config: dict):
             DOMAIN, context={"source": SOURCE_IMPORT}, data=hass.data[DOMAIN_DATA]
         )
     )
-    # Return boolean to indicate that initialization was successful.
     return True
 
 
-async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up this integration using UI"""
     _LOGGER.debug(entry.options)
     _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
@@ -252,7 +250,7 @@ async def add_services(hass: HomeAssistant):
 async def add_event_handlers(hass: HomeAssistant):
     """add event handlers"""
 
-    async def async_schedule_refresh_states(hass, delay):
+    async def async_schedule_refresh_states(hass: HomeAssistant, delay):
         """schedule refresh of the sensors state"""
         now = dt_util.utcnow()
         next_interval = now + timedelta(seconds=delay)
@@ -359,7 +357,7 @@ def parse_config(hass: HomeAssistant, reason=None):
     )
 
 
-def get_included_folders(hass):
+def get_included_folders(hass: HomeAssistant):
     """gather the list of folders to parse"""
     folders = []
     config_folders = [hass.config.config_dir]
@@ -378,7 +376,7 @@ def get_included_folders(hass):
     return folders
 
 
-async def async_report_to_file(hass, path, test_mode):
+async def async_report_to_file(hass: HomeAssistant, path, test_mode):
     """save report to a file"""
     coordinator = hass.data[DOMAIN]["coordinator"]
     await coordinator.async_refresh()
@@ -428,7 +426,9 @@ async def async_report_to_notification(hass, service_str, service_data, chunk_si
             break
 
 
-async def async_notification(hass, title, message, error=False, n_id="watchman"):
+async def async_notification(
+    hass: HomeAssistant, title, message, error=False, n_id="watchman"
+):
     """Show a persistent notification"""
     persistent_notification.async_create(
         hass,
@@ -440,7 +440,7 @@ async def async_notification(hass, title, message, error=False, n_id="watchman")
         raise HomeAssistantError(message.replace("`", ""))
 
 
-def onboarding(hass, service, path):
+def onboarding(hass: HomeAssistant, service, path):
     """check if the user runs report for the first time"""
     service = service or get_config(hass, CONF_SERVICE_NAME, None)
     return not (service or os.path.exists(path))

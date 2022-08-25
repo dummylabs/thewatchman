@@ -1,5 +1,5 @@
 "ConfigFlow definition for watchman"
-from typing import Dict
+
 import json
 from json.decoder import JSONDecodeError
 import logging
@@ -117,7 +117,7 @@ class OptionsFlowHandler(OptionsFlow):
 
     def to_list(self, user_input, key):
         """validate user input against list requirements"""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if key not in user_input:
             return DEFAULT_DATA[key], errors
@@ -131,7 +131,7 @@ class OptionsFlowHandler(OptionsFlow):
         return val, errors
 
     async def _show_options_form(
-        self, uinput=None, errors=None, placehoders=None
+        self, user_input=None, errors=None, placehoders=None
     ):  # pylint: disable=unused-argument
         return self.async_show_form(
             step_id="init",
@@ -140,20 +140,20 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_SERVICE_NAME,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_NAME, uinput)
+                            "suggested_value": self.default(CONF_SERVICE_NAME, user_input)
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_SERVICE_DATA2,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_DATA2, uinput)
+                            "suggested_value": self.default(CONF_SERVICE_DATA2, user_input)
                         },
                     ): selector.TemplateSelector(),
                     vol.Optional(
                         CONF_INCLUDED_FOLDERS,
                         description={
                             "suggested_value": self.default(
-                                CONF_INCLUDED_FOLDERS, uinput
+                                CONF_INCLUDED_FOLDERS, user_input
                             )
                         },
                     ): selector.TextSelector(
@@ -162,19 +162,19 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_HEADER,
                         description={
-                            "suggested_value": self.default(CONF_HEADER, uinput)
+                            "suggested_value": self.default(CONF_HEADER, user_input)
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_REPORT_PATH,
                         description={
-                            "suggested_value": self.default(CONF_REPORT_PATH, uinput)
+                            "suggested_value": self.default(CONF_REPORT_PATH, user_input)
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_IGNORED_ITEMS,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_ITEMS, uinput)
+                            "suggested_value": self.default(CONF_IGNORED_ITEMS, user_input)
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -182,7 +182,7 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_IGNORED_STATES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_STATES, uinput)
+                            "suggested_value": self.default(CONF_IGNORED_STATES, user_input)
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -190,13 +190,13 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_CHUNK_SIZE,
                         description={
-                            "suggested_value": self.default(CONF_CHUNK_SIZE, uinput)
+                            "suggested_value": self.default(CONF_CHUNK_SIZE, user_input)
                         },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_IGNORED_FILES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_FILES, uinput)
+                            "suggested_value": self.default(CONF_IGNORED_FILES, user_input)
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -204,25 +204,25 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_COLUMNS_WIDTH,
                         description={
-                            "suggested_value": self.default(CONF_COLUMNS_WIDTH, uinput)
+                            "suggested_value": self.default(CONF_COLUMNS_WIDTH, user_input)
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_STARTUP_DELAY,
                         description={
-                            "suggested_value": self.default(CONF_STARTUP_DELAY, uinput)
+                            "suggested_value": self.default(CONF_STARTUP_DELAY, user_input)
                         },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_FRIENDLY_NAMES,
                         description={
-                            "suggested_value": self.default(CONF_FRIENDLY_NAMES, uinput)
+                            "suggested_value": self.default(CONF_FRIENDLY_NAMES, user_input)
                         },
                     ): cv.boolean,
                     vol.Optional(
                         CONF_CHECK_LOVELACE,
                         description={
-                            "suggested_value": self.default(CONF_CHECK_LOVELACE, uinput)
+                            "suggested_value": self.default(CONF_CHECK_LOVELACE, user_input)
                         },
                     ): cv.boolean,
                 }
@@ -233,8 +233,8 @@ class OptionsFlowHandler(OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         """Manage the options"""
-        errors: Dict[str, str] = {}
-        placehoders: Dict[str, str] = {}
+        errors: dict[str, str] = {}
+        placehoders: dict[str, str] = {}
 
         if user_input is not None:
             user_input[CONF_INCLUDED_FOLDERS], err = self.to_list(

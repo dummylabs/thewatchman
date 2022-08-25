@@ -52,14 +52,14 @@ async def write_file(hass: HomeAssistant, path: str, content: Any) -> None:
 
 
 def get_config(hass: HomeAssistant, key, default):
-    """get configuration value"""
+    """get configuration value."""
     if DOMAIN_DATA not in hass.data:
         return default
     return hass.data[DOMAIN_DATA].get(key, default)
 
 
-def get_report_path(hass, path):
-    """if path not specified, create report in config directory with default filename"""
+def get_report_path(hass: HomeAssistant, path):
+    """if path not specified, create report in config directory with default filename."""
     if not path:
         path = hass.config.path(DEFAULT_REPORT_FILENAME)
     folder, _ = os.path.split(path)
@@ -69,7 +69,7 @@ def get_report_path(hass, path):
 
 
 def get_columns_width(user_width):
-    """define width of the report columns"""
+    """define width of the report columns."""
     default_width = [30, 7, 60]
     if not user_width:
         return default_width
@@ -77,14 +77,14 @@ def get_columns_width(user_width):
         return [7 if user_width[i] < 7 else user_width[i] for i in range(3)]
     except (TypeError, IndexError):
         _LOGGER.error(
-            "Invalid configuration for table column widths, default values" " used %s",
+            "Invalid configuration for table column widths, default values used %s",
             default_width,
         )
     return default_width
 
 
-def table_renderer(hass, entry_type):
-    """Render ASCII tables in the report"""
+def table_renderer(hass: HomeAssistant, entry_type):
+    """Render ASCII tables in the report."""
     table = PrettyTable()
     columns_width = get_config(hass, CONF_COLUMNS_WIDTH, None)
     columns_width = get_columns_width(columns_width)
@@ -124,9 +124,9 @@ def table_renderer(hass, entry_type):
         return f"Table render error: unknown entry type: {entry_type}"
 
 
-def text_renderer(hass, entry_type):
-    """Render plain lists in the report"""
-    result = ""
+def text_renderer(hass: HomeAssistant, entry_type):
+    """Render plain lists in the report."""
+    result: str = ""
     if entry_type == "service_list":
         services_missing = hass.data[DOMAIN]["services_missing"]
         service_list = hass.data[DOMAIN]["service_list"]
@@ -148,7 +148,7 @@ def text_renderer(hass, entry_type):
 
 
 def get_next_file(folder_list, ignored_files):
-    """Returns next file for scan"""
+    """Returns next file for scan."""
     if not ignored_files:
         ignored_files = ""
     else:
@@ -160,7 +160,7 @@ def get_next_file(folder_list, ignored_files):
 
 
 def add_entry(_list, entry, yaml_file, lineno):
-    """Add entry to list of missing entities/services with line number information"""
+    """Add entry to list of missing entities/services with line number information."""
     _LOGGER.debug("Added %s to the list", entry)
     if entry in _list:
         if yaml_file in _list[entry]:
@@ -169,14 +169,14 @@ def add_entry(_list, entry, yaml_file, lineno):
         _list[entry] = {yaml_file: [lineno]}
 
 
-def is_service(hass, entry):
-    """check whether config entry is a service"""
+def is_service(hass: HomeAssistant, entry):
+    """check whether config entry is a service."""
     domain, service = entry.split(".")[0], ".".join(entry.split(".")[1:])
     return hass.services.has_service(domain, service)
 
 
-def get_entity_state(hass, entry, friendly_names=False):
-    """returns entity state or missing if entity does not extst"""
+def get_entity_state(hass: HomeAssistant, entry, friendly_names=False):
+    """returns entity state or missing if entity does not exist."""
     entity = hass.states.get(entry)
     name = None
     if entity and entity.attributes.get("friendly_name", None):
@@ -186,9 +186,9 @@ def get_entity_state(hass, entry, friendly_names=False):
     return state, name
 
 
-def check_services(hass):
-    """check if entries from config file are services"""
-    services_missing = {}
+def check_services(hass: HomeAssistant):
+    """check if entries from config file are services."""
+    services_missing: dict = {}
     if "missing" in get_config(hass, CONF_IGNORED_STATES, []):
         return services_missing
     if DOMAIN not in hass.data or "service_list" not in hass.data[DOMAIN]:
@@ -202,8 +202,8 @@ def check_services(hass):
     return services_missing
 
 
-def check_entitites(hass):
-    """check if entries from config file are entities with an active state"""
+def check_entities(hass: HomeAssistant):
+    """check if entries from config file are entities with an active state."""
     ignored_states = [
         "unavail" if s == "unavailable" else s
         for s in get_config(hass, CONF_IGNORED_STATES, [])
@@ -228,8 +228,8 @@ def check_entitites(hass):
     return entities_missing
 
 
-def parse(hass, folders, ignored_files, root=None):
-    """Parse a yaml or json file for entities/services"""
+def parse(hass: HomeAssistant, folders, ignored_files, root=None):
+    """Parse a yaml or json file for entities/services."""
     files_parsed = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
@@ -240,8 +240,8 @@ def parse(hass, folders, ignored_files, root=None):
     )
     service_pattern = re.compile(r"service:\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)")
     comment_pattern = re.compile(r"#.*")
-    entity_list = {}
-    service_list = {}
+    entity_list: dict = {}
+    service_list: dict = {}
     effectively_ignored = []
     _LOGGER.debug("::parse started")
     for yaml_file, ignored in get_next_file(folders, ignored_files):
@@ -291,7 +291,7 @@ def parse(hass, folders, ignored_files, root=None):
 
 
 def fill(data, width, extra=None):
-    """arrange data by table column width"""
+    """arrange data by table column width."""
     if data and isinstance(data, dict):
         key, val = next(iter(data.items()))
         out = f"{key}:{','.join([str(v) for v in val])}"
@@ -303,8 +303,8 @@ def fill(data, width, extra=None):
     )
 
 
-def report(hass, render, chunk_size, test_mode=False):
-    """generates watchman report either as a table or as a list"""
+def report(hass: HomeAssistant, render, chunk_size, test_mode: bool=False):
+    """generates Watchman report either as a table or as a list."""
     if not DOMAIN in hass.data:
         raise HomeAssistantError("No data for report, refresh required.")
 

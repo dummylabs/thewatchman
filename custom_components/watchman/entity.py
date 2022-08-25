@@ -20,7 +20,6 @@ class WatchmanEntity(CoordinatorEntity):
         """Initialize Watchman entity."""
         super().__init__(coordinator)
         self.entity_description = entity_description
-        # per sensor unique_id
         self._attr_unique_id = (
             f"{coordinator.config_entry.entry_id}_{entity_description.key}"
         )
@@ -33,4 +32,4 @@ class WatchmanEntity(CoordinatorEntity):
             entry_type=DeviceEntryType.SERVICE,
             configuration_url="https://github.com/dummylabs/thewatchman",
         )
-        self._attr_extra_state_attributes = {}
+        self._attr_extra_state_attributes: dict = {}

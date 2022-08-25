@@ -2,6 +2,7 @@
 
 import logging
 import time
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DOMAIN
@@ -14,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 class WatchmanCoordinator(DataUpdateCoordinator):
     """My custom coordinator."""
 
-    def __init__(self, hass, logger, name):
+    def __init__(self, hass: HomeAssistant, logger, name) -> None:
         """Initialize watchmman coordinator."""
         super().__init__(
             hass,
@@ -24,7 +25,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.data = {}
 
-    async def _async_update_data(self) -> None:
+    async def _async_update_data(self) -> dict:
         """Fetch data from API endpoint."""
         start_time = time.time()
         services_missing = check_services(self.hass)

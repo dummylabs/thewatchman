@@ -6,9 +6,8 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.core import callback
+from homeassistant.core import callback, HomeAssistant
 from .entity import WatchmanEntity
-
 from .const import (
     DOMAIN,
     SENSOR_LAST_UPDATE,
@@ -17,10 +16,7 @@ from .const import (
 )
 
 
-_LOGGER = logging.getLogger(__name__)
-
-
-async def async_setup_entry(hass, entry, async_add_devices):
+async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices):
     """Setup sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
@@ -60,11 +56,6 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
     _attr_icon = "mdi:shield-half-full"
 
     @property
-    def should_poll(self) -> bool:
-        """No polling needed."""
-        return False
-
-    @property
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
@@ -89,25 +80,18 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     _attr_native_unit_of_measurement = "items"
 
     @property
-    def should_poll(self) -> bool:
-        """No polling needed."""
-        return False
-
-    @property
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data["entities_missing"]
-        else:
-            return self._attr_native_value
+        return self._attr_native_value
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         if self.coordinator.data:
             return {"entities": self.coordinator.data["entity_attrs"]}
-        else:
-            return {}
+        return {}
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -129,25 +113,18 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     _attr_native_unit_of_measurement = "items"
 
     @property
-    def should_poll(self) -> bool:
-        """No polling needed."""
-        return False
-
-    @property
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data["services_missing"]
-        else:
-            return self._attr_native_value
+        return self._attr_native_value
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         if self.coordinator.data:
             return {"entities": self.coordinator.data["service_attrs"]}
-        else:
-            return {}
+        return {}
 
     @callback
     def _handle_coordinator_update(self) -> None:
