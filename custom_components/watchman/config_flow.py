@@ -1,4 +1,4 @@
-"ConfigFlow definition for watchman"
+"ConfigFlow definition for Watchman"
 
 import json
 from json.decoder import JSONDecodeError
@@ -53,7 +53,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
-    """Config flow"""
+    """Config flow."""
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
@@ -61,7 +61,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(title="Watchman", data={}, options=DEFAULT_DATA)
 
     async def async_step_import(self, import_data):
-        """Import configuration.yaml settings as OptionsEntry"""
+        """Import configuration.yaml settings as OptionsEntry."""
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
         # change "data" key from configuration.yaml to "service_data" as "data" is reserved by
@@ -80,7 +80,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: ConfigEntry):
         """Get the options flow for this handler."""
         return OptionsFlowHandler(config_entry)
 
@@ -91,11 +91,11 @@ class OptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         self.config_entry = config_entry
 
-    def default(self, key, uinput=None):
-        """provide default value for an OptionsFlow field"""
-        if uinput and key in uinput:
+    def default(self, key, user_input=None):
+        """provide default value for an OptionsFlow field."""
+        if user_input and key in user_input:
             # supply last entered value to display an error during form validation
-            result = uinput[key]
+            result = user_input[key]
         else:
             # supply last saved value or default one
             result = self.config_entry.options.get(key, DEFAULT_DATA[key])
@@ -116,7 +116,7 @@ class OptionsFlowHandler(OptionsFlow):
         return str(result)
 
     def to_list(self, user_input, key):
-        """validate user input against list requirements"""
+        """Validate user input against list requirements."""
         errors: dict[str, str] = {}
 
         if key not in user_input:
@@ -131,7 +131,7 @@ class OptionsFlowHandler(OptionsFlow):
         return val, errors
 
     async def _show_options_form(
-        self, user_input=None, errors=None, placehoders=None
+        self, user_input=None, errors=None, placeholders=None
     ):  # pylint: disable=unused-argument
         return self.async_show_form(
             step_id="init",
@@ -228,13 +228,13 @@ class OptionsFlowHandler(OptionsFlow):
                 }
             ),
             errors=errors or {},
-            description_placeholders=placehoders or {},
+            description_placeholders=placeholders or {},
         )
 
     async def async_step_init(self, user_input=None):
-        """Manage the options"""
+        """Manage options."""
         errors: dict[str, str] = {}
-        placehoders: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
 
         if user_input is not None:
             user_input[CONF_INCLUDED_FOLDERS], err = self.to_list(
@@ -280,12 +280,11 @@ class OptionsFlowHandler(OptionsFlow):
             if CONF_SERVICE_NAME in user_input:
                 if not is_service(self.hass, user_input[CONF_SERVICE_NAME]):
                     errors[CONF_SERVICE_NAME] = "unknown_service"
-                    placehoders["service"] = user_input[CONF_SERVICE_NAME]
+                    placeholders["service"] = user_input[CONF_SERVICE_NAME]
 
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
-            else:
                 # provide last entered values to display error
-                return await self._show_options_form(user_input, errors, placehoders)
+            return await self._show_options_form(user_input, errors, placeholders)
         # provide default values
         return await self._show_options_form()

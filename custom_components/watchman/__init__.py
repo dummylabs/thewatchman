@@ -1,67 +1,65 @@
 """https://github.com/dummylabs/thewatchman."""
 from datetime import timedelta
+import json
 import logging
 import os
 import time
-import json
-import voluptuous as vol
-from homeassistant.helpers import config_validation as cv
+
 from homeassistant.components import persistent_notification
-from homeassistant.util import dt as dt_util
-from homeassistant.helpers.event import async_track_point_in_utc_time
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
+    EVENT_CALL_SERVICE,
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
     EVENT_STATE_CHANGED,
-    EVENT_CALL_SERVICE,
-    Platform
+    Platform,
 )
-
-from .coordinator import WatchmanCoordinator
-
-from .utils import (
-    is_service,
-    report,
-    parse,
-    table_renderer,
-    text_renderer,
-    get_config,
-    get_report_path,
-)
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.event import async_track_point_in_utc_time
+from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
 from .const import (
-    DOMAIN,
-    DOMAIN_DATA,
-    DEFAULT_HEADER,
-    CONF_IGNORED_FILES,
+    CONF_ALLOWED_SERVICE_PARAMS,
+    CONF_CHECK_LOVELACE,
+    CONF_CHUNK_SIZE,
+    CONF_COLUMNS_WIDTH,
+    CONF_CREATE_FILE,
+    CONF_FRIENDLY_NAMES,
     CONF_HEADER,
-    CONF_REPORT_PATH,
+    CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
-    CONF_SERVICE_NAME,
+    CONF_IGNORED_STATES,
+    CONF_INCLUDED_FOLDERS,
+    CONF_PARSE_CONFIG,
+    CONF_REPORT_PATH,
+    CONF_SEND_NOTIFICATION,
     CONF_SERVICE_DATA,
     CONF_SERVICE_DATA2,
-    CONF_INCLUDED_FOLDERS,
-    CONF_CHECK_LOVELACE,
-    CONF_IGNORED_STATES,
-    CONF_CHUNK_SIZE,
-    CONF_CREATE_FILE,
-    CONF_SEND_NOTIFICATION,
-    CONF_PARSE_CONFIG,
-    CONF_COLUMNS_WIDTH,
+    CONF_SERVICE_NAME,
     CONF_STARTUP_DELAY,
-    CONF_FRIENDLY_NAMES,
-    CONF_ALLOWED_SERVICE_PARAMS,
     CONF_TEST_MODE,
+    DEFAULT_HEADER,
+    DOMAIN,
+    DOMAIN_DATA,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
-    TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
+    TRACKED_EVENT_DOMAINS,
     VERSION,
+)
+from .coordinator import WatchmanCoordinator
+from .utils import (
+    get_config,
+    get_report_path,
+    is_service,
+    parse,
+    report,
+    table_renderer,
+    text_renderer,
 )
 
 PLATFORMS = [Platform.SENSOR]
@@ -111,8 +109,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up this integration using UI"""
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up this integration using UI."""
     _LOGGER.debug(entry.options)
     _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
 
@@ -143,14 +141,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
-    """Reload integration when options changed"""
+    """Reload integration when options changed."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(
-    hass: HomeAssistant, config_entry
+    hass: HomeAssistant, config_entry: ConfigEntry
 ):  # pylint: disable=unused-argument
-    """Handle integration unload"""
+    """Handle integration unload."""
     for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
         if cancel_handle:
             cancel_handle()
@@ -176,10 +174,10 @@ async def async_unload_entry(
 
 
 async def add_services(hass: HomeAssistant):
-    """adds report service"""
+    """Add report service."""
 
     async def async_handle_report(call):
-        """Handle the service call"""
+        """Handle the service call."""
         config = hass.data.get(DOMAIN_DATA, {})
         path = get_report_path(hass, config.get(CONF_REPORT_PATH, None))
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
@@ -197,7 +195,7 @@ async def add_services(hass: HomeAssistant):
 
         if not (send_notification or create_file):
             message = (
-                "Either `send_nofification` or `create_file` should be set to `true` "
+                "Either `send_notification` or `create_file` should be set to `true` "
                 "in service parameters."
             )
             await async_notification(hass, "Watchman error", message, error=True)
@@ -248,16 +246,16 @@ async def add_services(hass: HomeAssistant):
 
 
 async def add_event_handlers(hass: HomeAssistant):
-    """add event handlers"""
+    """Add event handlers."""
 
     async def async_schedule_refresh_states(hass: HomeAssistant, delay):
-        """schedule refresh of the sensors state"""
+        """Schedule refresh of the sensors state."""
         now = dt_util.utcnow()
         next_interval = now + timedelta(seconds=delay)
         async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
 
     async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
-        """refresh sensors state"""
+        """Refresh sensors state."""
         # parse_config should be invoked beforehand
         coordinator = hass.data[DOMAIN]["coordinator"]
         await coordinator.async_refresh()
@@ -293,10 +291,10 @@ async def add_event_handlers(hass: HomeAssistant):
             await coordinator.async_refresh()
 
     async def async_on_state_changed(event):
-        """refresh monitored entities on state change"""
+        """Refresh monitored entities on state change."""
 
         def state_or_missing(state_id):
-            """return missing state if entity not found"""
+            """Return missing state if entity not found."""
             return "missing" if not event.data[state_id] else event.data[state_id].state
 
         if event.data["entity_id"] in hass.data[DOMAIN].get("entity_list", []):
@@ -334,7 +332,7 @@ async def add_event_handlers(hass: HomeAssistant):
 
 
 def parse_config(hass: HomeAssistant, reason=None):
-    """parse home assistant configuration files"""
+    """Parse home assistant configuration files."""
     assert hass.data.get(DOMAIN_DATA)
     start_time = time.time()
     included_folders = get_included_folders(hass)
@@ -358,7 +356,7 @@ def parse_config(hass: HomeAssistant, reason=None):
 
 
 def get_included_folders(hass: HomeAssistant):
-    """gather the list of folders to parse"""
+    """Gather the list of folders to parse."""
     folders = []
     config_folders = [hass.config.config_dir]
 
@@ -377,7 +375,7 @@ def get_included_folders(hass: HomeAssistant):
 
 
 async def async_report_to_file(hass: HomeAssistant, path, test_mode):
-    """save report to a file"""
+    """Save report to a file."""
     coordinator = hass.data[DOMAIN]["coordinator"]
     await coordinator.async_refresh()
     report_chunks = report(hass, table_renderer, chunk_size=0, test_mode=test_mode)
@@ -388,7 +386,7 @@ async def async_report_to_file(hass: HomeAssistant, path, test_mode):
 
 
 async def async_report_to_notification(hass, service_str, service_data, chunk_size):
-    """send report via notification service"""
+    """Send report via notification service."""
     if not service_str:
         service_str = get_config(hass, CONF_SERVICE_NAME, None)
         service_data = get_config(hass, CONF_SERVICE_DATA2, None)
@@ -427,9 +425,9 @@ async def async_report_to_notification(hass, service_str, service_data, chunk_si
 
 
 async def async_notification(
-    hass: HomeAssistant, title, message, error=False, n_id="watchman"
+    hass: HomeAssistant, title: str, message: str, error: bool=False, n_id: str="watchman"
 ):
-    """Show a persistent notification"""
+    """Show a persistent notification."""
     persistent_notification.async_create(
         hass,
         message,
@@ -441,6 +439,6 @@ async def async_notification(
 
 
 def onboarding(hass: HomeAssistant, service, path):
-    """check if the user runs report for the first time"""
+    """Check if the user runs report for the first time."""
     service = service or get_config(hass, CONF_SERVICE_NAME, None)
     return not (service or os.path.exists(path))

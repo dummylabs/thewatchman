@@ -1,5 +1,4 @@
 """Watchman sensors definition"""
-import logging
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -60,8 +59,7 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data["last_update"]
-        else:
-            return self._attr_native_value
+        return self._attr_native_value
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -87,7 +85,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
         return self._attr_native_value
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict:
         """Return the state attributes."""
         if self.coordinator.data:
             return {"entities": self.coordinator.data["entity_attrs"]}
@@ -106,7 +104,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
 
 
 class MissingServicesSensor(WatchmanEntity, SensorEntity):
-    """Number of missing services from watchman report"""
+    """Number of missing services from Watchman report."""
 
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"
@@ -120,7 +118,7 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
         return self._attr_native_value
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict:
         """Return the state attributes."""
         if self.coordinator.data:
             return {"entities": self.coordinator.data["service_attrs"]}

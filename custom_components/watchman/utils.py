@@ -1,4 +1,4 @@
-"""Miscellaneous support functions for watchman"""
+"""Miscellaneous support functions for Watchman."""
 import glob
 import re
 import fnmatch
@@ -52,14 +52,14 @@ async def write_file(hass: HomeAssistant, path: str, content: Any) -> None:
 
 
 def get_config(hass: HomeAssistant, key, default):
-    """get configuration value."""
+    """Get configuration value."""
     if DOMAIN_DATA not in hass.data:
         return default
     return hass.data[DOMAIN_DATA].get(key, default)
 
 
-def get_report_path(hass: HomeAssistant, path):
-    """if path not specified, create report in config directory with default filename."""
+def get_report_path(hass: HomeAssistant, path: str):
+    """If path not specified, create report in config directory with default filename."""
     if not path:
         path = hass.config.path(DEFAULT_REPORT_FILENAME)
     folder, _ = os.path.split(path)
@@ -69,7 +69,7 @@ def get_report_path(hass: HomeAssistant, path):
 
 
 def get_columns_width(user_width):
-    """define width of the report columns."""
+    """Define width of the report columns."""
     default_width = [30, 7, 60]
     if not user_width:
         return default_width
@@ -121,7 +121,7 @@ def table_renderer(hass: HomeAssistant, entry_type):
         return table.get_string()
 
     else:
-        return f"Table render error: unknown entry type: {entry_type}"
+        return f"Table render error: unknown entry type: {entry_type}."
 
 
 def text_renderer(hass: HomeAssistant, entry_type):
@@ -170,13 +170,13 @@ def add_entry(_list, entry, yaml_file, lineno):
 
 
 def is_service(hass: HomeAssistant, entry):
-    """check whether config entry is a service."""
+    """Check whether config entry is a service."""
     domain, service = entry.split(".")[0], ".".join(entry.split(".")[1:])
     return hass.services.has_service(domain, service)
 
 
 def get_entity_state(hass: HomeAssistant, entry, friendly_names=False):
-    """returns entity state or missing if entity does not exist."""
+    """Returns entity state or missing if entity does not exist."""
     entity = hass.states.get(entry)
     name = None
     if entity and entity.attributes.get("friendly_name", None):
@@ -187,7 +187,7 @@ def get_entity_state(hass: HomeAssistant, entry, friendly_names=False):
 
 
 def check_services(hass: HomeAssistant):
-    """check if entries from config file are services."""
+    """Check if entries from config file are services."""
     services_missing: dict = {}
     if "missing" in get_config(hass, CONF_IGNORED_STATES, []):
         return services_missing
@@ -195,15 +195,15 @@ def check_services(hass: HomeAssistant):
         raise HomeAssistantError("Service list not found")
     service_list = hass.data[DOMAIN]["service_list"]
     _LOGGER.debug("::check_services")
-    for entry, occurences in service_list.items():
+    for entry, occurrences in service_list.items():
         if not is_service(hass, entry):
-            services_missing[entry] = occurences
+            services_missing[entry] = occurrences
             _LOGGER.debug("service %s added to missing list", entry)
     return services_missing
 
 
 def check_entities(hass: HomeAssistant):
-    """check if entries from config file are entities with an active state."""
+    """Check if entries from config file are entities with an active state."""
     ignored_states = [
         "unavail" if s == "unavailable" else s
         for s in get_config(hass, CONF_IGNORED_STATES, [])
@@ -214,7 +214,7 @@ def check_entities(hass: HomeAssistant):
     entity_list = hass.data[DOMAIN]["entity_list"]
     entities_missing = {}
     _LOGGER.debug("::check_entities")
-    for entry, occurences in entity_list.items():
+    for entry, occurrences in entity_list.items():
         if is_service(hass, entry):  # this is a service, not entity
             _LOGGER.debug("entry %s is service, skipping", entry)
             continue
@@ -223,7 +223,7 @@ def check_entities(hass: HomeAssistant):
             _LOGGER.debug("entry %s ignored due to ignored_states", entry)
             continue
         if state in ["missing", "unknown", "unavail"]:
-            entities_missing[entry] = occurences
+            entities_missing[entry] = occurrences
             _LOGGER.debug("entry %s added to missing list", entry)
     return entities_missing
 
@@ -291,7 +291,7 @@ def parse(hass: HomeAssistant, folders, ignored_files, root=None):
 
 
 def fill(data, width, extra=None):
-    """arrange data by table column width."""
+    """Arrange data by table column width."""
     if data and isinstance(data, dict):
         key, val = next(iter(data.items()))
         out = f"{key}:{','.join([str(v) for v in val])}"
@@ -303,9 +303,9 @@ def fill(data, width, extra=None):
     )
 
 
-def report(hass: HomeAssistant, render, chunk_size, test_mode: bool=False):
-    """generates Watchman report either as a table or as a list."""
-    if not DOMAIN in hass.data:
+def report(hass: HomeAssistant, render, chunk_size, test_mode: bool = False):
+    """Generates Watchman report either as a table or as a list."""
+    if DOMAIN not in hass.data:
         raise HomeAssistantError("No data for report, refresh required.")
 
     start_time = time.time()
