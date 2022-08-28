@@ -1,5 +1,4 @@
-"definition of constants"
-from homeassistant.const import Platform
+"Constants for Watchman integration."
 
 DOMAIN = "watchman"
 DOMAIN_DATA = "watchman_data"
@@ -67,6 +66,3 @@ BUNDLED_IGNORED_ITEMS = [
     "timer.restarted",
     "timer.paused",
 ]
-
-# Platforms
-PLATFORMS = [Platform.SENSOR]

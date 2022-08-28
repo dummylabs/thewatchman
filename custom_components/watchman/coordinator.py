@@ -2,33 +2,35 @@
 
 import logging
 import time
-from homeassistant.util import dt as dt_util
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from .const import DOMAIN
-from .utils import check_entitites, check_services, get_entity_state, fill
 
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
+
+from .const import DOMAIN
+from .utils import check_entities, check_services, fill, get_entity_state
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class WatchmanCoordinator(DataUpdateCoordinator):
-    """My custom coordinator."""
+    """Watchman coordinator."""
 
-    def __init__(self, hass, logger, name):
-        """Initialize watchmman coordinator."""
+    def __init__(self, hass: HomeAssistant, logger, name) -> None:
+        """Initialize Watchman coordinator."""
         super().__init__(
             hass,
             _LOGGER,
             name=name,  # Name of the data. For logging purposes.
         )
         self.hass = hass
-        self.data = {}
+        self.data: dict = {}
 
-    async def _async_update_data(self) -> None:
+    async def _async_update_data(self) -> dict:
         """Fetch data from API endpoint."""
         start_time = time.time()
         services_missing = check_services(self.hass)
-        entities_missing = check_entitites(self.hass)
+        entities_missing = check_entities(self.hass)
         self.hass.data[DOMAIN]["check_duration"] = time.time() - start_time
         self.hass.data[DOMAIN]["entities_missing"] = entities_missing
         self.hass.data[DOMAIN]["services_missing"] = services_missing

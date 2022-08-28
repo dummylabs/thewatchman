@@ -1,31 +1,32 @@
-"ConfigFlow definition for watchman"
-from typing import Dict
+"ConfigFlow definition for Watchman"
+
 import json
 from json.decoder import JSONDecodeError
 import logging
-from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
+
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
-from .utils import is_service, get_columns_width, get_report_path
 
 from .const import (
-    DOMAIN,
-    CONF_IGNORED_FILES,
-    CONF_HEADER,
-    CONF_REPORT_PATH,
-    CONF_IGNORED_ITEMS,
-    CONF_SERVICE_NAME,
-    CONF_SERVICE_DATA,
-    CONF_SERVICE_DATA2,
-    CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
-    CONF_IGNORED_STATES,
     CONF_CHUNK_SIZE,
     CONF_COLUMNS_WIDTH,
-    CONF_STARTUP_DELAY,
     CONF_FRIENDLY_NAMES,
+    CONF_HEADER,
+    CONF_IGNORED_FILES,
+    CONF_IGNORED_ITEMS,
+    CONF_IGNORED_STATES,
+    CONF_INCLUDED_FOLDERS,
+    CONF_REPORT_PATH,
+    CONF_SERVICE_DATA,
+    CONF_SERVICE_DATA2,
+    CONF_SERVICE_NAME,
+    CONF_STARTUP_DELAY,
+    DOMAIN,
 )
+from .utils import get_columns_width, get_report_path, is_service
 
 DEFAULT_DATA = {
     CONF_SERVICE_NAME: "",
@@ -53,7 +54,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
-    """Config flow"""
+    """Config flow."""
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
@@ -61,7 +62,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(title="Watchman", data={}, options=DEFAULT_DATA)
 
     async def async_step_import(self, import_data):
-        """Import configuration.yaml settings as OptionsEntry"""
+        """Import configuration.yaml settings as OptionsEntry."""
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
         # change "data" key from configuration.yaml to "service_data" as "data" is reserved by
@@ -80,7 +81,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: ConfigEntry):
         """Get the options flow for this handler."""
         return OptionsFlowHandler(config_entry)
 
@@ -91,11 +92,11 @@ class OptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         self.config_entry = config_entry
 
-    def default(self, key, uinput=None):
-        """provide default value for an OptionsFlow field"""
-        if uinput and key in uinput:
+    def default(self, key, user_input=None):
+        """provide default value for an OptionsFlow field."""
+        if user_input and key in user_input:
             # supply last entered value to display an error during form validation
-            result = uinput[key]
+            result = user_input[key]
         else:
             # supply last saved value or default one
             result = self.config_entry.options.get(key, DEFAULT_DATA[key])
@@ -116,8 +117,8 @@ class OptionsFlowHandler(OptionsFlow):
         return str(result)
 
     def to_list(self, user_input, key):
-        """validate user input against list requirements"""
-        errors: Dict[str, str] = {}
+        """Validate user input against list requirements."""
+        errors: dict[str, str] = {}
 
         if key not in user_input:
             return DEFAULT_DATA[key], errors
@@ -131,7 +132,7 @@ class OptionsFlowHandler(OptionsFlow):
         return val, errors
 
     async def _show_options_form(
-        self, uinput=None, errors=None, placehoders=None
+        self, user_input=None, errors=None, placeholders=None
     ):  # pylint: disable=unused-argument
         return self.async_show_form(
             step_id="init",
@@ -140,20 +141,24 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_SERVICE_NAME,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_NAME, uinput)
+                            "suggested_value": self.default(
+                                CONF_SERVICE_NAME, user_input
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_SERVICE_DATA2,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_DATA2, uinput)
+                            "suggested_value": self.default(
+                                CONF_SERVICE_DATA2, user_input
+                            )
                         },
                     ): selector.TemplateSelector(),
                     vol.Optional(
                         CONF_INCLUDED_FOLDERS,
                         description={
                             "suggested_value": self.default(
-                                CONF_INCLUDED_FOLDERS, uinput
+                                CONF_INCLUDED_FOLDERS, user_input
                             )
                         },
                     ): selector.TextSelector(
@@ -162,19 +167,23 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_HEADER,
                         description={
-                            "suggested_value": self.default(CONF_HEADER, uinput)
+                            "suggested_value": self.default(CONF_HEADER, user_input)
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_REPORT_PATH,
                         description={
-                            "suggested_value": self.default(CONF_REPORT_PATH, uinput)
+                            "suggested_value": self.default(
+                                CONF_REPORT_PATH, user_input
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_IGNORED_ITEMS,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_ITEMS, uinput)
+                            "suggested_value": self.default(
+                                CONF_IGNORED_ITEMS, user_input
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -182,7 +191,9 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_IGNORED_STATES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_STATES, uinput)
+                            "suggested_value": self.default(
+                                CONF_IGNORED_STATES, user_input
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -190,13 +201,15 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_CHUNK_SIZE,
                         description={
-                            "suggested_value": self.default(CONF_CHUNK_SIZE, uinput)
+                            "suggested_value": self.default(CONF_CHUNK_SIZE, user_input)
                         },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_IGNORED_FILES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_FILES, uinput)
+                            "suggested_value": self.default(
+                                CONF_IGNORED_FILES, user_input
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -204,37 +217,45 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_COLUMNS_WIDTH,
                         description={
-                            "suggested_value": self.default(CONF_COLUMNS_WIDTH, uinput)
+                            "suggested_value": self.default(
+                                CONF_COLUMNS_WIDTH, user_input
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_STARTUP_DELAY,
                         description={
-                            "suggested_value": self.default(CONF_STARTUP_DELAY, uinput)
+                            "suggested_value": self.default(
+                                CONF_STARTUP_DELAY, user_input
+                            )
                         },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_FRIENDLY_NAMES,
                         description={
-                            "suggested_value": self.default(CONF_FRIENDLY_NAMES, uinput)
+                            "suggested_value": self.default(
+                                CONF_FRIENDLY_NAMES, user_input
+                            )
                         },
                     ): cv.boolean,
                     vol.Optional(
                         CONF_CHECK_LOVELACE,
                         description={
-                            "suggested_value": self.default(CONF_CHECK_LOVELACE, uinput)
+                            "suggested_value": self.default(
+                                CONF_CHECK_LOVELACE, user_input
+                            )
                         },
                     ): cv.boolean,
                 }
             ),
             errors=errors or {},
-            description_placeholders=placehoders or {},
+            description_placeholders=placeholders or {},
         )
 
     async def async_step_init(self, user_input=None):
-        """Manage the options"""
-        errors: Dict[str, str] = {}
-        placehoders: Dict[str, str] = {}
+        """Manage options."""
+        errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
 
         if user_input is not None:
             user_input[CONF_INCLUDED_FOLDERS], err = self.to_list(
@@ -280,12 +301,11 @@ class OptionsFlowHandler(OptionsFlow):
             if CONF_SERVICE_NAME in user_input:
                 if not is_service(self.hass, user_input[CONF_SERVICE_NAME]):
                     errors[CONF_SERVICE_NAME] = "unknown_service"
-                    placehoders["service"] = user_input[CONF_SERVICE_NAME]
+                    placeholders["service"] = user_input[CONF_SERVICE_NAME]
 
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
-            else:
                 # provide last entered values to display error
-                return await self._show_options_form(user_input, errors, placehoders)
+            return await self._show_options_form(user_input, errors, placeholders)
         # provide default values
         return await self._show_options_form()

@@ -1,23 +1,23 @@
 """Test setup process."""
 from copy import deepcopy
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from custom_components.watchman import (
-    async_setup_entry,
-)
+
+from custom_components.watchman import async_setup_entry
+from custom_components.watchman.config_flow import DEFAULT_DATA
 from custom_components.watchman.const import (
+    CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
-    DOMAIN,
     CONF_INCLUDED_FOLDERS,
-    CONF_IGNORED_FILES,
+    DOMAIN,
 )
-from custom_components.watchman.config_flow import DEFAULT_DATA
 
 TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
 
 
 async def test_init(hass):
-    """test watchman initialization"""
+    """Test watchman initialization."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     config_entry = MockConfigEntry(
@@ -29,7 +29,7 @@ async def test_init(hass):
 
 
 async def test_missing(hass):
-    """test missing entities detection"""
+    """Test missing entities detection."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     hass.states.async_set("sensor.test1_unknown", "unknown")
@@ -45,7 +45,7 @@ async def test_missing(hass):
 
 
 async def test_ignored_state(hass):
-    """test single ingnored state processing"""
+    """Test single ignored state processing."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = ["unknown"]
@@ -62,7 +62,7 @@ async def test_ignored_state(hass):
 
 
 async def test_multiple_ignored_states(hass):
-    """test multiple ingnored states processing"""
+    """Test multiple ignored states processing."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = ["unknown", "missing", "unavailable"]
@@ -79,7 +79,7 @@ async def test_multiple_ignored_states(hass):
 
 
 async def test_ignored_files(hass):
-    """test ignored files processing"""
+    """Test ignored files processing."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = []
@@ -97,7 +97,7 @@ async def test_ignored_files(hass):
 
 
 async def test_ignored_items(hass):
-    """test ignored files processing"""
+    """Test ignored files processing."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = []

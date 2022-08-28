@@ -1,22 +1,22 @@
 """Test table reports"""
 from copy import deepcopy
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+
 from homeassistant.core import callback
-from custom_components.watchman import (
-    async_setup_entry,
-)
-from custom_components.watchman.const import DOMAIN, CONF_INCLUDED_FOLDERS
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.watchman import async_setup_entry
 from custom_components.watchman.config_flow import DEFAULT_DATA
+from custom_components.watchman.const import CONF_INCLUDED_FOLDERS, DOMAIN
 
 TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
 
 
 async def test_add_service(hass):
-    """test adding and removing service events"""
+    """Test adding and removing service events."""
 
     @callback
     def dummy_service_handler(event):  # pylint: disable=unused-argument
-        """dummy service handler."""
+        """Dummy service handler."""
 
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
@@ -39,7 +39,7 @@ async def test_add_service(hass):
 
 
 async def test_change_state(hass):
-    """test change entity state events"""
+    """Test change entity state events."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     hass.states.async_set("sensor.test1_unknown", "unknown")
@@ -58,7 +58,7 @@ async def test_change_state(hass):
 
 
 async def test_remove_entity(hass):
-    """test entity removal"""
+    """Test entity removal."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     hass.states.async_set("sensor.test1_unknown", "unknown")
@@ -76,7 +76,7 @@ async def test_remove_entity(hass):
 
 
 async def test_add_entity(hass):
-    """test entity addition"""
+    """Test entity addition."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     hass.states.async_set("sensor.test1_unknown", "unknown")

@@ -1,24 +1,24 @@
 """Test table reports"""
 from copy import deepcopy
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from custom_components.watchman import (
-    async_setup_entry,
-)
-from custom_components.watchman.const import (
-    CONF_IGNORED_STATES,
-    DOMAIN,
-    CONF_INCLUDED_FOLDERS,
-    CONF_IGNORED_FILES,
-    CONF_REPORT_PATH,
-    CONF_COLUMNS_WIDTH,
-)
+
+from custom_components.watchman import async_setup_entry
 from custom_components.watchman.config_flow import DEFAULT_DATA
+from custom_components.watchman.const import (
+    CONF_COLUMNS_WIDTH,
+    CONF_IGNORED_FILES,
+    CONF_IGNORED_STATES,
+    CONF_INCLUDED_FOLDERS,
+    CONF_REPORT_PATH,
+    DOMAIN,
+)
 
 TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
 
 
 async def test_table_default(hass, tmpdir):
-    """test table rendering"""
+    """Test table rendering."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = []
@@ -44,7 +44,7 @@ async def test_table_default(hass, tmpdir):
 
 
 async def test_table_no_missing(hass, tmpdir):
-    """test table rendering with no missing elements"""
+    """Test table rendering with no missing elements."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = ["missing"]
@@ -70,7 +70,7 @@ async def test_table_no_missing(hass, tmpdir):
 
 
 async def test_table_all_clear(hass, tmpdir):
-    """test table rendering with no entries"""
+    """Test table rendering with no entries."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = ["missing", "unknown", "unavailable"]
@@ -96,7 +96,7 @@ async def test_table_all_clear(hass, tmpdir):
 
 
 async def test_column_resize(hass, tmpdir):
-    """test table rendering with narrow columns"""
+    """Test table rendering with narrow columns."""
     options = deepcopy(DEFAULT_DATA)
     options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
     options[CONF_IGNORED_STATES] = []
