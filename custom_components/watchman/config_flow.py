@@ -3,29 +3,30 @@
 import json
 from json.decoder import JSONDecodeError
 import logging
-from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
+
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
-from .utils import is_service, get_columns_width, get_report_path
 
 from .const import (
-    DOMAIN,
-    CONF_IGNORED_FILES,
-    CONF_HEADER,
-    CONF_REPORT_PATH,
-    CONF_IGNORED_ITEMS,
-    CONF_SERVICE_NAME,
-    CONF_SERVICE_DATA,
-    CONF_SERVICE_DATA2,
-    CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
-    CONF_IGNORED_STATES,
     CONF_CHUNK_SIZE,
     CONF_COLUMNS_WIDTH,
-    CONF_STARTUP_DELAY,
     CONF_FRIENDLY_NAMES,
+    CONF_HEADER,
+    CONF_IGNORED_FILES,
+    CONF_IGNORED_ITEMS,
+    CONF_IGNORED_STATES,
+    CONF_INCLUDED_FOLDERS,
+    CONF_REPORT_PATH,
+    CONF_SERVICE_DATA,
+    CONF_SERVICE_DATA2,
+    CONF_SERVICE_NAME,
+    CONF_STARTUP_DELAY,
+    DOMAIN,
 )
+from .utils import get_columns_width, get_report_path, is_service
 
 DEFAULT_DATA = {
     CONF_SERVICE_NAME: "",
@@ -140,13 +141,17 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_SERVICE_NAME,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_NAME, user_input)
+                            "suggested_value": self.default(
+                                CONF_SERVICE_NAME, user_input
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_SERVICE_DATA2,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_DATA2, user_input)
+                            "suggested_value": self.default(
+                                CONF_SERVICE_DATA2, user_input
+                            )
                         },
                     ): selector.TemplateSelector(),
                     vol.Optional(
@@ -168,13 +173,17 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_REPORT_PATH,
                         description={
-                            "suggested_value": self.default(CONF_REPORT_PATH, user_input)
+                            "suggested_value": self.default(
+                                CONF_REPORT_PATH, user_input
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_IGNORED_ITEMS,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_ITEMS, user_input)
+                            "suggested_value": self.default(
+                                CONF_IGNORED_ITEMS, user_input
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -182,7 +191,9 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_IGNORED_STATES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_STATES, user_input)
+                            "suggested_value": self.default(
+                                CONF_IGNORED_STATES, user_input
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -196,7 +207,9 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_IGNORED_FILES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_FILES, user_input)
+                            "suggested_value": self.default(
+                                CONF_IGNORED_FILES, user_input
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -204,25 +217,33 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_COLUMNS_WIDTH,
                         description={
-                            "suggested_value": self.default(CONF_COLUMNS_WIDTH, user_input)
+                            "suggested_value": self.default(
+                                CONF_COLUMNS_WIDTH, user_input
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_STARTUP_DELAY,
                         description={
-                            "suggested_value": self.default(CONF_STARTUP_DELAY, user_input)
+                            "suggested_value": self.default(
+                                CONF_STARTUP_DELAY, user_input
+                            )
                         },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_FRIENDLY_NAMES,
                         description={
-                            "suggested_value": self.default(CONF_FRIENDLY_NAMES, user_input)
+                            "suggested_value": self.default(
+                                CONF_FRIENDLY_NAMES, user_input
+                            )
                         },
                     ): cv.boolean,
                     vol.Optional(
                         CONF_CHECK_LOVELACE,
                         description={
-                            "suggested_value": self.default(CONF_CHECK_LOVELACE, user_input)
+                            "suggested_value": self.default(
+                                CONF_CHECK_LOVELACE, user_input
+                            )
                         },
                     ): cv.boolean,
                 }

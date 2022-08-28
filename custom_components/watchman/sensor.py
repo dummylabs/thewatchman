@@ -5,14 +5,15 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.core import callback, HomeAssistant
-from .entity import WatchmanEntity
+from homeassistant.core import HomeAssistant, callback
+
 from .const import (
     DOMAIN,
     SENSOR_LAST_UPDATE,
     SENSOR_MISSING_ENTITIES,
     SENSOR_MISSING_SERVICES,
 )
+from .entity import WatchmanEntity
 
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices):
