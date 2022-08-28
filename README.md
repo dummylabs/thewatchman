@@ -1,4 +1,5 @@
 # The Watchman
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 ![version](https://img.shields.io/github/v/release/dummylabs/thewatchman)
 [![Community Forum][forum-shield]][forum]
@@ -13,15 +14,16 @@ The world around us is constantly changing and so is Home Assistant. How often h
 2. Restart Home Assistant, go to Settings->Devices and Services->Add Integration and select Watchman integration. If integration not found, try to empty your browser cache and reload page.
 3. Go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `watchman_report.txt` file in your configuration directory.
 
-Refer to the [Configutation section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
+Refer to the [Configuration section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
 ## What does it do
+
 The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the integration checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry. The report can be stored as a nice looking text table or it can be send via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
 
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
 
-
 ## Configuration
+
 Integration settings are available in Settings->Devices & Services->Watchman->Configure.
 
 [![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/)
@@ -42,31 +44,34 @@ Startup delay | By default, watchman's sensors are updated by `homeassistant_sta
 Add friendly names | Add friendly name of the entity to the report whenever possible. | `False`
 Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | `False`
 
-
 ### Ignored files option example
+
 * Ignore a file: `*/automations.yaml`
 * Ignore all files in the folder: `/config/esphome/*`
 * Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
 <img src="./images/ignored_files_ui.png" width=50%>
 
 ### Ignored entities and services option example
+
 * Ignore an entity: `person.dummylabs`
 * Ignore everything in sensor domain: `sensor.*`
 * Ignore any entity/service which name ends with "_ble": `*.*_ble`
 
 ### Send report via telegram bot
+
 * *Notification service*: `telegram_bot.send_message`
 * *Notification service data*: `{"parse_mode":"html"}`
 
 ## Watchman.report service
+
 The text version of the report can be generated using `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behavior can be altered with additional optional parameters:
 
- - `create_file` create text version of the report (optional, default=true)
- - `send_notification` send report via notification service (optional, default=false)
- - `service` notification service name (optional, overrides eponymous parameter from integration settings)
- - `data` notification service data (optional, overrides eponymous parameter from integration settings)
- - `parse_config` see below (optional, default=false)
- - `chunk_size` (optional, default is 3500 or whatever specified in integration settings)
+* `create_file` create text version of the report (optional, default=true)
+* `send_notification` send report via notification service (optional, default=false)
+* `service` notification service name (optional, overrides eponymous parameter from integration settings)
+* `data` notification service data (optional, overrides eponymous parameter from integration settings)
+* `parse_config` see below (optional, default=false)
+* `chunk_size` (optional, default is 3500 or whatever specified in integration settings)
 
 The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides integration settings.
 
@@ -74,9 +79,11 @@ The parameter `service` allows sending report text via notification service of c
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#advanced-usage-examples) section at the bottom of this document.
 
 ### Call service from Home Assistant UI
+
 <img src="./images/service_example.png" width=70%>
 
 ### Extra notification service parameters example
+
 ```yaml
 service: watchman.report
 create_file: false
@@ -88,15 +95,18 @@ data:
 ```
 
 ## Sensors
+
 Besides of the report, a few sensors will be added to Home Assistant:
 
-- sensor.watchman_missing_entities
-- sensor.watchman_missing_services
-- sensor.watchman_last_updated
+* sensor.watchman_missing_entities
+* sensor.watchman_missing_services
+* sensor.watchman_last_updated
 
 ## Example of a watchman report
+
 Please note that the ASCII table format is only used when report is saved to a file. For notification services watchman uses plain text list due to presentation limitations.
-```
+
+```txt
 -== WATCHMAN REPORT ==-
 
 -== Missing 1 service(s) from 38 found in your config:
@@ -119,9 +129,11 @@ Please note that the ASCII table format is only used when report is saved to a f
 -== Parsed 200 files in 0.96s., ignored 66 files
 -== Generated in: 0.01s. Validated in: 0.00s.
 ```
+
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/service state and generate text version of the report.
 
 ## Markdown card example
+
 Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have additional set of attributes which makes it possible to create your own report using a lovelace card. Below is an example of missing entities report for the Lovelace markdown card:
 
 ```yaml
@@ -146,9 +158,10 @@ card_mod:
         ha-markdown-element:first-of-type hr{
           border-color: #303030;
         }
-
 ```
+
 Important considerations:
+
 1. Make sure you are in code editor mode before pasting this code into the markdown card
 2. `card_mod` section is optional and requires a [custom lovelace card](https://github.com/thomasloven/lovelace-card-mod) to be installed for extra styling
 3. Put mouse pointer over a file name to see full path to a file and line numbers
@@ -180,12 +193,17 @@ card_mod:
 ## Advanced usage examples
 
 ### Additional notification service parameters
+
 Notification service name can be specified in integration options along with additional service parameters.
+
 #### UI settings example
+
 <img src="./images/service_data_ui.png" width=50%>
 
 ### Additional notification service parameters in Watchman:report service
-You can use an arbitrary notification service with `watchman.report` service. Service paramaters takes precedence over eponymous UI settings.
+
+You can use an arbitrary notification service with `watchman.report` service. Service parameters takes precedence over eponymous UI settings.
+
 ```yaml
 service: watchman.report
 data:
@@ -196,7 +214,9 @@ data:
 ```
 
 ### Send report as a text file via telegram bot
+
 You should add report folder to the Home Assistant whitelist, otherwise telegram_bot will be unable to pick files from the folder (see example configuration below).
+
 ```yaml
 service: watchman.report
 data:
@@ -204,7 +224,9 @@ data:
   data:
     file: '/config/thewatchman_report.txt'
 ```
+
 :warning: Whitelisting the configuration folder can be unsafe, use it at your own risk or put report file in a separate folder.
+
 ```yaml
 homeassistant:
   allowlist_external_dirs:
