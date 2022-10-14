@@ -163,7 +163,7 @@ type: markdown
 content: >-
   <h2 class="some"> <ha-icon icon='mdi:shield-half-full'></ha-icon> Watchman report</h2>
   <h3> Missing Services: {{ states.sensor.watchman_missing_services.state }} </h3>
-  {%- for item in state_attr("sensor.watchman_missing_services", "entities") %}
+  {%- for item in state_attr("sensor.watchman_missing_services", "services") %}
   <hr><table><tr> <td>  <ha-icon icon='mdi:cloud-alert'></ha-icon> {{ item.id }}
   <a title="{{item.occurrences}}">{{item.occurrences.split('/')[-1].split(':')[0]}}</a>
   </td></tr></table>
