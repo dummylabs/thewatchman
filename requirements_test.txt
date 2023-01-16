@@ -1,2 +1,2 @@
-pytest-homeassistant-custom-component==0.9.1
 prettytable==3.0.0
+pytest-homeassistant-custom-component>=0.12.39
