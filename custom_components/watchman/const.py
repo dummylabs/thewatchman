@@ -3,7 +3,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "watchman"
 DOMAIN_DATA = "watchman_data"
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 
 DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
