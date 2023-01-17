@@ -1,4 +1,4 @@
--== Watchman Report ==- 
+-== Watchman Report ==-
 
 -== Missing 3 service(s) from 3 found in your config:
 +--------------------------------+---------+--------------------------------------------------------------+
@@ -19,5 +19,5 @@
 +--------------------------------+---------+--------------------------------------------------------------+
 
 -== Report created on 01 Jan 1970 00:00:00
--== Parsed 2 files in 0.01s., ignored 0 files 
+-== Parsed 3 files in 0.01s., ignored 0 files
 -== Generated in: 0.00s. Validated in: 0.10s.

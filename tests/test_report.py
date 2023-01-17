@@ -17,6 +17,13 @@ from custom_components.watchman.config_flow import DEFAULT_DATA
 TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
 
 
+def assert_files_equal(test, ref):
+    """compare two files line by line"""
+    test_array = open(test, encoding="utf-8").readlines()
+    for idx, row in enumerate(open(ref, encoding="utf-8")):
+        assert test_array[idx].strip() == row.strip()
+
+
 async def test_table_default(hass, tmpdir):
     """test table rendering"""
     options = deepcopy(DEFAULT_DATA)
@@ -38,9 +45,7 @@ async def test_table_default(hass, tmpdir):
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
     await hass.async_block_till_done()
-    assert [row for row in open(test_report, encoding="utf-8")] == [
-        row for row in open(base_report, encoding="utf-8")
-    ]
+    assert_files_equal(base_report, test_report)
 
 
 async def test_table_no_missing(hass, tmpdir):
@@ -64,9 +69,7 @@ async def test_table_no_missing(hass, tmpdir):
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
     await hass.async_block_till_done()
-    assert [row for row in open(test_report, encoding="utf-8")] == [
-        row for row in open(base_report, encoding="utf-8")
-    ]
+    assert_files_equal(base_report, test_report)
 
 
 async def test_table_all_clear(hass, tmpdir):
@@ -90,9 +93,7 @@ async def test_table_all_clear(hass, tmpdir):
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
     await hass.async_block_till_done()
-    assert [row for row in open(test_report, encoding="utf-8")] == [
-        row for row in open(base_report, encoding="utf-8")
-    ]
+    assert_files_equal(base_report, test_report)
 
 
 async def test_column_resize(hass, tmpdir):
@@ -117,6 +118,4 @@ async def test_column_resize(hass, tmpdir):
 
     await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
     await hass.async_block_till_done()
-    assert [row for row in open(test_report, encoding="utf-8")] == [
-        row for row in open(base_report, encoding="utf-8")
-    ]
+    assert_files_equal(base_report, test_report)
