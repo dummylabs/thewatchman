@@ -182,14 +182,8 @@ def get_entity_state(hass, entry, friendly_names=False):
     if entity and entity.attributes.get("friendly_name", None):
         if friendly_names:
             name = entity.name
-    if not entity:
-        state = "missing"
-    else:
-        try:
-            state = entity.state.replace("unavailable", "unavail")
-        except Exception as e:
-            _LOGGER.error("Unable to get state for %s: %s. Type: %s", entry, e, type(entity.state))
-            state = "error"
+    # fix for #75, some integrations return non-string states
+    state = "missing" if not entity else str(entity.state).replace("unavailable", "unavail")
     return state, name
 
 
