@@ -18,4 +18,4 @@ async def test_regex(hass):
         domain="watchman", data={}, options=options, entry_id="test"
     )
     assert await async_setup_entry(hass, config_entry)
-    assert len(hass.data[DOMAIN]["entities_missing"]) == 9
+    assert len(hass.data[DOMAIN]["entities_missing"]) == 10

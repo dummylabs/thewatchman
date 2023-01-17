@@ -8,3 +8,4 @@ state_attr('sensor.test7'
     - sensor.test8
 # sensor.test9
 states.sensor.test10
+states.sensor.test11.state
