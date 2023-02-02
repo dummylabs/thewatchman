@@ -127,7 +127,7 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
     hass.data[DOMAIN]["coordinator"] = coordinator
     hass.data[DOMAIN_DATA] = entry.options  # TODO: refactor
 
-    hass.config_entries.async_setup_platforms(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
     await add_services(hass)
@@ -140,6 +140,12 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
         # first run, home assistant is loading
         # parse_config will be scheduled once HA is fully loaded
         _LOGGER.info("Watchman started [%s]", VERSION)
+
+
+#    resources = hass.data["lovelace"]["resources"]
+#    await resources.async_get_info()
+#    for itm in resources.async_items():
+#        _LOGGER.debug(itm)
 
     return True
 
