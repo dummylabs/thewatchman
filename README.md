@@ -127,7 +127,7 @@ Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing
 ```yaml
 type: markdown
 content: >-
-  <h2> <ha-icon icon='mdi:shield-half-full'></ha-icon> Watchman report</h2>
+  <h2> <img src="https://brands.home-assistant.io/watchman/icon.png" alt="WM Logo" width="32" height="32"> Watchman report</h2>
   <h3>Missing Entities: {{ states.sensor.watchman_missing_entities.state }} </h3>
   {%- for item in state_attr("sensor.watchman_missing_entities", "entities") %}
   <hr> <table><tr> <td>
