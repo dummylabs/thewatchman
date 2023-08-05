@@ -177,6 +177,49 @@ card_mod:
         }
 ```
 
+Alternatively you can display missing entities in a markdown card grouped by page:
+```yaml
+type: "markdown"
+content: >-
+  <h1><ha-icon icon='mdi:shield-link-variant'></ha-icon> Watchman report</h1>
+  <h3>Missing Entities: {{ states('sensor.watchman_missing_entities') }}</h3>
+  <table>
+  {%- for item in state_attr("sensor.watchman_missing_entities", "entities") -%}
+    {%- if loop.changed(item.occurrences.split(':')[0]) -%}
+      <tr><th colspan='3'>
+      {{ item.occurrences.split(':')[0] }}</th></tr>
+    {%- endif -%}
+      <tr><td><ha-icon icon='mdi:
+    {%- if item.state=="missing" -%}
+        cloud-alert'
+    {%- elif item.state=="unavail" -%}
+        cloud-off-outline'
+    {%- elif item.state=="unknown" -%}
+        cloud-question'
+    {%- else -%}
+        radiobox-blank'
+    {%- endif -%}></ha-icon></td>
+    <td>{{ item.id }}</td>
+    <td>{{ item.occurrences.split(':')[1] }}</td></tr>
+  {%- endfor -%}
+  </table>
+card_mod:
+  style:
+    ha-markdown $: &ref_style |
+        th {
+          padding-top: 0.5em;
+          border-top: 1px solid var(--primary-text-color);
+          text-align: left;
+          overflow-wrap: break-word;
+          word-break: break-all;
+        }
+        td {
+          overflow-wrap: break-word;
+          word-break: break-all;
+        }
+```
+<img src="./images/markdown_card_entities_grouped_by_page_example.png" width=50%>
+
 ## Advanced usage examples
 
 ### Additional notification service parameters
