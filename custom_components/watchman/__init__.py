@@ -11,7 +11,6 @@ from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -97,7 +96,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup(hass: HomeAssistantType, config: dict):
+async def async_setup(hass: HomeAssistant, config: dict):
     """Set up is called when Home Assistant is loading our component."""
     if config.get(DOMAIN) is None:
         # We get here if the integration is set up using config flow
@@ -113,7 +112,7 @@ async def async_setup(hass: HomeAssistantType, config: dict):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up this integration using UI"""
     _LOGGER.debug(entry.options)
     _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
