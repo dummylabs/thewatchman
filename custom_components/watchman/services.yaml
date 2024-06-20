@@ -2,45 +2,33 @@ report:
   description: Run watchman report
   fields:
     create_file:
-      description: Whether report file should be created (optional, true by default)
       example: true
-      name: Create file report
       default: true
       required: false
       selector:
         boolean:
     send_notification:
-      description: Whether report should be sent via notification service (optional, false by default)
       example: true
-      name: Send notification
       default: false
       required: false
       selector:
         boolean:
     service:
-      description: Notification service to send report via (optional). Overrides "service" setting from watchman configuration
       example: "notify.telegram"
-      name: Notification service
       required: false
       selector:
         text:
     data:
-      description: Additional data in form of key:value pairs for notification service (optional)
       example: "parse_mode: html"
-      name: Notification service data parameters
 
     parse_config:
-      description: Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required. (optional, false by default)
       example: true
-      name: Parse configuration
       default: false
       required: false
       selector:
         boolean:
     chunk_size:
-      description: Maximum message size in bytes. If report size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional, default is 3500 or whatever specified in integration settings)
       example: true
-      name: Chunk size
       default: false
       required: false
       selector:

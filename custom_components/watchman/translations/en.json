@@ -41,5 +41,37 @@
                 "description": "[Help on settings](https://github.com/dummylabs/thewatchman#configuration)"
             }
         }
+    },
+    "services": {
+        "report": {
+            "name": "Report",
+            "description": "Run the Watchman report",
+            "fields": {
+                "create_file": {
+                    "name": "Create file report",
+                    "description": "Whether report file should be created (optional, true by default)"
+                },
+                "send_notification": {
+                    "name": "Send notification",
+                    "description": "Whether report should be sent via notification service (optional, false by default)"
+                },
+                "service": {
+                    "name": "Notification service",
+                    "description": "Notification service to send report via (optional). Overrides 'service' setting from watchman configuration"
+                },
+                "data": {
+                    "name": "Notification service data parameters",
+                    "description": "Additional data in form of key:value pairs for notification service (optional)"
+                },
+                "parse_config": {
+                    "name": "Force configuration parsing",
+                    "description": "Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required. (optional, false by default)"
+                },
+                "chunk_size": {
+                    "name": "Report chunk size",
+                    "description": "Maximum message size in bytes. If report size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional, default is 3500 or whatever specified in integration settings)"
+                }
+            }
+        }
     }
 }
