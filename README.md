@@ -74,7 +74,8 @@ The parameter `service` allows sending report text via notification service of c
 Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#advanced-usage-examples) section at the bottom of this document.
 
 ### Call service from Home Assistant UI
-![service example](images/service_example.png)
+<img src="https://raw.githubusercontent.com/dummylabs/thewatchman/main/images/service_example.png" width=70%>
+
 
 ### Extra notification service parameters example
 ```yaml
