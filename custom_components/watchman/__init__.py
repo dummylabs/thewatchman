@@ -133,18 +133,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await add_event_handlers(hass)
     if hass.is_running:
         # integration reloaded or options changed via UI
-        parse_config(hass, reason="changes in watchman configuration")
+        await parse_config(hass, reason="changes in watchman configuration")
         await coordinator.async_config_entry_first_refresh()
     else:
         # first run, home assistant is loading
         # parse_config will be scheduled once HA is fully loaded
         _LOGGER.info("Watchman started [%s]", VERSION)
 
-
-#    resources = hass.data["lovelace"]["resources"]
-#    await resources.async_get_info()
-#    for itm in resources.async_items():
-#        _LOGGER.debug(itm)
+    # resources = hass.data["lovelace"]["resources"]
+    # await resources.async_get_info()
+    # for itm in resources.async_items():
+    #     _LOGGER.debug(itm)
 
     return True
 
@@ -210,7 +209,7 @@ async def add_services(hass: HomeAssistant):
             await async_notification(hass, "Watchman error", message, error=True)
 
         if call.data.get(CONF_PARSE_CONFIG, False):
-            parse_config(hass, reason="service call")
+            await parse_config(hass, reason="service call")
 
         if send_notification:
             chunk_size = call.data.get(CONF_CHUNK_SIZE, config.get(CONF_CHUNK_SIZE))
@@ -270,7 +269,7 @@ async def add_event_handlers(hass: HomeAssistant):
         await coordinator.async_refresh()
 
     async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
-        parse_config(hass, reason="HA restart")
+        await parse_config(hass, reason="HA restart")
         startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
         await async_schedule_refresh_states(hass, startup_delay)
 
@@ -283,12 +282,12 @@ async def add_event_handlers(hass: HomeAssistant):
                 "reload_core_config",
                 "reload",
             ]:
-                parse_config(hass, reason="configuration changes")
+                await parse_config(hass, reason="configuration changes")
                 coordinator = hass.data[DOMAIN]["coordinator"]
                 await coordinator.async_refresh()
 
         elif typ in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
-            parse_config(hass, reason="configuration changes")
+            await parse_config(hass, reason="configuration changes")
             coordinator = hass.data[DOMAIN]["coordinator"]
             await coordinator.async_refresh()
 
@@ -340,14 +339,14 @@ async def add_event_handlers(hass: HomeAssistant):
     hass.data[DOMAIN]["cancel_handlers"] = hdlr
 
 
-def parse_config(hass: HomeAssistant, reason=None):
+async def parse_config(hass: HomeAssistant, reason=None):
     """parse home assistant configuration files"""
     assert hass.data.get(DOMAIN_DATA)
     start_time = time.time()
     included_folders = get_included_folders(hass)
     ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
 
-    entity_list, service_list, files_parsed, files_ignored = parse(
+    entity_list, service_list, files_parsed, files_ignored = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
     )
     hass.data[DOMAIN]["entity_list"] = entity_list
@@ -387,11 +386,16 @@ async def async_report_to_file(hass, path, test_mode):
     """save report to a file"""
     coordinator = hass.data[DOMAIN]["coordinator"]
     await coordinator.async_refresh()
-    report_chunks = report(hass, table_renderer, chunk_size=0, test_mode=test_mode)
-    # OSError exception is handled in async_handle_report
-    with open(path, "w", encoding="utf-8") as report_file:
-        for chunk in report_chunks:
-            report_file.write(chunk)
+    report_chunks = await report(
+        hass, table_renderer, chunk_size=0, test_mode=test_mode
+    )
+
+    def write(path):
+        with open(path, "w", encoding="utf-8") as report_file:
+            for chunk in report_chunks:
+                report_file.write(chunk)
+
+    await hass.async_add_executor_job(write, path)
 
 
 async def async_report_to_notification(hass, service_str, service_data, chunk_size):
@@ -422,7 +426,7 @@ async def async_report_to_notification(hass, service_str, service_data, chunk_si
 
     coordinator = hass.data[DOMAIN]["coordinator"]
     await coordinator.async_refresh()
-    report_chunks = report(hass, text_renderer, chunk_size)
+    report_chunks = await report(hass, text_renderer, chunk_size)
     for chunk in report_chunks:
         data["message"] = chunk
         # blocking=True ensures execution order

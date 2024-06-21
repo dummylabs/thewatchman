@@ -1,4 +1,6 @@
 """Miscellaneous support functions for watchman"""
+
+import aiofiles
 import glob
 import re
 import fnmatch
@@ -231,7 +233,7 @@ def check_entitites(hass):
     return entities_missing
 
 
-def parse(hass, folders, ignored_files, root=None):
+async def parse(hass, folders, ignored_files, root=None):
     """Parse a yaml or json file for entities/services"""
     files_parsed = 0
     entity_pattern = re.compile(
@@ -255,19 +257,22 @@ def parse(hass, folders, ignored_files, root=None):
             continue
 
         try:
-            for i, line in enumerate(open(yaml_file, encoding="utf-8")):
-                line = re.sub(comment_pattern, "", line)
-                for match in re.finditer(entity_pattern, line):
-                    typ, val = match.group(1), match.group(2)
-                    if (
-                        typ != "service:"
-                        and "*" not in val
-                        and not val.endswith(".yaml")
-                    ):
-                        add_entry(entity_list, val, short_path, i + 1)
-                for match in re.finditer(service_pattern, line):
-                    val = match.group(1)
-                    add_entry(service_list, val, short_path, i + 1)
+            lineno = 1
+            async with aiofiles.open(yaml_file, mode="r", encoding="utf-8") as f:
+                async for line in f:
+                    line = re.sub(comment_pattern, "", line)
+                    for match in re.finditer(entity_pattern, line):
+                        typ, val = match.group(1), match.group(2)
+                        if (
+                            typ != "service:"
+                            and "*" not in val
+                            and not val.endswith(".yaml")
+                        ):
+                            add_entry(entity_list, val, short_path, lineno)
+                    for match in re.finditer(service_pattern, line):
+                        val = match.group(1)
+                        add_entry(service_list, val, short_path, lineno)
+                    lineno += 1
             files_parsed += 1
             _LOGGER.debug("%s parsed", yaml_file)
         except OSError as exception:
@@ -312,7 +317,7 @@ def fill(data, width, extra=None):
     )
 
 
-def report(hass, render, chunk_size, test_mode=False):
+async def report(hass, render, chunk_size, test_mode=False):
     """generates watchman report either as a table or as a list"""
     if not DOMAIN in hass.data:
         raise HomeAssistantError("No data for report, refresh required.")
@@ -354,7 +359,11 @@ def report(hass, render, chunk_size, test_mode=False):
         rep += "your config are available!\n"
     else:
         rep += "\n-== No entities found in configuration files!\n"
-    timezone = pytz.timezone(hass.config.time_zone)
+
+    def get_timezone(hass):
+        return pytz.timezone(hass.config.time_zone)
+
+    timezone = await hass.async_add_executor_job(get_timezone, hass)
 
     if not test_mode:
         report_datetime = datetime.now(timezone).strftime("%d %b %Y %H:%M:%S")
