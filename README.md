@@ -47,7 +47,7 @@ Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data store
 * Ignore a file: `*/automations.yaml`
 * Ignore all files in the folder: `/config/esphome/*`
 * Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
-<img src="./images/ignored_files_ui.png" width=50%>
+<img src="https://raw.githubusercontent.com/dummylabs/thewatchman/main/images/ignored_files_ui.png" width=50%>
 
 ### Ignored entities and services option example
 * Ignore an entity: `person.dummylabs`
@@ -155,7 +155,7 @@ Important considerations:
 3. Put mouse pointer over a file name to see full path to a file and line numbers
 4. To display line numbers in the report just remove `.split(':')[0]` from the card template
 
-<img src="./images/markdown_card_example.png" width=50%>
+<img src="https://raw.githubusercontent.com/dummylabs/thewatchman/main/images/markdown_card_example.png" width=50%>
 
 The code for the services report looks very similar:
 
@@ -183,7 +183,7 @@ card_mod:
 ### Additional notification service parameters
 Notification service name can be specified in integration options along with additional service parameters.
 #### UI settings example
-<img src="./images/service_data_ui.png" width=50%>
+<img src="https://raw.githubusercontent.com/dummylabs/thewatchman/main/images/service_data_ui.png" width=50%>
 
 ### Additional notification service parameters in Watchman:report service
 You can use an arbitrary notification service with `watchman.report` service. Service paramaters takes precedence over eponymous UI settings.
