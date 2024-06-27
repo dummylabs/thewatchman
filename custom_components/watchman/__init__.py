@@ -1,4 +1,5 @@
 """https://github.com/dummylabs/thewatchman§"""
+
 from datetime import timedelta
 import logging
 import os
@@ -153,9 +154,7 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(
-    hass: HomeAssistant, config_entry
-):  # pylint: disable=unused-argument
+async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disable=unused-argument
     """Handle integration unload"""
     for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
         if cancel_handle:
@@ -374,10 +373,10 @@ def get_included_folders(hass):
             config_folders = [hass.config.config_dir]
 
     for fld in config_folders:
-        folders.append(os.path.join(fld, "**/*.yaml"))
+        folders.append((fld, "**/*.yaml"))
 
     if DOMAIN_DATA in hass.data and hass.data[DOMAIN_DATA].get(CONF_CHECK_LOVELACE):
-        folders.append(os.path.join(hass.config.config_dir, ".storage/**/lovelace*"))
+        folders.append((hass.config.config_dir, ".storage/**/lovelace*"))
 
     return folders
 

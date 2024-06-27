@@ -1,7 +1,6 @@
 """Miscellaneous support functions for watchman"""
 
 import aiofiles
-import glob
 import re
 import fnmatch
 import time
@@ -11,6 +10,7 @@ from textwrap import wrap
 import os
 from typing import Any
 import pytz
+from anyio import Path
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
@@ -149,16 +149,25 @@ def text_renderer(hass, entry_type):
         return f"Text render error: unknown entry type: {entry_type}"
 
 
-def get_next_file(folder_list, ignored_files):
+async def get_next_file(folder_tuples, ignored_files):
     """Returns next file for scan"""
     if not ignored_files:
         ignored_files = ""
     else:
         ignored_files = "|".join([f"({fnmatch.translate(f)})" for f in ignored_files])
     ignored_files_re = re.compile(ignored_files)
-    for folder in folder_list:
-        for filename in glob.iglob(folder, recursive=True):
-            yield (filename, (ignored_files and ignored_files_re.match(filename)))
+    for folder_name, glob_pattern in folder_tuples:
+        _LOGGER.debug(
+            "Scan folder %s with pattern %s for configuration files",
+            folder_name,
+            glob_pattern,
+        )
+        async for filename in Path(folder_name).glob(glob_pattern):
+            _LOGGER.debug("Found file %s.", filename)
+            yield (
+                str(filename),
+                (ignored_files and ignored_files_re.match(str(filename))),
+            )
 
 
 def add_entry(_list, entry, yaml_file, lineno):
@@ -249,7 +258,7 @@ async def parse(hass, folders, ignored_files, root=None):
     service_list = {}
     effectively_ignored = []
     _LOGGER.debug("::parse started")
-    for yaml_file, ignored in get_next_file(folders, ignored_files):
+    async for yaml_file, ignored in get_next_file(folders, ignored_files):
         short_path = os.path.relpath(yaml_file, root)
         if ignored:
             effectively_ignored.append(short_path)
