@@ -1,9 +1,12 @@
 """Watchman sensors definition"""
+
 import logging
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
+)
+from homeassistant.components.sensor.const import (
+    SensorDeviceClass,
     SensorStateClass,
 )
 from homeassistant.core import callback

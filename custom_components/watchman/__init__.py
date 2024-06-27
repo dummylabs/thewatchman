@@ -6,7 +6,6 @@ import time
 import json
 import voluptuous as vol
 from anyio import Path
-from homeassistant.loader import async_get_integration
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
@@ -21,7 +20,6 @@ from homeassistant.const import (
     EVENT_SERVICE_REMOVED,
     EVENT_STATE_CHANGED,
     EVENT_CALL_SERVICE,
-    STATE_UNKNOWN,
 )
 
 from .coordinator import WatchmanCoordinator
@@ -140,12 +138,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         # first run, home assistant is loading
         # parse_config will be scheduled once HA is fully loaded
         _LOGGER.info("Watchman started [%s]", VERSION)
-
-    # resources = hass.data["lovelace"]["resources"]
-    # await resources.async_get_info()
-    # for itm in resources.async_items():
-    #     _LOGGER.debug(itm)
-
     return True
 
 

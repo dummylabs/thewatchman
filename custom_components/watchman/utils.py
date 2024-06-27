@@ -329,7 +329,7 @@ def fill(data, width, extra=None):
 
 async def report(hass, render, chunk_size, test_mode=False):
     """generates watchman report either as a table or as a list"""
-    if not DOMAIN in hass.data:
+    if DOMAIN not in hass.data:
         raise HomeAssistantError("No data for report, refresh required.")
 
     start_time = time.time()
