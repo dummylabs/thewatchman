@@ -1,6 +1,6 @@
 """Miscellaneous support functions for watchman"""
 
-import aiofiles
+import anyio
 import re
 import fnmatch
 import time
@@ -10,7 +10,6 @@ from textwrap import wrap
 import os
 from typing import Any
 import pytz
-from anyio import Path
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
@@ -65,7 +64,7 @@ async def async_get_report_path(hass, path):
     if not path:
         path = hass.config.path(DEFAULT_REPORT_FILENAME)
     folder, _ = os.path.split(path)
-    if not await Path(folder).exists():
+    if not await anyio.Path(folder).exists():
         raise HomeAssistantError(f"Incorrect report_path: {path}.")
     return path
 
@@ -162,7 +161,7 @@ async def async_get_next_file(folder_tuples, ignored_files):
             folder_name,
             glob_pattern,
         )
-        async for filename in Path(folder_name).glob(glob_pattern):
+        async for filename in anyio.Path(folder_name).glob(glob_pattern):
             _LOGGER.debug("Found file %s.", filename)
             yield (
                 str(filename),
@@ -267,7 +266,9 @@ async def parse(hass, folders, ignored_files, root=None):
 
         try:
             lineno = 1
-            async with aiofiles.open(yaml_file, mode="r", encoding="utf-8") as f:
+            async with await anyio.open_file(
+                yaml_file, mode="r", encoding="utf-8"
+            ) as f:
                 async for line in f:
                     line = re.sub(comment_pattern, "", line)
                     for match in re.finditer(entity_pattern, line):
