@@ -2,10 +2,10 @@
 
 from datetime import timedelta
 import logging
-import os
 import time
 import json
 import voluptuous as vol
+from anyio import Path
 from homeassistant.loader import async_get_integration
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
@@ -33,7 +33,7 @@ from .utils import (
     table_renderer,
     text_renderer,
     get_config,
-    get_report_path,
+    async_get_report_path,
 )
 
 from .const import (
@@ -186,7 +186,7 @@ async def add_services(hass: HomeAssistant):
     async def async_handle_report(call):
         """Handle the service call"""
         config = hass.data.get(DOMAIN_DATA, {})
-        path = get_report_path(hass, config.get(CONF_REPORT_PATH, None))
+        path = await async_get_report_path(hass, config.get(CONF_REPORT_PATH, None))
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
         create_file = call.data.get(CONF_CREATE_FILE, True)
         test_mode = call.data.get(CONF_TEST_MODE, False)
@@ -224,7 +224,7 @@ async def add_services(hass: HomeAssistant):
                     error=True,
                 )
 
-            if onboarding(hass, service, path):
+            if await async_onboarding(hass, service, path):
                 await async_notification(
                     hass,
                     "🖖 Achievement unlocked: first report!",
@@ -448,7 +448,7 @@ async def async_notification(hass, title, message, error=False, n_id="watchman")
         raise HomeAssistantError(message.replace("`", ""))
 
 
-def onboarding(hass, service, path):
+async def async_onboarding(hass, service, path):
     """check if the user runs report for the first time"""
     service = service or get_config(hass, CONF_SERVICE_NAME, None)
-    return not (service or os.path.exists(path))
+    return not (service or await Path(path).exists())

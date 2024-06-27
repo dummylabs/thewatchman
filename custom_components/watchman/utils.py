@@ -60,12 +60,12 @@ def get_config(hass: HomeAssistant, key, default):
     return hass.data[DOMAIN_DATA].get(key, default)
 
 
-def get_report_path(hass, path):
+async def async_get_report_path(hass, path):
     """if path not specified, create report in config directory with default filename"""
     if not path:
         path = hass.config.path(DEFAULT_REPORT_FILENAME)
     folder, _ = os.path.split(path)
-    if not os.path.exists(folder):
+    if not await Path(folder).exists():
         raise HomeAssistantError(f"Incorrect report_path: {path}.")
     return path
 
@@ -149,7 +149,7 @@ def text_renderer(hass, entry_type):
         return f"Text render error: unknown entry type: {entry_type}"
 
 
-async def get_next_file(folder_tuples, ignored_files):
+async def async_get_next_file(folder_tuples, ignored_files):
     """Returns next file for scan"""
     if not ignored_files:
         ignored_files = ""
@@ -258,7 +258,7 @@ async def parse(hass, folders, ignored_files, root=None):
     service_list = {}
     effectively_ignored = []
     _LOGGER.debug("::parse started")
-    async for yaml_file, ignored in get_next_file(folders, ignored_files):
+    async for yaml_file, ignored in async_get_next_file(folders, ignored_files):
         short_path = os.path.relpath(yaml_file, root)
         if ignored:
             effectively_ignored.append(short_path)

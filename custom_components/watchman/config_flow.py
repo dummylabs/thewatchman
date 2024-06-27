@@ -1,4 +1,5 @@
 "ConfigFlow definition for watchman"
+
 from typing import Dict
 import json
 from json.decoder import JSONDecodeError
@@ -7,7 +8,7 @@ from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
-from .utils import is_service, get_columns_width, get_report_path
+from .utils import is_service, get_columns_width, async_get_report_path
 
 from .const import (
     DOMAIN,
@@ -91,7 +92,7 @@ class OptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         self.config_entry = config_entry
 
-    def default(self, key, uinput=None):
+    async def async_default(self, key, uinput=None):
         """provide default value for an OptionsFlow field"""
         if uinput and key in uinput:
             # supply last entered value to display an error during form validation
@@ -105,7 +106,7 @@ class OptionsFlowHandler(OptionsFlow):
             if DEFAULT_DATA[key]:
                 result = DEFAULT_DATA[key]
             elif key == CONF_REPORT_PATH:
-                result = get_report_path(self.hass, None)
+                result = await async_get_report_path(self.hass, None)
 
         if isinstance(result, list):
             return ", ".join([str(i) for i in result])
@@ -130,9 +131,7 @@ class OptionsFlowHandler(OptionsFlow):
             errors[key] = f"invalid_{key}"
         return val, errors
 
-    async def _show_options_form(
-        self, uinput=None, errors=None, placehoders=None
-    ):  # pylint: disable=unused-argument
+    async def _show_options_form(self, uinput=None, errors=None, placehoders=None):  # pylint: disable=unused-argument
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
@@ -140,19 +139,23 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_SERVICE_NAME,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_NAME, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_SERVICE_NAME, uinput
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_SERVICE_DATA2,
                         description={
-                            "suggested_value": self.default(CONF_SERVICE_DATA2, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_SERVICE_DATA2, uinput
+                            )
                         },
                     ): selector.TemplateSelector(),
                     vol.Optional(
                         CONF_INCLUDED_FOLDERS,
                         description={
-                            "suggested_value": self.default(
+                            "suggested_value": await self.async_default(
                                 CONF_INCLUDED_FOLDERS, uinput
                             )
                         },
@@ -162,19 +165,25 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_HEADER,
                         description={
-                            "suggested_value": self.default(CONF_HEADER, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_HEADER, uinput
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_REPORT_PATH,
                         description={
-                            "suggested_value": self.default(CONF_REPORT_PATH, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_REPORT_PATH, uinput
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_IGNORED_ITEMS,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_ITEMS, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_IGNORED_ITEMS, uinput
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -182,7 +191,9 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_IGNORED_STATES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_STATES, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_IGNORED_STATES, uinput
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -190,13 +201,17 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_CHUNK_SIZE,
                         description={
-                            "suggested_value": self.default(CONF_CHUNK_SIZE, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_CHUNK_SIZE, uinput
+                            )
                         },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_IGNORED_FILES,
                         description={
-                            "suggested_value": self.default(CONF_IGNORED_FILES, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_IGNORED_FILES, uinput
+                            )
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
@@ -204,25 +219,33 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_COLUMNS_WIDTH,
                         description={
-                            "suggested_value": self.default(CONF_COLUMNS_WIDTH, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_COLUMNS_WIDTH, uinput
+                            )
                         },
                     ): cv.string,
                     vol.Optional(
                         CONF_STARTUP_DELAY,
                         description={
-                            "suggested_value": self.default(CONF_STARTUP_DELAY, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_STARTUP_DELAY, uinput
+                            )
                         },
                     ): cv.positive_int,
                     vol.Optional(
                         CONF_FRIENDLY_NAMES,
                         description={
-                            "suggested_value": self.default(CONF_FRIENDLY_NAMES, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_FRIENDLY_NAMES, uinput
+                            )
                         },
                     ): cv.boolean,
                     vol.Optional(
                         CONF_CHECK_LOVELACE,
                         description={
-                            "suggested_value": self.default(CONF_CHECK_LOVELACE, uinput)
+                            "suggested_value": await self.async_default(
+                                CONF_CHECK_LOVELACE, uinput
+                            )
                         },
                     ): cv.boolean,
                 }
