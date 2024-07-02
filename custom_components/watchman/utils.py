@@ -32,26 +32,6 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def read_file(hass: HomeAssistant, path: str) -> Any:
-    """Read a file."""
-
-    def read():
-        with open(hass.config.path(path), "r", encoding="utf-8") as open_file:
-            return open_file.read()
-
-    return await hass.async_add_executor_job(read)
-
-
-async def write_file(hass: HomeAssistant, path: str, content: Any) -> None:
-    """Write a file."""
-
-    def write():
-        with open(hass.config.path(path), "w", encoding="utf-8") as open_file:
-            open_file.write(content)
-
-    await hass.async_add_executor_job(write)
-
-
 def get_config(hass: HomeAssistant, key, default):
     """get configuration value"""
     if DOMAIN_DATA not in hass.data:
