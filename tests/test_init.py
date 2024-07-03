@@ -1,4 +1,5 @@
 """Test setup process."""
+
 from copy import deepcopy
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.watchman import (
@@ -10,6 +11,10 @@ from custom_components.watchman.const import (
     DOMAIN,
     CONF_INCLUDED_FOLDERS,
     CONF_IGNORED_FILES,
+    HASS_DATA_MISSING_ENTITIES,
+    HASS_DATA_MISSING_SERVICES,
+    HASS_DATA_PARSED_ENTITY_LIST,
+    HASS_DATA_PARSED_SERVICE_LIST,
 )
 from custom_components.watchman.config_flow import DEFAULT_DATA
 
@@ -40,8 +45,8 @@ async def test_missing(hass):
         domain="watchman", data={}, options=options, entry_id="test"
     )
     assert await async_setup_entry(hass, config_entry)
-    assert len(hass.data[DOMAIN]["entities_missing"]) == 3
-    assert len(hass.data[DOMAIN]["services_missing"]) == 3
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 3
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 3
 
 
 async def test_ignored_state(hass):
@@ -57,8 +62,8 @@ async def test_ignored_state(hass):
         domain="watchman", data={}, options=options, entry_id="test"
     )
     assert await async_setup_entry(hass, config_entry)
-    assert len(hass.data[DOMAIN]["entities_missing"]) == 2
-    assert len(hass.data[DOMAIN]["services_missing"]) == 3
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 2
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 3
 
 
 async def test_multiple_ignored_states(hass):
@@ -74,8 +79,8 @@ async def test_multiple_ignored_states(hass):
         domain="watchman", data={}, options=options, entry_id="test"
     )
     assert await async_setup_entry(hass, config_entry)
-    assert len(hass.data[DOMAIN]["entities_missing"]) == 0
-    assert len(hass.data[DOMAIN]["services_missing"]) == 0
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 0
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 0
 
 
 async def test_ignored_files(hass):
@@ -92,8 +97,8 @@ async def test_ignored_files(hass):
         domain="watchman", data={}, options=options, entry_id="test"
     )
     assert await async_setup_entry(hass, config_entry)
-    assert len(hass.data[DOMAIN]["entities_missing"]) == 3
-    assert len(hass.data[DOMAIN]["services_missing"]) == 0
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 3
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 0
 
 
 async def test_ignored_items(hass):
@@ -110,7 +115,7 @@ async def test_ignored_items(hass):
         domain="watchman", data={}, options=options, entry_id="test"
     )
     assert await async_setup_entry(hass, config_entry)
-    assert len(hass.data[DOMAIN]["entity_list"]) == 3
-    assert len(hass.data[DOMAIN]["service_list"]) == 2
-    assert len(hass.data[DOMAIN]["entities_missing"]) == 2
-    assert len(hass.data[DOMAIN]["services_missing"]) == 2
+    assert len(hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]) == 3
+    assert len(hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]) == 2
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 2
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 2

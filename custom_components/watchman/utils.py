@@ -27,6 +27,16 @@ from .const import (
     CONF_FRIENDLY_NAMES,
     BUNDLED_IGNORED_ITEMS,
     DEFAULT_REPORT_FILENAME,
+    HASS_DATA_CHECK_DURATION,
+    HASS_DATA_FILES_IGNORED,
+    HASS_DATA_FILES_PARSED,
+    HASS_DATA_MISSING_ENTITIES,
+    HASS_DATA_MISSING_SERVICES,
+    HASS_DATA_PARSE_DURATION,
+    HASS_DATA_PARSED_ENTITY_LIST,
+    HASS_DATA_PARSED_SERVICE_LIST,
+    REPORT_ENTRY_TYPE_ENTITY,
+    REPORT_ENTRY_TYPE_SERVICE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,9 +79,9 @@ def table_renderer(hass, entry_type):
     table = PrettyTable()
     columns_width = get_config(hass, CONF_COLUMNS_WIDTH, None)
     columns_width = get_columns_width(columns_width)
-    if entry_type == "service_list":
-        services_missing = hass.data[DOMAIN]["services_missing"]
-        service_list = hass.data[DOMAIN]["service_list"]
+    if entry_type == REPORT_ENTRY_TYPE_SERVICE:
+        services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
+        service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
         table.field_names = ["Service ID", "State", "Location"]
         for service in services_missing:
             row = [
@@ -82,9 +92,9 @@ def table_renderer(hass, entry_type):
             table.add_row(row)
         table.align = "l"
         return table.get_string()
-    elif entry_type == "entity_list":
-        entities_missing = hass.data[DOMAIN]["entities_missing"]
-        entity_list = hass.data[DOMAIN]["entity_list"]
+    elif entry_type == REPORT_ENTRY_TYPE_ENTITY:
+        entities_missing = hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]
+        parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
         friendly_names = get_config(hass, CONF_FRIENDLY_NAMES, False)
         header = ["Entity ID", "State", "Location"]
         table.field_names = header
@@ -94,7 +104,7 @@ def table_renderer(hass, entry_type):
                 [
                     fill(entity, columns_width[0], name),
                     fill(state, columns_width[1]),
-                    fill(entity_list[entity], columns_width[2]),
+                    fill(parsed_entity_list[entity], columns_width[2]),
                 ]
             )
 
@@ -108,15 +118,15 @@ def table_renderer(hass, entry_type):
 def text_renderer(hass, entry_type):
     """Render plain lists in the report"""
     result = ""
-    if entry_type == "service_list":
-        services_missing = hass.data[DOMAIN]["services_missing"]
-        service_list = hass.data[DOMAIN]["service_list"]
+    if entry_type == REPORT_ENTRY_TYPE_SERVICE:
+        services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
+        service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
         for service in services_missing:
             result += f"{service} in {fill(service_list[service], 0)}\n"
         return result
-    elif entry_type == "entity_list":
-        entities_missing = hass.data[DOMAIN]["entities_missing"]
-        entity_list = hass.data[DOMAIN]["entity_list"]
+    elif entry_type == REPORT_ENTRY_TYPE_ENTITY:
+        entities_missing = hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]
+        entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
         friendly_names = get_config(hass, CONF_FRIENDLY_NAMES, False)
         for entity in entities_missing:
             state, name = get_entity_state(hass, entity, friendly_names)
@@ -184,11 +194,14 @@ def check_services(hass):
     services_missing = {}
     if "missing" in get_config(hass, CONF_IGNORED_STATES, []):
         return services_missing
-    if DOMAIN not in hass.data or "service_list" not in hass.data[DOMAIN]:
+    if (
+        DOMAIN not in hass.data
+        or HASS_DATA_PARSED_SERVICE_LIST not in hass.data[DOMAIN]
+    ):
         raise HomeAssistantError("Service list not found")
-    service_list = hass.data[DOMAIN]["service_list"]
+    parsed_service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
     _LOGGER.debug("::check_services")
-    for entry, occurences in service_list.items():
+    for entry, occurences in parsed_service_list.items():
         if not is_service(hass, entry):
             services_missing[entry] = occurences
             _LOGGER.debug("service %s added to missing list", entry)
@@ -201,13 +214,13 @@ def check_entitites(hass):
         "unavail" if s == "unavailable" else s
         for s in get_config(hass, CONF_IGNORED_STATES, [])
     ]
-    if DOMAIN not in hass.data or "entity_list" not in hass.data[DOMAIN]:
+    if DOMAIN not in hass.data or HASS_DATA_PARSED_ENTITY_LIST not in hass.data[DOMAIN]:
         _LOGGER.error("Entity list not found")
         raise Exception("Entity list not found")
-    entity_list = hass.data[DOMAIN]["entity_list"]
+    parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     entities_missing = {}
     _LOGGER.debug("::check_entities")
-    for entry, occurences in entity_list.items():
+    for entry, occurences in parsed_entity_list.items():
         if is_service(hass, entry):  # this is a service, not entity
             _LOGGER.debug("entry %s is service, skipping", entry)
             continue
@@ -233,8 +246,8 @@ async def parse(hass, folders, ignored_files, root=None):
     )
     service_pattern = re.compile(r"service:\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)")
     comment_pattern = re.compile(r"#.*")
-    entity_list = {}
-    service_list = {}
+    parsed_entity_list = {}
+    parsed_service_list = {}
     effectively_ignored = []
     _LOGGER.debug("::parse started")
     async for yaml_file, ignored in async_get_next_file(folders, ignored_files):
@@ -258,10 +271,10 @@ async def parse(hass, folders, ignored_files, root=None):
                             and "*" not in val
                             and not val.endswith(".yaml")
                         ):
-                            add_entry(entity_list, val, short_path, lineno)
+                            add_entry(parsed_entity_list, val, short_path, lineno)
                     for match in re.finditer(service_pattern, line):
                         val = match.group(1)
-                        add_entry(service_list, val, short_path, lineno)
+                        add_entry(parsed_service_list, val, short_path, lineno)
                     lineno += 1
             files_parsed += 1
             _LOGGER.debug("%s parsed", yaml_file)
@@ -281,17 +294,26 @@ async def parse(hass, folders, ignored_files, root=None):
     excluded_services = []
     for itm in ignored_items:
         if itm:
-            excluded_entities.extend(fnmatch.filter(entity_list, itm))
-            excluded_services.extend(fnmatch.filter(service_list, itm))
+            excluded_entities.extend(fnmatch.filter(parsed_entity_list, itm))
+            excluded_services.extend(fnmatch.filter(parsed_service_list, itm))
 
-    entity_list = {k: v for k, v in entity_list.items() if k not in excluded_entities}
-    service_list = {k: v for k, v in service_list.items() if k not in excluded_services}
+    parsed_entity_list = {
+        k: v for k, v in parsed_entity_list.items() if k not in excluded_entities
+    }
+    parsed_service_list = {
+        k: v for k, v in parsed_service_list.items() if k not in excluded_services
+    }
 
     _LOGGER.debug("Parsed files: %s", files_parsed)
     _LOGGER.debug("Ignored files: %s", effectively_ignored)
-    _LOGGER.debug("Found entities: %s", len(entity_list))
-    _LOGGER.debug("Found services: %s", len(service_list))
-    return (entity_list, service_list, files_parsed, len(effectively_ignored))
+    _LOGGER.debug("Found entities: %s", len(parsed_entity_list))
+    _LOGGER.debug("Found services: %s", len(parsed_service_list))
+    return (
+        parsed_entity_list,
+        parsed_service_list,
+        files_parsed,
+        len(effectively_ignored),
+    )
 
 
 def fill(data, width, extra=None):
@@ -314,12 +336,12 @@ async def report(hass, render, chunk_size, test_mode=False):
 
     start_time = time.time()
     header = get_config(hass, CONF_HEADER, DEFAULT_HEADER)
-    services_missing = hass.data[DOMAIN]["services_missing"]
-    service_list = hass.data[DOMAIN]["service_list"]
-    entities_missing = hass.data[DOMAIN]["entities_missing"]
-    entity_list = hass.data[DOMAIN]["entity_list"]
-    files_parsed = hass.data[DOMAIN]["files_parsed"]
-    files_ignored = hass.data[DOMAIN]["files_ignored"]
+    services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
+    service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
+    entities_missing = hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]
+    entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
+    files_parsed = hass.data[DOMAIN][HASS_DATA_FILES_PARSED]
+    files_ignored = hass.data[DOMAIN][HASS_DATA_FILES_IGNORED]
     chunk_size = (
         get_config(hass, CONF_CHUNK_SIZE, DEFAULT_CHUNK_SIZE)
         if chunk_size is None
@@ -330,7 +352,7 @@ async def report(hass, render, chunk_size, test_mode=False):
     if services_missing:
         rep += f"\n-== Missing {len(services_missing)} service(s) from "
         rep += f"{len(service_list)} found in your config:\n"
-        rep += render(hass, "service_list")
+        rep += render(hass, REPORT_ENTRY_TYPE_SERVICE)
         rep += "\n"
     elif len(service_list) > 0:
         rep += f"\n-== Congratulations, all {len(service_list)} services from "
@@ -341,7 +363,7 @@ async def report(hass, render, chunk_size, test_mode=False):
     if entities_missing:
         rep += f"\n-== Missing {len(entities_missing)} entity(ies) from "
         rep += f"{len(entity_list)} found in your config:\n"
-        rep += render(hass, "entity_list")
+        rep += render(hass, REPORT_ENTRY_TYPE_ENTITY)
         rep += "\n"
 
     elif len(entity_list) > 0:
@@ -357,8 +379,8 @@ async def report(hass, render, chunk_size, test_mode=False):
 
     if not test_mode:
         report_datetime = datetime.now(timezone).strftime("%d %b %Y %H:%M:%S")
-        parse_duration = hass.data[DOMAIN]["parse_duration"]
-        check_duration = hass.data[DOMAIN]["check_duration"]
+        parse_duration = hass.data[DOMAIN][HASS_DATA_PARSE_DURATION]
+        check_duration = hass.data[DOMAIN][HASS_DATA_CHECK_DURATION]
         render_duration = time.time() - start_time
     else:
         report_datetime = "01 Jan 1970 00:00:00"

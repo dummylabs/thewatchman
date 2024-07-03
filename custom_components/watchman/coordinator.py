@@ -4,7 +4,19 @@ import logging
 import time
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from .const import DOMAIN
+from .const import (
+    COORD_DATA_ENTITY_ATTRS,
+    COORD_DATA_LAST_UPDATE,
+    COORD_DATA_MISSING_ENTITIES,
+    COORD_DATA_MISSING_SERVICES,
+    COORD_DATA_SERVICE_ATTRS,
+    DOMAIN,
+    HASS_DATA_CHECK_DURATION,
+    HASS_DATA_MISSING_ENTITIES,
+    HASS_DATA_MISSING_SERVICES,
+    HASS_DATA_PARSED_ENTITY_LIST,
+    HASS_DATA_PARSED_SERVICE_LIST,
+)
 from .utils import check_entitites, check_services, get_entity_state, fill
 
 
@@ -29,13 +41,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         start_time = time.time()
         services_missing = check_services(self.hass)
         entities_missing = check_entitites(self.hass)
-        self.hass.data[DOMAIN]["check_duration"] = time.time() - start_time
-        self.hass.data[DOMAIN]["entities_missing"] = entities_missing
-        self.hass.data[DOMAIN]["services_missing"] = services_missing
+        self.hass.data[DOMAIN][HASS_DATA_CHECK_DURATION] = time.time() - start_time
+        self.hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES] = entities_missing
+        self.hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES] = services_missing
 
         # build entity attributes map for missing_entities sensor
         entity_attrs = []
-        entity_list = self.hass.data[DOMAIN]["entity_list"]
+        parsed_entity_list = self.hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
         for entity in entities_missing:
             state, name = get_entity_state(self.hass, entity, friendly_names=True)
             entity_attrs.append(
@@ -43,24 +55,24 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     "id": entity,
                     "state": state,
                     "friendly_name": name or "",
-                    "occurrences": fill(entity_list[entity], 0),
+                    "occurrences": fill(parsed_entity_list[entity], 0),
                 }
             )
 
         # build service attributes map for missing_services sensor
         service_attrs = []
-        service_list = self.hass.data[DOMAIN]["service_list"]
+        parsed_service_list = self.hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
         for service in services_missing:
             service_attrs.append(
-                {"id": service, "occurrences": fill(service_list[service], 0)}
+                {"id": service, "occurrences": fill(parsed_service_list[service], 0)}
             )
 
         self.data = {
-            "entities_missing": len(entities_missing),
-            "services_missing": len(services_missing),
-            "last_update": dt_util.now(),
-            "service_attrs": service_attrs,
-            "entity_attrs": entity_attrs,
+            COORD_DATA_MISSING_ENTITIES: len(entities_missing),
+            COORD_DATA_MISSING_SERVICES: len(services_missing),
+            COORD_DATA_LAST_UPDATE: dt_util.now(),
+            COORD_DATA_SERVICE_ATTRS: service_attrs,
+            COORD_DATA_ENTITY_ATTRS: entity_attrs,
         }
 
         _LOGGER.debug("Watchman sensors updated")

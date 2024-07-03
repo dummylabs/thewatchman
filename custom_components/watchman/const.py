@@ -10,6 +10,26 @@ DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
 
+HASS_DATA_PARSED_ENTITY_LIST = "entity_list"
+HASS_DATA_PARSED_SERVICE_LIST = "service_list"
+HASS_DATA_FILES_PARSED = "files_parsed"
+HASS_DATA_FILES_IGNORED = "files_ignored"
+HASS_DATA_PARSE_DURATION = "parse_duration"
+HASS_DATA_CANCEL_HANDLERS = "cancel_handlers"
+HASS_DATA_COORDINATOR = "coordinator"
+HASS_DATA_MISSING_ENTITIES = "entities_missing"
+HASS_DATA_MISSING_SERVICES = "services_missing"
+HASS_DATA_CHECK_DURATION = "check_duration"
+
+COORD_DATA_MISSING_ENTITIES = "entities_missing"
+COORD_DATA_MISSING_SERVICES = "services_missing"
+COORD_DATA_LAST_UPDATE = "last_update"
+COORD_DATA_SERVICE_ATTRS = "service_attrs"
+COORD_DATA_ENTITY_ATTRS = "entity_attrs"
+
+REPORT_ENTRY_TYPE_SERVICE = "service_list"
+REPORT_ENTRY_TYPE_ENTITY = "entity_list"
+
 CONF_IGNORED_FILES = "ignored_files"
 CONF_HEADER = "report_header"
 CONF_REPORT_PATH = "report_path"

@@ -13,6 +13,11 @@ from homeassistant.core import callback
 from .entity import WatchmanEntity
 
 from .const import (
+    COORD_DATA_ENTITY_ATTRS,
+    COORD_DATA_LAST_UPDATE,
+    COORD_DATA_MISSING_ENTITIES,
+    COORD_DATA_MISSING_SERVICES,
+    COORD_DATA_SERVICE_ATTRS,
     DOMAIN,
     SENSOR_LAST_UPDATE,
     SENSOR_MISSING_ENTITIES,
@@ -71,7 +76,7 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data["last_update"]
+            return self.coordinator.data[COORD_DATA_LAST_UPDATE]
         else:
             return self._attr_native_value
 
@@ -79,7 +84,7 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data["last_update"]
+            self._attr_native_value = self.coordinator.data[COORD_DATA_LAST_UPDATE]
             self.async_write_ha_state()
         super()._handle_coordinator_update()
 
@@ -100,7 +105,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data["entities_missing"]
+            return self.coordinator.data[COORD_DATA_MISSING_ENTITIES]
         else:
             return self._attr_native_value
 
@@ -108,7 +113,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         if self.coordinator.data:
-            return {"entities": self.coordinator.data["entity_attrs"]}
+            return {"entities": self.coordinator.data[COORD_DATA_ENTITY_ATTRS]}
         else:
             return {}
 
@@ -116,9 +121,9 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data["entities_missing"]
+            self._attr_native_value = self.coordinator.data[COORD_DATA_MISSING_ENTITIES]
             self._attr_extra_state_attributes = {
-                "entities": self.coordinator.data["entity_attrs"]
+                "entities": self.coordinator.data[COORD_DATA_ENTITY_ATTRS]
             }
             self.async_write_ha_state()
         super()._handle_coordinator_update()
@@ -140,7 +145,7 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data["services_missing"]
+            return self.coordinator.data[COORD_DATA_MISSING_SERVICES]
         else:
             return self._attr_native_value
 
@@ -148,7 +153,7 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         if self.coordinator.data:
-            return {"entities": self.coordinator.data["service_attrs"]}
+            return {"entities": self.coordinator.data[COORD_DATA_SERVICE_ATTRS]}
         else:
             return {}
 
@@ -156,9 +161,9 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data["services_missing"]
+            self._attr_native_value = self.coordinator.data[COORD_DATA_MISSING_SERVICES]
             self._attr_extra_state_attributes = {
-                "services": self.coordinator.data["service_attrs"]
+                "services": self.coordinator.data[COORD_DATA_SERVICE_ATTRS]
             }
         self.async_write_ha_state()
         super()._handle_coordinator_update()

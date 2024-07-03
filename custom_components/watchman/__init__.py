@@ -59,6 +59,13 @@ from .const import (
     CONF_TEST_MODE,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
+    HASS_DATA_CANCEL_HANDLERS,
+    HASS_DATA_COORDINATOR,
+    HASS_DATA_FILES_IGNORED,
+    HASS_DATA_FILES_PARSED,
+    HASS_DATA_PARSE_DURATION,
+    HASS_DATA_PARSED_ENTITY_LIST,
+    HASS_DATA_PARSED_SERVICE_LIST,
     TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
     PLATFORMS,
@@ -122,7 +129,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         raise ConfigEntryNotReady
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    hass.data[DOMAIN]["coordinator"] = coordinator
+    hass.data[DOMAIN][HASS_DATA_COORDINATOR] = coordinator
     hass.data[DOMAIN_DATA] = entry.options  # TODO: refactor
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -148,7 +155,7 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disable=unused-argument
     """Handle integration unload"""
-    for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
+    for cancel_handle in hass.data[DOMAIN].get(HASS_DATA_CANCEL_HANDLERS, []):
         if cancel_handle:
             cancel_handle()
 
@@ -256,7 +263,7 @@ async def add_event_handlers(hass: HomeAssistant):
     async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
         """refresh sensors state"""
         # parse_config should be invoked beforehand
-        coordinator = hass.data[DOMAIN]["coordinator"]
+        coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
         await coordinator.async_refresh()
 
     async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
@@ -274,19 +281,19 @@ async def add_event_handlers(hass: HomeAssistant):
                 "reload",
             ]:
                 await parse_config(hass, reason="configuration changes")
-                coordinator = hass.data[DOMAIN]["coordinator"]
+                coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
                 await coordinator.async_refresh()
 
         elif typ in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
             await parse_config(hass, reason="configuration changes")
-            coordinator = hass.data[DOMAIN]["coordinator"]
+            coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
             await coordinator.async_refresh()
 
     async def async_on_service_changed(event):
         service = f"{event.data['domain']}.{event.data['service']}"
-        if service in hass.data[DOMAIN].get("service_list", []):
+        if service in hass.data[DOMAIN].get(HASS_DATA_PARSED_SERVICE_LIST, []):
             _LOGGER.debug("Monitored service changed: %s", service)
-            coordinator = hass.data[DOMAIN]["coordinator"]
+            coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
             await coordinator.async_refresh()
 
     async def async_on_state_changed(event):
@@ -296,14 +303,16 @@ async def add_event_handlers(hass: HomeAssistant):
             """return missing state if entity not found"""
             return "missing" if not event.data[state_id] else event.data[state_id].state
 
-        if event.data["entity_id"] in hass.data[DOMAIN].get("entity_list", []):
+        if event.data["entity_id"] in hass.data[DOMAIN].get(
+            HASS_DATA_PARSED_ENTITY_LIST, []
+        ):
             ignored_states = get_config(hass, CONF_IGNORED_STATES, [])
             old_state = state_or_missing("old_state")
             new_state = state_or_missing("new_state")
             checked_states = set(MONITORED_STATES) - set(ignored_states)
             if new_state in checked_states or old_state in checked_states:
                 _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
-                coordinator = hass.data[DOMAIN]["coordinator"]
+                coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
                 await coordinator.async_refresh()
 
     # hass is not started yet, schedule config parsing once it loaded
@@ -327,7 +336,7 @@ async def add_event_handlers(hass: HomeAssistant):
     )
     hdlr.append(hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed))
     hdlr.append(hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed))
-    hass.data[DOMAIN]["cancel_handlers"] = hdlr
+    hass.data[DOMAIN][HASS_DATA_CANCEL_HANDLERS] = hdlr
 
 
 async def parse_config(hass: HomeAssistant, reason=None):
@@ -337,19 +346,19 @@ async def parse_config(hass: HomeAssistant, reason=None):
     included_folders = get_included_folders(hass)
     ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
 
-    entity_list, service_list, files_parsed, files_ignored = await parse(
+    parsed_entity_list, parsed_service_list, files_parsed, files_ignored = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
     )
-    hass.data[DOMAIN]["entity_list"] = entity_list
-    hass.data[DOMAIN]["service_list"] = service_list
-    hass.data[DOMAIN]["files_parsed"] = files_parsed
-    hass.data[DOMAIN]["files_ignored"] = files_ignored
-    hass.data[DOMAIN]["parse_duration"] = time.time() - start_time
+    hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST] = parsed_entity_list
+    hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST] = parsed_service_list
+    hass.data[DOMAIN][HASS_DATA_FILES_PARSED] = files_parsed
+    hass.data[DOMAIN][HASS_DATA_FILES_IGNORED] = files_ignored
+    hass.data[DOMAIN][HASS_DATA_PARSE_DURATION] = time.time() - start_time
     _LOGGER.info(
         "%s files parsed and %s files ignored in %.2fs. due to %s",
         files_parsed,
         files_ignored,
-        hass.data[DOMAIN]["parse_duration"],
+        hass.data[DOMAIN][HASS_DATA_PARSE_DURATION],
         reason,
     )
 
@@ -375,7 +384,7 @@ def get_included_folders(hass):
 
 async def async_report_to_file(hass, path, test_mode):
     """save report to a file"""
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
     await coordinator.async_refresh()
     report_chunks = await report(
         hass, table_renderer, chunk_size=0, test_mode=test_mode
@@ -415,7 +424,7 @@ async def async_report_to_notification(hass, service_str, service_data, chunk_si
 
     data = {} if service_data is None else json.loads(service_data)
 
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
     await coordinator.async_refresh()
     report_chunks = await report(hass, text_renderer, chunk_size)
     for chunk in report_chunks:
