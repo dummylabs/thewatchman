@@ -178,6 +178,20 @@ card_mod:
         }
 ```
 
+### Exclude Watchman from the recorder
+
+If you encounter a warning from the Recorder component "State attributes for sensor.watchman_missing_entities exceed maximum size of 16384 bytes" you can exclude these using following configuration:
+
+```yaml
+# Don't include watchman results in recorder as they're too big!
+recorder:
+  exclude:
+    entities:
+      - sensor.watchman_missing_entities
+      - sensor.watchman_missing_services
+```
+There is the ticket #87 addressing this issue.
+
 ## Advanced usage examples
 
 ### Additional notification service parameters
