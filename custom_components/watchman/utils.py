@@ -245,7 +245,7 @@ async def parse(hass, folders, ignored_files, root=None):
         r"scene|script|select|sensor|sun|switch|timer|vacuum|weather|zone)\.[A-Za-z_*0-9]+)"
     )
     service_pattern = re.compile(r"service:\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)")
-    comment_pattern = re.compile(r"#.*")
+    comment_pattern = re.compile(r"\s*#.*")
     parsed_entity_list = {}
     parsed_service_list = {}
     effectively_ignored = []
