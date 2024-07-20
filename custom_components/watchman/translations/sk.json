@@ -1,0 +1,45 @@
+{
+    "config": {
+        "abort": {
+            "single_instance_allowed": "Povolený je len jeden prípad watchman"
+        },
+        "step": {}
+    },
+    "options": {
+        "error": {
+            "invalid_included_folders": "included_folders by mal byť čiarkami oddelený zoznam konfiguračných priečinkov",
+            "invalid_columns_width": "columns_width by mal byť zoznam 3 kladných celých čísel",
+            "wrong_value_ignored_states": "Akceptované hodnoty sú: 'unavailable', 'missing' a 'unknown'",
+            "malformed_json": "údaje služby by mali byť platným slovníkom json",
+            "unknown_service": "neznáma služba: `{service}`"
+        },
+        "step": {
+            "init": {
+                "title": "Watchman nastavenia",
+                "data": {
+                    "service": "Notifikačná služba (napr. notify.telegram)",
+                    "service_data": "Údaje oznamovacej služby",
+                    "included_folders": "Zahrnuté priečinky",
+                    "report_header": "Vlastná hlavička prehľadu",
+                    "report_path": "Nahlásiť polohu napr. /config/report.txt",
+                    "ignored_items": "Ignorované entity a služby",
+                    "ignored_states": "Ignorované stavy entity",
+                    "chunk_size": "Veľkosť časti správy v bajtoch (používa sa so službou upozornení)",
+                    "ignored_files": "Ignorované súbory (oddelené čiarkami)",
+                    "check_lovelace": "Analyzujte konfiguráciu používateľského rozhrania dashboardov (ex-Lovelace).",
+                    "columns_width": "Zoznam šírky stĺpcov prehľadu, napr. 30, 7, 60",
+                    "startup_delay": "Oneskorenie spustenia pre inicializáciu senzorov watchman",
+                    "friendly_names": "Pridajte do prehľadu priateľské mená"
+                },
+                "data_description": {
+                    "service_data": "Objekt JSON s údajmi oznamovacej služby, podrobnosti nájdete v dokumentácii",
+                    "included_folders": "Čiarkami oddelený zoznam priečinkov, kde by mal watchman hľadať konfiguračné súbory",
+                    "ignored_items": "Čiarkami oddelený zoznam subjektov a služieb vylúčených zo sledovania",
+                    "ignored_states": "Čiarkami oddelený zoznam štátov vylúčených zo sledovania",
+                    "ignored_files": "Čiarkami oddelený zoznam konfiguračných súborov vylúčených zo sledovania"
+                },
+                "description": "[Pomoc s nastaveniami](https://github.com/dummylabs/thewatchman#configuration)"
+            }
+        }
+    }
+}
