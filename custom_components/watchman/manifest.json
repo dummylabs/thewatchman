@@ -5,12 +5,12 @@
     "@dummylabs"
   ],
   "config_flow": true,
-  "single_config_entry": true,
   "documentation": "https://github.com/dummylabs/thewatchman",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/dummylabs/thewatchman/issues",
   "requirements": [
     "prettytable==3.12.0"
   ],
+  "single_config_entry": true,
   "version": "0.6.4"
 }
