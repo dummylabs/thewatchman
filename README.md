@@ -129,7 +129,8 @@ Please note that the ASCII table format is only used when report is saved to a f
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/action state and generate text version of the report.
 
 ## Markdown card example
-Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have additional set of attributes which makes it possible to create your own report using a lovelace card. Below is an example of missing entities report for the Lovelace markdown card:
+Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have additional set of attributes which makes it possible to create your own report using a lovelace card. Below is an example of missing entities report for the Lovelace markdown card.
+For dark mode replace /icon.png to /dark_logo.png.
 
 ```yaml
 type: markdown
@@ -168,7 +169,7 @@ The code for the actions report looks very similar:
 ```yaml
 type: markdown
 content: >-
-  <h2 class="some"> <ha-icon icon='mdi:shield-half-full'></ha-icon> Watchman report</h2>
+  <h2> <img src="https://brands.home-assistant.io/watchman/icon.png" alt="WM Logo" width="32" height="32"> Watchman report</h2>
   <h3> Missing actios: {{ states.sensor.watchman_missing_services.state }} </h3>
   {%- for item in state_attr("sensor.watchman_missing_services", "entities") %}
   <hr><table><tr> <td>  <ha-icon icon='mdi:cloud-alert'></ha-icon> {{ item.id }}
