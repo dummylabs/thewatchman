@@ -1,19 +1,12 @@
 """Test table reports"""
 
-from copy import deepcopy
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-from custom_components.watchman import (
-    async_setup_entry,
-)
 from custom_components.watchman.const import (
     CONF_IGNORED_STATES,
     DOMAIN,
-    CONF_INCLUDED_FOLDERS,
     CONF_IGNORED_FILES,
     CONF_REPORT_PATH,
     CONF_COLUMNS_WIDTH,
 )
-from custom_components.watchman.config_flow import DEFAULT_DATA
 from .common import assert_files_equal, async_init_integration
 
 TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
@@ -96,11 +89,6 @@ async def test_table_all_clear(hass, tmpdir):
 
 async def test_column_resize(hass, tmpdir):
     """test table rendering with narrow columns"""
-    options = deepcopy(DEFAULT_DATA)
-
-    options[CONF_IGNORED_STATES] = []
-    options[CONF_IGNORED_FILES] = []
-    options[CONF_COLUMNS_WIDTH] = [7, 7, 7]
     base_report = "/workspaces/thewatchman/tests/input/test_report4.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report4.txt")

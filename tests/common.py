@@ -9,8 +9,6 @@ from custom_components.watchman.const import (
     CONF_INCLUDED_FOLDERS,
 )
 
-TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
-
 
 async def async_init_integration(
     hass: HomeAssistant,
@@ -19,7 +17,7 @@ async def async_init_integration(
 ) -> MockConfigEntry:
     """Set up integration in Home Assistant."""
     options = deepcopy(DEFAULT_DATA)
-    options[CONF_INCLUDED_FOLDERS] = TEST_INCLUDED_FOLDERS
+    options[CONF_INCLUDED_FOLDERS] = ["/workspaces/thewatchman/tests/input"]
     if add_params:
         options = options | add_params
     print(options)
