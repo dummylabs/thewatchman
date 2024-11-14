@@ -10,6 +10,7 @@ from homeassistant.components.sensor.const import (
     SensorStateClass,
 )
 from homeassistant.core import callback
+from homeassistant.const import MATCH_ALL
 from .entity import WatchmanEntity
 
 from .const import (
@@ -95,6 +96,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"
     _attr_native_unit_of_measurement = "items"
+    _unrecorded_attributes = frozenset({MATCH_ALL})
 
     @property
     def should_poll(self) -> bool:
@@ -135,6 +137,7 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"
     _attr_native_unit_of_measurement = "items"
+    _unrecorded_attributes = frozenset({MATCH_ALL})
 
     @property
     def should_poll(self) -> bool:
