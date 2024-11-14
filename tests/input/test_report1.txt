@@ -1,8 +1,8 @@
 -== Watchman Report ==-
 
--== Missing 3 service(s) from 3 found in your config:
+-== Missing 3 action(s) from 3 found in your config:
 +--------------------------------+---------+--------------------------------------------------------------+
-| Service ID                     | State   | Location                                                     |
+| Action ID                      | State   | Location                                                     |
 +--------------------------------+---------+--------------------------------------------------------------+
 | fake.service1                  | missing | ../../../../../../tests/input/test_services.yaml:1           |
 | fake.service2                  | missing | ../../../../../../tests/input/test_services.yaml:2           |

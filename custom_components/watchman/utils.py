@@ -82,7 +82,7 @@ def table_renderer(hass, entry_type):
     if entry_type == REPORT_ENTRY_TYPE_SERVICE:
         services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
         service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
-        table.field_names = ["Service ID", "State", "Location"]
+        table.field_names = ["Action ID", "State", "Location"]
         for service in services_missing:
             row = [
                 fill(service, columns_width[0]),
@@ -350,15 +350,15 @@ async def report(hass, render, chunk_size, test_mode=False):
 
     rep = f"{header} \n"
     if services_missing:
-        rep += f"\n-== Missing {len(services_missing)} service(s) from "
+        rep += f"\n-== Missing {len(services_missing)} action(s) from "
         rep += f"{len(service_list)} found in your config:\n"
         rep += render(hass, REPORT_ENTRY_TYPE_SERVICE)
         rep += "\n"
     elif len(service_list) > 0:
-        rep += f"\n-== Congratulations, all {len(service_list)} services from "
+        rep += f"\n-== Congratulations, all {len(service_list)} actions from "
         rep += "your config are available!\n"
     else:
-        rep += "\n-== No services found in configuration files!\n"
+        rep += "\n-== No actions found in configuration files!\n"
 
     if entities_missing:
         rep += f"\n-== Missing {len(entities_missing)} entity(ies) from "
