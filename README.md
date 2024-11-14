@@ -130,7 +130,8 @@ The legend at the bottom of the report shows time consumed by 3 coherent stages:
 
 ## Markdown card example
 Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have additional set of attributes which makes it possible to create your own report using a lovelace card. Below is an example of missing entities report for the Lovelace markdown card.
-For dark mode replace /icon.png to /dark_logo.png.
+> [!NOTE]
+> For dark mode replace /icon.png to /dark_logo.png.
 
 ```yaml
 type: markdown
