@@ -201,9 +201,9 @@ def check_services(hass):
         raise HomeAssistantError("Service list not found")
     parsed_service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
     _LOGGER.debug("::check_services")
-    for entry, occurences in parsed_service_list.items():
+    for entry, occurrences in parsed_service_list.items():
         if not is_service(hass, entry):
-            services_missing[entry] = occurences
+            services_missing[entry] = occurrences
             _LOGGER.debug("service %s added to missing list", entry)
     return services_missing
 
@@ -220,7 +220,7 @@ def check_entitites(hass):
     parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     entities_missing = {}
     _LOGGER.debug("::check_entities")
-    for entry, occurences in parsed_entity_list.items():
+    for entry, occurrences in parsed_entity_list.items():
         if is_service(hass, entry):  # this is a service, not entity
             _LOGGER.debug("entry %s is service, skipping", entry)
             continue
@@ -229,7 +229,7 @@ def check_entitites(hass):
             _LOGGER.debug("entry %s ignored due to ignored_states", entry)
             continue
         if state in ["missing", "unknown", "unavail"]:
-            entities_missing[entry] = occurences
+            entities_missing[entry] = occurrences
             _LOGGER.debug("entry %s added to missing list", entry)
     return entities_missing
 
