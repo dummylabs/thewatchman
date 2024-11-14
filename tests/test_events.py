@@ -1,18 +1,11 @@
-"""Test table reports"""
+"""Test proper handling of entity state changes"""
 
-from copy import deepcopy
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.core import callback
-from custom_components.watchman import (
-    async_setup_entry,
-)
 from custom_components.watchman.const import (
     DOMAIN,
-    CONF_INCLUDED_FOLDERS,
     HASS_DATA_MISSING_ENTITIES,
     HASS_DATA_MISSING_SERVICES,
 )
-from custom_components.watchman.config_flow import DEFAULT_DATA
 from .common import async_init_integration
 
 TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
