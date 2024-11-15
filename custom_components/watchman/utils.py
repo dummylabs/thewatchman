@@ -12,6 +12,7 @@ from typing import Any
 import pytz
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -239,10 +240,7 @@ async def parse(hass, folders, ignored_files, root=None):
     files_parsed = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        r"((air_quality|alarm_control_panel|alert|automation|binary_sensor|button|calendar|camera|"
-        r"climate|counter|device_tracker|fan|group|humidifier|input_boolean|input_datetime|"
-        r"input_number|input_select|light|lock|media_player|number|person|plant|proximity|remote|"
-        r"scene|script|select|sensor|sun|switch|timer|vacuum|weather|zone)\.[A-Za-z_*0-9]+)"
+        fr"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
     )
     service_pattern = re.compile(r"service:\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)")
     comment_pattern = re.compile(r"\s*#.*")
