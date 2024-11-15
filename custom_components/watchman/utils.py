@@ -12,6 +12,7 @@ from typing import Any
 import pytz
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -201,9 +202,9 @@ def check_services(hass):
         raise HomeAssistantError("Service list not found")
     parsed_service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
     _LOGGER.debug("::check_services")
-    for entry, occurences in parsed_service_list.items():
+    for entry, occurrences in parsed_service_list.items():
         if not is_service(hass, entry):
-            services_missing[entry] = occurences
+            services_missing[entry] = occurrences
             _LOGGER.debug("service %s added to missing list", entry)
     return services_missing
 
@@ -220,7 +221,7 @@ def check_entitites(hass):
     parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     entities_missing = {}
     _LOGGER.debug("::check_entities")
-    for entry, occurences in parsed_entity_list.items():
+    for entry, occurrences in parsed_entity_list.items():
         if is_service(hass, entry):  # this is a service, not entity
             _LOGGER.debug("entry %s is service, skipping", entry)
             continue
@@ -229,7 +230,7 @@ def check_entitites(hass):
             _LOGGER.debug("entry %s ignored due to ignored_states", entry)
             continue
         if state in ["missing", "unknown", "unavail"]:
-            entities_missing[entry] = occurences
+            entities_missing[entry] = occurrences
             _LOGGER.debug("entry %s added to missing list", entry)
     return entities_missing
 
@@ -239,10 +240,7 @@ async def parse(hass, folders, ignored_files, root=None):
     files_parsed = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        r"((air_quality|alarm_control_panel|alert|automation|binary_sensor|button|calendar|camera|"
-        r"climate|counter|device_tracker|fan|group|humidifier|input_boolean|input_datetime|"
-        r"input_number|input_select|light|lock|media_player|number|person|plant|proximity|remote|"
-        r"scene|script|select|sensor|sun|switch|timer|vacuum|weather|zone)\.[A-Za-z_*0-9]+)"
+        fr"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
     )
     service_pattern = re.compile(r"service:\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)")
     comment_pattern = re.compile(r"\s*#.*")
