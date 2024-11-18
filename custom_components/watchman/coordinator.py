@@ -17,10 +17,10 @@ from .const import (
     HASS_DATA_PARSED_ENTITY_LIST,
     HASS_DATA_PARSED_SERVICE_LIST,
 )
-from .utils import check_entitites, check_services, get_entity_state, fill
+from .utils import check_entitites, check_services, get_entity_state, fill, DebugLogger
 
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = DebugLogger(logging.getLogger(__name__))
 
 
 class WatchmanCoordinator(DataUpdateCoordinator):
@@ -75,8 +75,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_ENTITY_ATTRS: entity_attrs,
         }
 
-        _LOGGER.debug("Watchman sensors updated")
-        _LOGGER.debug("entities missing: %s", len(entities_missing))
-        _LOGGER.debug("services missing: %s", len(services_missing))
+        _LOGGER.debugt("Watchman sensors updated")
+        _LOGGER.debugt("entities missing: %s", len(entities_missing))
+        _LOGGER.debugt("services missing: %s", len(services_missing))
 
         return self.data

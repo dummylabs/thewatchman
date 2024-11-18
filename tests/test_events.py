@@ -6,9 +6,7 @@ from custom_components.watchman.const import (
     HASS_DATA_MISSING_ENTITIES,
     HASS_DATA_MISSING_SERVICES,
 )
-from .common import async_init_integration
-
-TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
+from . import async_init_integration
 
 
 async def test_add_service(hass):
