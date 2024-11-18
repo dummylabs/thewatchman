@@ -1,9 +1,9 @@
 """https://github.com/dummylabs/thewatchman§"""
 
 from datetime import timedelta
-import logging
 import time
 import json
+from dataclasses import dataclass
 import voluptuous as vol
 from anyio import Path
 from homeassistant.helpers import config_validation as cv
@@ -11,7 +11,7 @@ from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.const import (
@@ -31,7 +31,7 @@ from .utils import (
     table_renderer,
     text_renderer,
     get_config,
-    async_get_report_path,
+    DebugLogger,
 )
 
 from .const import (
@@ -57,6 +57,8 @@ from .const import (
     CONF_FRIENDLY_NAMES,
     CONF_ALLOWED_SERVICE_PARAMS,
     CONF_TEST_MODE,
+    CONF_SECTION_APPEARANCE_LOCATION,
+    CONF_SECTION_NOTIFY_ACTION,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
     HASS_DATA_CANCEL_HANDLERS,
@@ -72,7 +74,7 @@ from .const import (
     VERSION,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = DebugLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -87,11 +89,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_INCLUDED_FOLDERS): cv.ensure_list,
                 vol.Optional(CONF_CHECK_LOVELACE, default=False): cv.boolean,
                 vol.Optional(CONF_CHUNK_SIZE, default=3500): cv.positive_int,
-                vol.Optional(CONF_IGNORED_STATES): [
-                    "missing",
-                    "unavailable",
-                    "unknown",
-                ],
+                vol.Optional(CONF_IGNORED_STATES): MONITORED_STATES,
                 vol.Optional(CONF_COLUMNS_WIDTH): cv.ensure_list,
                 vol.Optional(CONF_STARTUP_DELAY, default=0): cv.positive_int,
                 vol.Optional(CONF_FRIENDLY_NAMES, default=False): cv.boolean,
@@ -101,27 +99,31 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
-
-async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up is called when Home Assistant is loading our component."""
-    if config.get(DOMAIN) is None:
-        # We get here if the integration is set up using config flow
-        return True
-
-    hass.data.setdefault(DOMAIN_DATA, config[DOMAIN])
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": SOURCE_IMPORT}, data=hass.data[DOMAIN_DATA]
-        )
-    )
-    # Return boolean to indicate that initialization was successful.
-    return True
+type WMConfigEntry = ConfigEntry[WMData]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+@dataclass
+class WMData:
+    included_folders: list[str]
+    ignored_items: list[str]
+    ignored_states: list[str]
+    ignored_files: list[str]
+    check_lovelace: bool
+    startup_delay: int
+    service: str
+    service_data: str
+    chunk_size: int
+    report_header: str
+    report_path: str
+    columns_width: list[int]
+    friendly_names: bool
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
     """Set up this integration using UI"""
-    _LOGGER.debug(entry.options)
-    _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
+    _LOGGER.debugf("::async_setup_entry::")
+    # _LOGGER.debugt("CondigEntry state: ", entry.state)
+    _LOGGER.debugt("Home assistant path: %s", hass.config.path(""))
 
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=entry.title)
     coordinator.async_set_updated_data(None)
@@ -130,8 +132,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     hass.data[DOMAIN][HASS_DATA_COORDINATOR] = coordinator
-    hass.data[DOMAIN_DATA] = entry.options  # TODO: refactor
-
+    hass.data[DOMAIN_DATA] = {"config_entry_id": entry.entry_id}
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -184,8 +185,7 @@ async def add_services(hass: HomeAssistant):
 
     async def async_handle_report(call):
         """Handle the service call"""
-        config = hass.data.get(DOMAIN_DATA, {})
-        path = await async_get_report_path(hass, config.get(CONF_REPORT_PATH, None))
+        path = get_config(hass, CONF_REPORT_PATH)
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
         create_file = call.data.get(CONF_CREATE_FILE, True)
         test_mode = call.data.get(CONF_TEST_MODE, False)
@@ -210,7 +210,9 @@ async def add_services(hass: HomeAssistant):
             await parse_config(hass, reason="service call")
 
         if send_notification:
-            chunk_size = call.data.get(CONF_CHUNK_SIZE, config.get(CONF_CHUNK_SIZE))
+            chunk_size = call.data.get(
+                CONF_CHUNK_SIZE, get_config(hass, CONF_CHUNK_SIZE)
+            )
             service = call.data.get(CONF_SERVICE_NAME, None)
             service_data = call.data.get(CONF_SERVICE_DATA, None)
 
@@ -292,7 +294,7 @@ async def add_event_handlers(hass: HomeAssistant):
     async def async_on_service_changed(event):
         service = f"{event.data['domain']}.{event.data['service']}"
         if service in hass.data[DOMAIN].get(HASS_DATA_PARSED_SERVICE_LIST, []):
-            _LOGGER.debug("Monitored service changed: %s", service)
+            _LOGGER.debugt("Monitored service changed: %s", service)
             coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
             await coordinator.async_refresh()
 
@@ -311,7 +313,7 @@ async def add_event_handlers(hass: HomeAssistant):
             new_state = state_or_missing("new_state")
             checked_states = set(MONITORED_STATES) - set(ignored_states)
             if new_state in checked_states or old_state in checked_states:
-                _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
+                _LOGGER.debugt("Monitored entity changed: %s", event.data["entity_id"])
                 coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
                 await coordinator.async_refresh()
 
@@ -341,10 +343,11 @@ async def add_event_handlers(hass: HomeAssistant):
 
 async def parse_config(hass: HomeAssistant, reason=None):
     """parse home assistant configuration files"""
-    assert hass.data.get(DOMAIN_DATA)
+    # assert hass.data.get(DOMAIN_DATA)
     start_time = time.time()
     included_folders = get_included_folders(hass)
-    ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
+    # ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
+    ignored_files = get_config(hass, CONF_IGNORED_FILES, None)
 
     parsed_entity_list, parsed_service_list, files_parsed, files_ignored = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
@@ -354,7 +357,7 @@ async def parse_config(hass: HomeAssistant, reason=None):
     hass.data[DOMAIN][HASS_DATA_FILES_PARSED] = files_parsed
     hass.data[DOMAIN][HASS_DATA_FILES_IGNORED] = files_ignored
     hass.data[DOMAIN][HASS_DATA_PARSE_DURATION] = time.time() - start_time
-    _LOGGER.info(
+    _LOGGER.debugt(
         "%s files parsed and %s files ignored in %.2fs. due to %s",
         files_parsed,
         files_ignored,
@@ -366,17 +369,11 @@ async def parse_config(hass: HomeAssistant, reason=None):
 def get_included_folders(hass):
     """gather the list of folders to parse"""
     folders = []
-    config_folders = [hass.config.config_dir]
 
-    if DOMAIN_DATA in hass.data:
-        config_folders = hass.data[DOMAIN_DATA].get("included_folders")
-        if not config_folders:
-            config_folders = [hass.config.config_dir]
-
-    for fld in config_folders:
+    for fld in get_config(hass, CONF_INCLUDED_FOLDERS, None):
         folders.append((fld, "**/*.yaml"))
 
-    if DOMAIN_DATA in hass.data and hass.data[DOMAIN_DATA].get(CONF_CHECK_LOVELACE):
+    if get_config(hass, CONF_CHECK_LOVELACE):
         folders.append((hass.config.config_dir, ".storage/**/lovelace*"))
 
     return folders
@@ -453,3 +450,79 @@ async def async_onboarding(hass, service, path):
     """check if the user runs report for the first time"""
     service = service or get_config(hass, CONF_SERVICE_NAME, None)
     return not (service or await Path(path).exists())
+
+
+async def async_migrate_entry(hass, config_entry: ConfigEntry):
+    TARGET_MINOR_VERSION = 0
+    TARGET_VERSION = 2
+
+    if config_entry.version > 1:
+        # This means the user has downgraded from a future version
+        _LOGGER.error(
+            "Unable to migratre Watchman entry from version %d.%d. If integration version was downgraded, use backup to restore its data.",
+            config_entry.version,
+            config_entry.minor_version,
+        )
+        return False
+    else:
+        new_options = {**config_entry.options}
+        new_options[CONF_SECTION_APPEARANCE_LOCATION] = {}
+
+        if CONF_FRIENDLY_NAMES in new_options:
+            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES] = (
+                new_options[CONF_FRIENDLY_NAMES]
+            )
+            del new_options[CONF_FRIENDLY_NAMES]
+
+        if CONF_REPORT_PATH in new_options:
+            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
+                new_options[CONF_REPORT_PATH]
+            )
+            del new_options[CONF_REPORT_PATH]
+
+        if CONF_HEADER in new_options:
+            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER] = new_options[
+                CONF_HEADER
+            ]
+            del new_options[CONF_HEADER]
+
+        if CONF_COLUMNS_WIDTH in new_options:
+            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_COLUMNS_WIDTH] = (
+                new_options[CONF_COLUMNS_WIDTH]
+            )
+            del new_options[CONF_COLUMNS_WIDTH]
+
+        new_options[CONF_SECTION_NOTIFY_ACTION] = {}
+
+        if CONF_SERVICE_NAME in new_options:
+            new_options[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_NAME] = new_options[
+                CONF_SERVICE_NAME
+            ]
+            del new_options[CONF_SERVICE_NAME]
+
+        if CONF_SERVICE_DATA2 in new_options:
+            new_options[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_DATA2] = new_options[
+                CONF_SERVICE_DATA2
+            ]
+            del new_options[CONF_SERVICE_DATA2]
+
+        if CONF_CHUNK_SIZE in new_options:
+            new_options[CONF_SECTION_NOTIFY_ACTION][CONF_CHUNK_SIZE] = new_options[
+                CONF_CHUNK_SIZE
+            ]
+            del new_options[CONF_CHUNK_SIZE]
+
+        _LOGGER.info(
+            "Successfully migrated Watchman data from from version %d.%d. to version %d.%d",
+            config_entry.version,
+            config_entry.minor_version,
+            TARGET_VERSION,
+            TARGET_MINOR_VERSION,
+        )
+        hass.config_entries.async_update_entry(
+            config_entry,
+            options=new_options,
+            minor_version=TARGET_MINOR_VERSION,
+            version=TARGET_VERSION,
+        )
+        return True

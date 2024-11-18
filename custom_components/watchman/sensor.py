@@ -11,6 +11,7 @@ from homeassistant.components.sensor.const import (
 )
 from homeassistant.core import callback
 from .entity import WatchmanEntity
+from .utils import DebugLogger
 
 from .const import (
     COORD_DATA_ENTITY_ATTRS,
@@ -25,11 +26,13 @@ from .const import (
 )
 
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = DebugLogger(logging.getLogger(__name__))
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
+    _LOGGER.debugf("platform::async_setup_entry::")
+    # _LOGGER.debugf("entry.data %s", get_config(hass, CONF_INCLUDED_FOLDERS))
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
         [
