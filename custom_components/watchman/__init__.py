@@ -308,7 +308,7 @@ async def add_event_handlers(hass: HomeAssistant):
         if event.data["entity_id"] in hass.data[DOMAIN].get(
             HASS_DATA_PARSED_ENTITY_LIST, []
         ):
-            ignored_states = get_config(hass, CONF_IGNORED_STATES, [])
+            ignored_states: list[str] = get_config(hass, CONF_IGNORED_STATES, [])
             old_state = state_or_missing("old_state")
             new_state = state_or_missing("new_state")
             checked_states = set(MONITORED_STATES) - set(ignored_states)
@@ -395,7 +395,9 @@ async def async_report_to_file(hass, path, test_mode):
     await hass.async_add_executor_job(write, path)
 
 
-async def async_report_to_notification(hass, service_str, service_data, chunk_size):
+async def async_report_to_notification(
+    hass: HomeAssistant, service_str: str, service_data: str, chunk_size: int
+):
     """send report via notification service"""
     if not service_str:
         service_str = get_config(hass, CONF_SERVICE_NAME, None)

@@ -15,6 +15,7 @@ from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
 
 from .const import (
     CONF_CHECK_LOVELACE,
@@ -115,12 +116,15 @@ def to_listi(options, key, section=None):
     return [int(x) for x in val.split(",") if x.strip()]
 
 
-def get_config(hass: HomeAssistant, key: str, default: Any | None = None):
+def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any:
     """get configuration value"""
     assert hass.data.get(DOMAIN_DATA)
     entry = hass.config_entries.async_get_entry(
         hass.data[DOMAIN_DATA]["config_entry_id"]
     )
+
+    assert isinstance(entry, ConfigEntry)
+
     if key in [CONF_INCLUDED_FOLDERS, CONF_IGNORED_ITEMS, CONF_IGNORED_FILES]:
         return to_lists(entry.data, key)
 

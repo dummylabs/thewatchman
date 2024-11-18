@@ -1,6 +1,5 @@
 """Watchman sensors definition"""
 
-import logging
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
@@ -26,7 +25,7 @@ from .const import (
 )
 
 
-_LOGGER = DebugLogger(logging.getLogger(__name__))
+_LOGGER = DebugLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_devices):

@@ -5,7 +5,6 @@ from types import MappingProxyType
 from typing import Dict
 import json
 from json.decoder import JSONDecodeError
-import logging
 from homeassistant.config_entries import (
     ConfigFlow,
     OptionsFlow,
@@ -53,7 +52,7 @@ IGNORED_STATES_SCHEMA = vol.Schema(MONITORED_STATES)
 IGNORED_FILES_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 COLUMNS_WIDTH_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.positive_int]))
 
-_LOGGER = DebugLogger(logging.getLogger(__name__))
+_LOGGER = DebugLogger(__name__)
 
 
 def _get_data_schema() -> vol.Schema:
