@@ -2,7 +2,7 @@
 
 from homeassistant.setup import async_setup_component
 from homeassistant.core import HomeAssistant
-from .common import async_init_integration
+from . import async_init_integration
 
 from custom_components.watchman.const import (
     CONF_IGNORED_ITEMS,
@@ -71,7 +71,7 @@ async def test_ignored_files(hass):
     hass.states.async_set("sensor.test3_unavail", "unavailable")
     hass.states.async_set("sensor.test4_avail", "42")
     await async_init_integration(
-        hass, add_params={CONF_IGNORED_FILES: ["*/test_services.yaml"]}
+        hass, add_params={CONF_IGNORED_FILES: "*/test_services.yaml"}
     )
     assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 3
     assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 0
@@ -84,7 +84,7 @@ async def test_ignored_items(hass):
     hass.states.async_set("sensor.test3_unavail", "unavailable")
     hass.states.async_set("sensor.test4_avail", "42")
     await async_init_integration(
-        hass, add_params={CONF_IGNORED_ITEMS: ["sensor.test1_*", "timer.*"]}
+        hass, add_params={CONF_IGNORED_ITEMS: "sensor.test1_*, timer.*"}
     )
     assert len(hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]) == 3
     assert len(hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]) == 2

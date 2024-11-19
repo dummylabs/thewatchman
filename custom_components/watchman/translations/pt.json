@@ -1,0 +1,77 @@
+{
+    "config": {
+        "abort": {
+            "single_instance_allowed": "Apenas é permitida uma única instância do watchman"
+        },
+        "step": {}
+    },
+    "options": {
+        "error": {
+            "invalid_included_folders": "included_folders deve ser uma lista de pastas de configuração separada por vírgulas",
+            "invalid_columns_width": "columns_width deve ser uma lista de 3 inteiros positivos",
+            "wrong_value_ignored_states": "Os valores aceites são: 'indisponível', 'em falta' e 'desconhecido'",
+            "malformed_json": "service data deve ser um dicionário JSON válido",
+            "unknown_service": "serviço desconhecido: `{service}`"
+        },
+        "step": {
+            "init": {
+                "title": "Configurações do Watchman",
+                "data": {
+                    "service": "Serviço de Notificação (ex.: notify.telegram)",
+                    "service_data": "Dados do serviço de notificação",
+                    "included_folders": "Pastas incluídas",
+                    "report_header": "Cabeçalho personalizado para o relatório",
+                    "report_path": "Localização do relatório, ex.: /config/report.txt",
+                    "ignored_items": "Entidades e serviços ignorados",
+                    "ignored_states": "Estados das entidades ignorados",
+                    "chunk_size": "Tamanho do fragmento da mensagem em bytes (usado com serviço de notificação)",
+                    "ignored_files": "Ficheiros ignorados (separados por vírgulas)",
+                    "check_lovelace": "Analisar a configuração dos dashboards UI (antigo Lovelace)",
+                    "columns_width": "Lista da largura das colunas do relatório, ex.: 30, 7, 60",
+                    "startup_delay": "Atraso de inicialização para a configuração dos sensores do Watchman",
+                    "friendly_names": "Adicionar nomes amigáveis ao relatório"
+                },
+                "data_description": {
+                    "service_data": "Objeto JSON com dados do serviço de notificação, consulte a documentação para detalhes",
+                    "included_folders": "Lista de pastas separada por vírgulas onde o Watchman deve procurar ficheiros de configuração",
+                    "ignored_items": "Lista de entidades e serviços, separados por vírgulas, excluídos do rastreamento",
+                    "ignored_states": "Lista de estados, separados por vírgulas, excluídos do rastreamento",
+                    "ignored_files": "Lista de ficheiros de configuração, separados por vírgulas, excluídos do rastreamento"
+                },
+                "description": "[Ajuda nas configurações](https://github.com/dummylabs/thewatchman#configuration)"
+            }
+        }
+    },
+    "services": {
+        "report": {
+            "name": "Relatório",
+            "description": "Executar o relatório do Watchman",
+            "fields": {
+                "create_file": {
+                    "name": "Criar ficheiro de relatório",
+                    "description": "Se o ficheiro de relatório deve ser criado (opcional, verdadeiro por defeito)"
+                },
+                "send_notification": {
+                    "name": "Enviar notificação",
+                    "description": "Se o relatório deve ser enviado através do serviço de notificação (opcional, falso por defeito)"
+                },
+                "service": {
+                    "name": "Serviço de notificação",
+                    "description": "Serviço de notificação para enviar o relatório (opcional). Substitui a configuração 'service' do Watchman"
+                },
+                "data": {
+                    "name": "Parâmetros dos dados do serviço de notificação",
+                    "description": "Dados adicionais no formato chave:valor para o serviço de notificação (opcional)"
+                },
+                "parse_config": {
+                    "name": "Forçar análise de configuração",
+                    "description": "Analisar ficheiros de configuração antes de criar o relatório. Normalmente, o Watchman faz isto automaticamente, pelo que esta opção não é necessária. (opcional, falso por defeito)"
+                },
+                "chunk_size": {
+                    "name": "Tamanho do fragmento do relatório",
+                    "description": "Tamanho máximo da mensagem em bytes. Se o tamanho do relatório exceder o chunk_size, será enviado em várias notificações subsequentes. (opcional, o valor por defeito é 3500 ou o especificado nas configurações da integração)"
+                }
+            }
+        }
+    }
+}

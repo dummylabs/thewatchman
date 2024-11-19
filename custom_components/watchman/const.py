@@ -6,6 +6,9 @@ DOMAIN = "watchman"
 DOMAIN_DATA = "watchman_data"
 VERSION = "0.6.3"
 
+CONFIG_ENTRY_VERSION = 2
+CONFIG_ENTRY_MINOR_VERSION = 1
+
 DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
@@ -59,6 +62,9 @@ CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_TEST_MODE,
 ]
 
+CONF_SECTION_APPEARANCE_LOCATION = "appearance_location_options"
+CONF_SECTION_NOTIFY_ACTION = "notify_action_options"
+
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
 
@@ -91,3 +97,23 @@ BUNDLED_IGNORED_ITEMS = [
 
 # Platforms
 PLATFORMS = [Platform.SENSOR]
+
+DEFAULT_OPTIONS = {
+    CONF_INCLUDED_FOLDERS: "/config",
+    CONF_IGNORED_ITEMS: "",
+    CONF_IGNORED_STATES: [],
+    CONF_IGNORED_FILES: "",
+    CONF_CHECK_LOVELACE: False,
+    CONF_STARTUP_DELAY: 0,
+    CONF_SECTION_NOTIFY_ACTION: {
+        CONF_SERVICE_NAME: "",
+        CONF_SERVICE_DATA2: "{}",
+        CONF_CHUNK_SIZE: 3500,
+    },
+    CONF_SECTION_APPEARANCE_LOCATION: {
+        CONF_HEADER: "-== Watchman Report ==-",
+        CONF_REPORT_PATH: "",
+        CONF_COLUMNS_WIDTH: "30, 7, 60",
+        CONF_FRIENDLY_NAMES: False,
+    },
+}

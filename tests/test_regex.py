@@ -6,9 +6,9 @@ from custom_components.watchman.const import (
     HASS_DATA_MISSING_ENTITIES,
 )
 
-from .common import async_init_integration
+from . import async_init_integration
 
-TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input_regex"]
+TEST_INCLUDED_FOLDERS = "/workspaces/thewatchman/tests/input_regex"
 
 
 async def test_regex(hass):
@@ -16,4 +16,4 @@ async def test_regex(hass):
     await async_init_integration(
         hass, add_params={CONF_INCLUDED_FOLDERS: TEST_INCLUDED_FOLDERS}
     )
-    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 10
+    assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 52

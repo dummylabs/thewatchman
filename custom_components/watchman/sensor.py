@@ -1,6 +1,5 @@
 """Watchman sensors definition"""
 
-import logging
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
@@ -10,7 +9,9 @@ from homeassistant.components.sensor.const import (
     SensorStateClass,
 )
 from homeassistant.core import callback
+from homeassistant.const import MATCH_ALL
 from .entity import WatchmanEntity
+from .utils import DebugLogger
 
 from .const import (
     COORD_DATA_ENTITY_ATTRS,
@@ -25,11 +26,13 @@ from .const import (
 )
 
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = DebugLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
+    _LOGGER.debugf("platform::async_setup_entry::")
+    # _LOGGER.debugf("entry.data %s", get_config(hass, CONF_INCLUDED_FOLDERS))
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
         [
@@ -95,6 +98,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"
     _attr_native_unit_of_measurement = "items"
+    _unrecorded_attributes = frozenset({MATCH_ALL})
 
     @property
     def should_poll(self) -> bool:
@@ -135,6 +139,7 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"
     _attr_native_unit_of_measurement = "items"
+    _unrecorded_attributes = frozenset({MATCH_ALL})
 
     @property
     def should_poll(self) -> bool:
