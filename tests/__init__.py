@@ -12,6 +12,10 @@ from custom_components.watchman.const import (
 )
 
 
+def from_list(l):
+    return ",".join(str(x) for x in l)
+
+
 async def async_init_integration(
     hass: HomeAssistant,
     config_entry: ConfigEntry | None = None,

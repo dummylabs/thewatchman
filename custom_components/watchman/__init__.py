@@ -35,6 +35,8 @@ from .utils import (
 )
 
 from .const import (
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_HEADER,
@@ -455,9 +457,6 @@ async def async_onboarding(hass, service, path):
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
-    TARGET_MINOR_VERSION = 0
-    TARGET_VERSION = 2
-
     if config_entry.version > 1:
         # This means the user has downgraded from a future version
         _LOGGER.error(
@@ -467,64 +466,79 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         )
         return False
     else:
-        new_options = {**config_entry.options}
-        new_options[CONF_SECTION_APPEARANCE_LOCATION] = {}
+        # migrate from ConfigEntry.options to ConfigEntry.data
+        data = {**config_entry.options}
+        _LOGGER.info(
+            "Start Watchman configuration entry migration to version 2. Source data: %s",
+            data,
+        )
+        data[CONF_SECTION_APPEARANCE_LOCATION] = {}
+        data[CONF_SECTION_NOTIFY_ACTION] = {}
 
-        if CONF_FRIENDLY_NAMES in new_options:
-            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES] = (
-                new_options[CONF_FRIENDLY_NAMES]
+        if CONF_INCLUDED_FOLDERS in data:
+            data[CONF_INCLUDED_FOLDERS] = ",".join(
+                str(x) for x in data[CONF_INCLUDED_FOLDERS]
             )
-            del new_options[CONF_FRIENDLY_NAMES]
 
-        if CONF_REPORT_PATH in new_options:
-            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
-                new_options[CONF_REPORT_PATH]
+        if CONF_IGNORED_ITEMS in data:
+            data[CONF_IGNORED_ITEMS] = ",".join(
+                str(x) for x in data[CONF_IGNORED_ITEMS]
             )
-            del new_options[CONF_REPORT_PATH]
+        if CONF_IGNORED_FILES in data:
+            data[CONF_IGNORED_FILES] = ",".join(
+                str(x) for x in data[CONF_IGNORED_FILES]
+            )
 
-        if CONF_HEADER in new_options:
-            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER] = new_options[
-                CONF_HEADER
+        if CONF_FRIENDLY_NAMES in data:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES] = data[
+                CONF_FRIENDLY_NAMES
             ]
-            del new_options[CONF_HEADER]
+            del data[CONF_FRIENDLY_NAMES]
 
-        if CONF_COLUMNS_WIDTH in new_options:
-            new_options[CONF_SECTION_APPEARANCE_LOCATION][CONF_COLUMNS_WIDTH] = (
-                new_options[CONF_COLUMNS_WIDTH]
+        if CONF_REPORT_PATH in data:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = data[
+                CONF_REPORT_PATH
+            ]
+            del data[CONF_REPORT_PATH]
+
+        if CONF_HEADER in data:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER] = data[CONF_HEADER]
+            del data[CONF_HEADER]
+
+        if CONF_COLUMNS_WIDTH in data:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_COLUMNS_WIDTH] = ",".join(
+                str(x) for x in data[CONF_COLUMNS_WIDTH]
             )
-            del new_options[CONF_COLUMNS_WIDTH]
+            del data[CONF_COLUMNS_WIDTH]
 
-        new_options[CONF_SECTION_NOTIFY_ACTION] = {}
-
-        if CONF_SERVICE_NAME in new_options:
-            new_options[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_NAME] = new_options[
+        if CONF_SERVICE_NAME in data:
+            data[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_NAME] = data[
                 CONF_SERVICE_NAME
             ]
-            del new_options[CONF_SERVICE_NAME]
+            del data[CONF_SERVICE_NAME]
 
-        if CONF_SERVICE_DATA2 in new_options:
-            new_options[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_DATA2] = new_options[
+        if CONF_SERVICE_DATA2 in data:
+            data[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_DATA2] = data[
                 CONF_SERVICE_DATA2
             ]
-            del new_options[CONF_SERVICE_DATA2]
+            del data[CONF_SERVICE_DATA2]
 
-        if CONF_CHUNK_SIZE in new_options:
-            new_options[CONF_SECTION_NOTIFY_ACTION][CONF_CHUNK_SIZE] = new_options[
-                CONF_CHUNK_SIZE
-            ]
-            del new_options[CONF_CHUNK_SIZE]
+        if CONF_CHUNK_SIZE in data:
+            data[CONF_SECTION_NOTIFY_ACTION][CONF_CHUNK_SIZE] = data[CONF_CHUNK_SIZE]
+            del data[CONF_CHUNK_SIZE]
 
         _LOGGER.info(
-            "Successfully migrated Watchman data from from version %d.%d. to version %d.%d",
+            "Successfully migrated Watchman configuration entry from version %d.%d. to version %d.%d",
             config_entry.version,
             config_entry.minor_version,
-            TARGET_VERSION,
-            TARGET_MINOR_VERSION,
+            CONFIG_ENTRY_VERSION,
+            CONFIG_ENTRY_MINOR_VERSION,
         )
         hass.config_entries.async_update_entry(
             config_entry,
-            options=new_options,
-            minor_version=TARGET_MINOR_VERSION,
-            version=TARGET_VERSION,
+            data=data,
+            options={},
+            minor_version=CONFIG_ENTRY_MINOR_VERSION,
+            version=CONFIG_ENTRY_VERSION,
         )
         return True

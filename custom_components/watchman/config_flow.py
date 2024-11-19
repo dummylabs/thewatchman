@@ -25,6 +25,8 @@ from .utils import (
 )
 
 from .const import (
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
     DOMAIN,
     CONF_IGNORED_FILES,
     CONF_HEADER,
@@ -187,8 +189,8 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     Config flow used to set up new instance of integration
     """
 
-    VERSION = 2
-    MINOR_VERSION = 1
+    VERSION = CONFIG_ENTRY_VERSION
+    MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
         _LOGGER.debugf("::async_step_user::")
