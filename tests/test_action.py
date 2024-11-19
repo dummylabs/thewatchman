@@ -6,8 +6,6 @@ from custom_components.watchman.const import (
     CONF_HEADER,
     CONF_SECTION_APPEARANCE_LOCATION,
     DOMAIN,
-    CONF_INCLUDED_FOLDERS,
-    HASS_DATA_MISSING_ENTITIES,
 )
 
 from . import async_init_integration
