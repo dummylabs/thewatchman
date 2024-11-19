@@ -434,11 +434,7 @@ async def async_report_to_notification(
     for chunk in report_chunks:
         data["message"] = chunk
         # blocking=True ensures execution order
-        if not await hass.services.async_call(domain, service, data, blocking=True):
-            _LOGGER.error(
-                "Unable to call service %s.%s due to an error.", domain, service
-            )
-            break
+        await hass.services.async_call(domain, service, data, blocking=True)
 
 
 async def async_notification(hass, title, message, error=False, n_id="watchman"):
