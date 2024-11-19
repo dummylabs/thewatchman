@@ -35,6 +35,7 @@ from .utils import (
 )
 
 from .const import (
+    CONF_ACTION_NAME,
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DOMAIN,
@@ -215,7 +216,9 @@ async def add_services(hass: HomeAssistant):
             chunk_size = call.data.get(
                 CONF_CHUNK_SIZE, get_config(hass, CONF_CHUNK_SIZE)
             )
-            service = call.data.get(CONF_SERVICE_NAME, None)
+            service = call.data.get(CONF_ACTION_NAME, None) or call.data.get(
+                CONF_SERVICE_NAME, None
+            )
             service_data = call.data.get(CONF_SERVICE_DATA, None)
 
             if service_data and not service:

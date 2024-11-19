@@ -38,6 +38,7 @@ CONF_HEADER = "report_header"
 CONF_REPORT_PATH = "report_path"
 CONF_IGNORED_ITEMS = "ignored_items"
 CONF_SERVICE_NAME = "service"
+CONF_ACTION_NAME = "action"
 CONF_SERVICE_DATA = "data"
 CONF_SERVICE_DATA2 = "service_data"
 CONF_INCLUDED_FOLDERS = "included_folders"
@@ -54,6 +55,7 @@ CONF_TEST_MODE = "test_mode"
 # configuration parameters allowed in watchman.report service data
 CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SERVICE_NAME,
+    CONF_ACTION_NAME,
     CONF_CHUNK_SIZE,
     CONF_CREATE_FILE,
     CONF_SEND_NOTIFICATION,
