@@ -1,3 +1,6 @@
 service: fake.service1
 service: fake.service2
-service: timer.cancel
+action: timer.cancel
+# below is not an action
+action: one_more
+# action: hello.world action in comment
