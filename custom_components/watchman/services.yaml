@@ -13,13 +13,13 @@ report:
       required: false
       selector:
         boolean:
-    service:
-      example: "notify.telegram"
+    action:
+      example: "persistent_notification.create"
       required: false
       selector:
         text:
     data:
-      example: "parse_mode: html"
+      example: "title: Watchman Report"
 
     parse_config:
       example: true
@@ -29,7 +29,7 @@ report:
         boolean:
     chunk_size:
       example: true
-      default: false
+      default: 3500
       required: false
       selector:
         number:

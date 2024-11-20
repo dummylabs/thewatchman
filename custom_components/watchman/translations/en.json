@@ -18,7 +18,7 @@
                 "title": "Watchman settings",
                 "data": {
                     "included_folders": "Folders to watch:",
-                    "ignored_items": "Ignored entities and services:",
+                    "ignored_items": "Ignored entities and actions:",
                     "ignored_states": "Exclude entities with the states below from the report:",
                     "ignored_files": "Ignored files (comma-separated):",
                     "check_lovelace": "Parse dashboards UI (ex-Lovelace) configuration",
@@ -26,7 +26,7 @@
                 },
                 "data_description": {
                     "included_folders": "Comma-separated list of folders where watchman should look for config files",
-                    "ignored_items": "Comma-separated list of entities and services excluded from tracking",
+                    "ignored_items": "Comma-separated list of entities and actions excluded from tracking",
                     "ignored_states": "Comma-separated list of the states excluded from tracking",
                     "ignored_files": "Comma-separated list of config files excluded from tracking"
                 },
@@ -40,7 +40,7 @@
                             "service_data": "Notification action data"
                         },
                         "data_description": {
-                            "service_data": "JSON object with notification service data, see documentation for details"
+                            "service_data": "JSON object with notification action data, see documentation for details"
                         }
                     },
                     "appearance_location_options": {
@@ -65,23 +65,23 @@
             "fields": {
                 "create_file": {
                     "name": "Create file report",
-                    "description": "Whether report file should be created (optional, true by default)"
+                    "description": "Whether report file should be created."
                 },
                 "send_notification": {
                     "name": "Send notification",
-                    "description": "Whether report should be sent via notification service (optional, false by default)"
+                    "description": "Whether report should be sent via notification action."
                 },
-                "service": {
-                    "name": "Notification service",
-                    "description": "Notification service to send report via (optional). Overrides 'service' setting from watchman configuration"
+                "action": {
+                    "name": "Notification action",
+                    "description": "Optional notification action to send report via (e.g. `persistent_notification.create`).  Overrides 'Notification action' setting from watchman configuration"
                 },
                 "data": {
-                    "name": "Notification service data parameters",
-                    "description": "Additional data in form of key:value pairs for notification service (optional)"
+                    "name": "Notification action data parameters",
+                    "description": "Optional notification action parameters (e.g. `title: Report`)"
                 },
                 "parse_config": {
                     "name": "Force configuration parsing",
-                    "description": "Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required. (optional, false by default)"
+                    "description": "Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required."
                 },
                 "chunk_size": {
                     "name": "Report chunk size",

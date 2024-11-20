@@ -1,34 +1,34 @@
 -== Watchman Report ==-
 
--== Missing 3 service(s) from 3 found in your config:
-+------------+---------+----------+
-| Service ID | State   | Location |
-+------------+---------+----------+
-| fake.se    | missing | ../../.  |
-| rvice1     |         | ./../..  |
-|            |         | /../tes  |
-|            |         | ts/inpu  |
-|            |         | t/test_  |
-|            |         | service  |
-|            |         | s.yaml:  |
-|            |         | 1        |
-| fake.se    | missing | ../../.  |
-| rvice2     |         | ./../..  |
-|            |         | /../tes  |
-|            |         | ts/inpu  |
-|            |         | t/test_  |
-|            |         | service  |
-|            |         | s.yaml:  |
-|            |         | 2        |
-| timer.c    | missing | ../../.  |
-| ancel      |         | ./../..  |
-|            |         | /../tes  |
-|            |         | ts/inpu  |
-|            |         | t/test_  |
-|            |         | service  |
-|            |         | s.yaml:  |
-|            |         | 3        |
-+------------+---------+----------+
+-== Missing 3 action(s) from 3 found in your config:
++-----------+---------+----------+
+| Action ID | State   | Location |
++-----------+---------+----------+
+| fake.se   | missing | ../../.  |
+| rvice1    |         | ./../..  |
+|           |         | /../tes  |
+|           |         | ts/inpu  |
+|           |         | t/test_  |
+|           |         | service  |
+|           |         | s.yaml:  |
+|           |         | 1        |
+| fake.se   | missing | ../../.  |
+| rvice2    |         | ./../..  |
+|           |         | /../tes  |
+|           |         | ts/inpu  |
+|           |         | t/test_  |
+|           |         | service  |
+|           |         | s.yaml:  |
+|           |         | 2        |
+| timer.c   | missing | ../../.  |
+| ancel     |         | ./../..  |
+|           |         | /../tes  |
+|           |         | ts/inpu  |
+|           |         | t/test_  |
+|           |         | service  |
+|           |         | s.yaml:  |
+|           |         | 3        |
++-----------+---------+----------+
 
 -== Missing 3 entity(ies) from 4 found in your config:
 +-----------+---------+----------+

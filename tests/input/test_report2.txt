@@ -1,6 +1,6 @@
 -== Watchman Report ==-
 
--== Congratulations, all 3 services from your config are available!
+-== Congratulations, all 3 actions from your config are available!
 
 -== Missing 2 entity(ies) from 4 found in your config:
 +--------------------------------+---------+--------------------------------------------------------------+

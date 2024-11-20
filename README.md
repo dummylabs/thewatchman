@@ -18,7 +18,7 @@ Refer to the [Configuration section](https://github.com/dummylabs/thewatchman#co
 ## What does it do
 The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the actions. Having a list of all entities, the integration checks their actual state one by one and reports those are not available or missing. For actions it checks whether action is available in the HA actions registry. The report can be stored as a nice-looking text table or it can be sent via notification action of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
 
-The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to an action, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives **Ignored entities and services** parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
+The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to an action, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives **Ignored entities and actions** parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
 
 ## What is does not do
 The watchman will not report all available or missing entities within your system—only those that are actively used by Home Assistant, whether it is an automations, dashboard configuration, template sensor, etc.
@@ -34,12 +34,12 @@ Integration settings are available in Settings->Devices & Services->Watchman->Co
 
 Option | Description | Default
 ------------ | ------------- | -------------
-Notification service | Home assistant notification action to send report via, e.g. `notify.telegram`. | `None`
-Notification service data | A json object with additional notification action parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
+Notification action | Home assistant notification action to send report via, e.g. `notify.telegram`. | `None`
+Notification action data | A json object with additional notification action parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
 Included folders | Comma-separated list of folders to scan for entities and actions recursively. | `/config`
 Custom header for the report | Custom header for watchman report. | `"-== Watchman Report ==-"`
 Report location | Report location and filename. | `"/config/watchman_report.txt"`
-Ignored entities and services | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-entities-and-services-option-example) below. | `None`
+Ignored entities and actions | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman?tab=readme-ov-file#ignored-entities-and-actions-formely-known-as-services-option-example) below. | `None`
 Ignored entity states | Comma-separated list of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown`. | `None`
 Message chunk size | Maximum message size in bytes. Some notification actions, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
 Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `None`
@@ -58,11 +58,11 @@ Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data store
 ### Ignored entities and actions (formely known as 'services') option example
 * Ignore an entity: `person.dummylabs`
 * Ignore everything in sensor domain: `sensor.*`
-* Ignore any entity/service which name ends with "_ble": `*.*_ble`
+* Ignore any entity/action which name ends with "_ble": `*.*_ble`
 
 ### Send report via telegram bot
-* *Notification service*: `telegram_bot.send_message`
-* *Notification service data*: `{"parse_mode":"html"}`
+* Notification service (action): `telegram_bot.send_message`
+* Notification service (action) data: `{"parse_mode":"html"}`
 
 ## Watchman.report action
 The text version of the report can be generated using `watchman.report` action from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification actions (e.g., telegram). Action behaviour can be altered with additional optional parameters:
@@ -88,8 +88,8 @@ Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#adva
 action: watchman.report
 create_file: false
 data:
-  service: telegram_bot.send_message
-  data: # additional parameters for your notification service
+  service: telegram_bot.send_message # which action to invoke
+  data: # additional parameters for your notification action
     parse_mode: html
     target: 111111111 # can be omitted, see telegram_bot documentation
 ```
@@ -108,7 +108,7 @@ Please note that the ASCII table format is only used when report is saved to a f
 
 -== Missing 1 service(s) from 38 found in your config:
 +--------------------------------+---------+------------------------------------------+
-| Service                        | State   | Location                                 |
+| Action                         | State   | Location                                 |
 +--------------------------------+---------+------------------------------------------+
 | xiaomi_miio.vacuum_goto        | missing | automations.yaml:599,605                 |
 +--------------------------------+---------+------------------------------------------+

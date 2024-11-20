@@ -35,6 +35,7 @@ from .utils import (
 )
 
 from .const import (
+    CONF_ACTION_NAME,
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DOMAIN,
@@ -208,7 +209,9 @@ async def add_services(hass: HomeAssistant):
             chunk_size = call.data.get(
                 CONF_CHUNK_SIZE, get_config(hass, CONF_CHUNK_SIZE)
             )
-            service = call.data.get(CONF_SERVICE_NAME, None)
+            service = call.data.get(CONF_ACTION_NAME, None) or call.data.get(
+                CONF_SERVICE_NAME, None
+            )
             service_data = call.data.get(CONF_SERVICE_DATA, None)
 
             if service_data and not service:
@@ -408,11 +411,7 @@ async def async_report_to_notification(
     for chunk in report_chunks:
         data["message"] = chunk
         # blocking=True ensures execution order
-        if not await hass.services.async_call(domain, service, data, blocking=True):
-            _LOGGER.error(
-                "Unable to call service %s.%s due to an error.", domain, service
-            )
-            break
+        await hass.services.async_call(domain, service, data, blocking=True)
 
 
 async def async_notification(hass, title, message, error=False, n_id="watchman"):
