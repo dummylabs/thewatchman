@@ -1,6 +1,8 @@
 """Test regexp rules"""
 
+import pytest
 import homeassistant.components.persistent_notification as pn
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.watchman.const import (
     CONF_HEADER,
@@ -48,19 +50,18 @@ async def test_notification_action_ambiguous_params(hass):
 
     await async_init_integration(hass)
     await hass.async_block_till_done()
-    await hass.services.async_call(
-        DOMAIN,
-        "report",
-        {
-            "service": "persistent_notification.create",
-            "send_notification": False,
-            "create_file": False,
-        },
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "report",
+            {
+                "service": "persistent_notification.create",
+                "send_notification": False,
+                "create_file": False,
+            },
+            blocking=True,
+        )
     await hass.async_block_till_done()
-    assert len(notifications) == 1
-    notification = notifications[list(notifications)[0]]
-    assert "send_notification" in notification["message"]
 
 
 async def test_notification_action_wrong_action(hass):
@@ -70,16 +71,15 @@ async def test_notification_action_wrong_action(hass):
 
     await async_init_integration(hass)
     await hass.async_block_till_done()
-    await hass.services.async_call(
-        DOMAIN,
-        "report",
-        {
-            "service": "wrong_service",
-            "send_notification": True,
-            "create_file": False,
-        },
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "report",
+            {
+                "service": "wrong_service",
+                "send_notification": True,
+                "create_file": False,
+            },
+            blocking=True,
+        )
     await hass.async_block_till_done()
-    assert len(notifications) == 1
-    notification = notifications[list(notifications)[0]]
-    assert "wrong_service" in notification["message"]
