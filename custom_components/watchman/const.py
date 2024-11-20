@@ -102,7 +102,7 @@ DEFAULT_OPTIONS = {
     CONF_INCLUDED_FOLDERS: "/config",
     CONF_IGNORED_ITEMS: "",
     CONF_IGNORED_STATES: [],
-    CONF_IGNORED_FILES: "",
+    CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*",
     CONF_CHECK_LOVELACE: False,
     CONF_STARTUP_DELAY: 0,
     CONF_SECTION_NOTIFY_ACTION: {

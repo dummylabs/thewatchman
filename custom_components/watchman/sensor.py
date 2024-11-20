@@ -11,9 +11,12 @@ from homeassistant.components.sensor.const import (
 from homeassistant.core import callback
 from homeassistant.const import MATCH_ALL
 from .entity import WatchmanEntity
-from .utils import DebugLogger
+from .utils import DebugLogger, get_config
 
 from .const import (
+    CONF_IGNORED_FILES,
+    CONF_IGNORED_ITEMS,
+    CONF_INCLUDED_FOLDERS,
     COORD_DATA_ENTITY_ATTRS,
     COORD_DATA_LAST_UPDATE,
     COORD_DATA_MISSING_ENTITIES,
@@ -32,7 +35,12 @@ _LOGGER = DebugLogger(__name__)
 async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
     _LOGGER.debugf("platform::async_setup_entry::")
-    # _LOGGER.debugf("entry.data %s", get_config(hass, CONF_INCLUDED_FOLDERS))
+    _LOGGER.debugf(
+        "entry.data[included_folders] %s", get_config(hass, CONF_INCLUDED_FOLDERS)
+    )
+    _LOGGER.debugf("entry.data[ignored_files] %s", get_config(hass, CONF_IGNORED_FILES))
+    _LOGGER.debugf("entry.data[ignored_items] %s", get_config(hass, CONF_IGNORED_ITEMS))
+
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
         [

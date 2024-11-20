@@ -124,7 +124,6 @@ class WMData:
 async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
     """Set up this integration using UI"""
     _LOGGER.debugf("::async_setup_entry::")
-    # _LOGGER.debugt("CondigEntry state: ", entry.state)
     _LOGGER.debugt("Home assistant path: %s", hass.config.path(""))
 
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=entry.title)
@@ -319,11 +318,11 @@ async def add_event_handlers(hass: HomeAssistant):
 
 async def parse_config(hass: HomeAssistant, reason=None):
     """parse home assistant configuration files"""
-    # assert hass.data.get(DOMAIN_DATA)
     start_time = time.time()
+
     included_folders = get_included_folders(hass)
-    # ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
     ignored_files = get_config(hass, CONF_IGNORED_FILES, None)
+    _LOGGER.debugf(f"::parse_config:: IGNORED_FILES={ignored_files}")
 
     parsed_entity_list, parsed_service_list, files_parsed, files_ignored = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
