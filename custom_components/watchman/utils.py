@@ -271,6 +271,8 @@ def add_entry(_list, entry, yaml_file, lineno):
 
 def is_service(hass, entry):
     """check whether config entry is a service"""
+    if not isinstance(entry, str):
+        return False
     domain, service = entry.split(".")[0], ".".join(entry.split(".")[1:])
     return hass.services.has_service(domain, service)
 
