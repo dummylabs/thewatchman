@@ -189,8 +189,6 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
         _LOGGER.debugf("::async_step_user::")
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
         options = DEFAULT_OPTIONS
         options[CONF_SECTION_APPEARANCE_LOCATION][
             CONF_REPORT_PATH
