@@ -146,10 +146,9 @@ async def _async_validate_input(
             if len(columns_width) != 3:
                 raise ValueError()
             columns_width = COLUMNS_WIDTH_SCHEMA(columns_width)
-            user_input[CONF_COLUMNS_WIDTH] = get_columns_width(columns_width)
+            # user_input[CONF_COLUMNS_WIDTH] = get_columns_width(columns_width)
         except (ValueError, vol.Invalid):
-            errors[CONF_INCLUDED_FOLDERS] = "invalid_columns_width"
-            # errors[CONF_COLUMNS_WIDTH] = "invalid_columns_width"
+            errors["base"] = "invalid_columns_width"
 
     report_path = get_val(
         user_input, CONF_REPORT_PATH, CONF_SECTION_APPEARANCE_LOCATION
@@ -157,8 +156,7 @@ async def _async_validate_input(
     if report_path:
         folder, _ = os.path.split(report_path)
         if not await anyio.Path(folder).exists():
-            errors[CONF_INCLUDED_FOLDERS] = "invalid_report_path"
-        # errors[CONF_INCLUDED_FOLDERS] = "invalid_report_path"
+            errors["base"] = "invalid_report_path"
 
     service_data = get_val(user_input, CONF_SERVICE_DATA2, CONF_SECTION_NOTIFY_ACTION)
 
@@ -166,18 +164,14 @@ async def _async_validate_input(
         try:
             result = json.loads(service_data)
             if not isinstance(result, dict):
-                errors[CONF_INCLUDED_FOLDERS] = "malformed_json"
-                # errors[CONF_SERVICE_DATA2] = "malformed_json"
+                errors["base"] = "malformed_json"
         except JSONDecodeError:
-            errors[CONF_INCLUDED_FOLDERS] = "malformed_json"
-            # errors[CONF_SERVICE_DATA2] = "malformed_json"
+            errors["base"] = "malformed_json"
 
     service_name = get_val(user_input, CONF_SERVICE_NAME, CONF_SECTION_NOTIFY_ACTION)
     if service_name:
         if not is_service(hass, service_name):
-            # workaround until error handling for section is fixed
-            errors[CONF_INCLUDED_FOLDERS] = "unknown_service"
-            # errors[CONF_SERVICE_NAME] = "unknown_service"
+            errors["base"] = "unknown_service"
             placeholders["service"] = service_name
     return (
         MappingProxyType[str, str](errors),
