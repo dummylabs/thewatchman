@@ -125,7 +125,6 @@ class WMData:
 async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
     """Set up this integration using UI"""
     _LOGGER.debugf("::async_setup_entry::")
-    # _LOGGER.debugt("CondigEntry state: ", entry.state)
     _LOGGER.debugt("Home assistant path: %s", hass.config.path(""))
 
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=entry.title)
@@ -195,19 +194,13 @@ async def add_services(hass: HomeAssistant):
         # validate service params
         for param in call.data:
             if param not in CONF_ALLOWED_SERVICE_PARAMS:
-                await async_notification(
-                    hass,
-                    "Watchman error",
-                    f"Unknown service " f"parameter: `{param}`.",
-                    error=True,
-                )
+                raise HomeAssistantError(f"Unknown action parameter: `{param}`.")
 
         if not (send_notification or create_file):
-            message = (
-                "Either `send_notification` or `create_file` should be set to `true` "
-                "in service parameters."
+            raise HomeAssistantError(
+                "Either [send_notification] or [create_file] should be set to true "
+                "in action parameters."
             )
-            await async_notification(hass, "Watchman error", message, error=True)
 
         if call.data.get(CONF_PARSE_CONFIG, False):
             await parse_config(hass, reason="service call")
@@ -222,38 +215,18 @@ async def add_services(hass: HomeAssistant):
             service_data = call.data.get(CONF_SERVICE_DATA, None)
 
             if service_data and not service:
-                await async_notification(
-                    hass,
-                    "Watchman error",
-                    "Missing `service` parameter. The `data` parameter can only be used "
-                    "in conjunction with `service` parameter.",
-                    error=True,
+                raise HomeAssistantError(
+                    "Missing [action] parameter. The [data] parameter can only be used "
+                    "in conjunction with [action] parameter."
                 )
 
-            if await async_onboarding(hass, service, path):
-                await async_notification(
-                    hass,
-                    "🖖 Achievement unlocked: first report!",
-                    f"Your first watchman report was stored in `{path}` \n\n "
-                    "TIP: set `service` parameter in configuration.yaml file to "
-                    "receive report via notification service of choice. \n\n "
-                    "This is one-time message, it will not bother you in the future.",
-                )
-            else:
-                await async_report_to_notification(
-                    hass, service, service_data, chunk_size
-                )
+            await async_report_to_notification(hass, service, service_data, chunk_size)
 
         if create_file:
             try:
                 await async_report_to_file(hass, path, test_mode=test_mode)
             except OSError as exception:
-                await async_notification(
-                    hass,
-                    "Watchman error",
-                    f"Unable to write report: {exception}",
-                    error=True,
-                )
+                raise HomeAssistantError(f"Unable to write report: {exception}")
 
     hass.services.async_register(DOMAIN, "report", async_handle_report)
 
@@ -348,11 +321,11 @@ async def add_event_handlers(hass: HomeAssistant):
 
 async def parse_config(hass: HomeAssistant, reason=None):
     """parse home assistant configuration files"""
-    # assert hass.data.get(DOMAIN_DATA)
     start_time = time.time()
+
     included_folders = get_included_folders(hass)
-    # ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
     ignored_files = get_config(hass, CONF_IGNORED_FILES, None)
+    _LOGGER.debugf(f"::parse_config:: IGNORED_FILES={ignored_files}")
 
     parsed_entity_list, parsed_service_list, files_parsed, files_ignored = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
@@ -417,12 +390,16 @@ async def async_report_to_notification(
         )
         return
 
-    if not is_service(hass, service_str):
-        await async_notification(
-            hass,
-            "Watchman Error",
-            f"{service_str} is not a valid service for notification",
+    if service_str and not isinstance(service_str, str):
+        raise HomeAssistantError(
+            f"`action` parameter should be a string, got {service_str}"
         )
+
+    if not is_service(hass, service_str):
+        raise HomeAssistantError(
+            f"{service_str} is not a valid action for notification"
+        )
+
     domain = service_str.split(".")[0]
     service = ".".join(service_str.split(".")[1:])
 

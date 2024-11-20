@@ -2,7 +2,7 @@
 
 import os
 from types import MappingProxyType
-from typing import Dict
+from typing import Any, Dict
 import json
 from json.decoder import JSONDecodeError
 from homeassistant.config_entries import (
@@ -58,20 +58,21 @@ _LOGGER = DebugLogger(__name__)
 
 
 def _get_data_schema() -> vol.Schema:
+    select = selector.TextSelector(selector.TextSelectorConfig(multiline=True))
     return vol.Schema(
         {
             vol.Required(
                 CONF_INCLUDED_FOLDERS,
-            ): selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
+            ): select,
             vol.Optional(
                 CONF_IGNORED_ITEMS,
-            ): selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
+            ): select,
             vol.Optional(
                 CONF_IGNORED_STATES,
             ): cv.multi_select(MONITORED_STATES),
             vol.Optional(
                 CONF_IGNORED_FILES,
-            ): selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
+            ): select,
             vol.Required(CONF_SECTION_APPEARANCE_LOCATION): data_entry_flow.section(
                 vol.Schema(
                     {
@@ -81,7 +82,7 @@ def _get_data_schema() -> vol.Schema:
                         vol.Required(
                             CONF_REPORT_PATH,
                         ): cv.string,
-                        vol.Optional(
+                        vol.Required(
                             CONF_HEADER,
                         ): cv.string,
                         vol.Required(
@@ -119,7 +120,7 @@ def _get_data_schema() -> vol.Schema:
 
 async def _async_validate_input(
     hass: HomeAssistant,
-    user_input,
+    user_input: dict[str, Any] | None = None,
 ) -> tuple[MappingProxyType[str, str], MappingProxyType[str, str]]:
     errors: Dict[str, str] = {}
     placeholders: Dict[str, str] = {}
@@ -201,7 +202,8 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             CONF_REPORT_PATH
         ] = await async_get_report_path(self.hass, None)
         options[CONF_INCLUDED_FOLDERS] = self.hass.config.path()
-        return self.async_create_entry(title="Watchman", data=options)
+        options[CONF_IGNORED_FILES] = DEFAULT_OPTIONS[CONF_IGNORED_FILES]
+        return self.async_create_entry(title="", data=options)
 
     @staticmethod
     @callback
@@ -236,17 +238,32 @@ class OptionsFlowHandler(OptionsFlow):
         """
 
         _LOGGER.debugf(
-            "::OptionsFlowHandler.async_step_init:: with user input %s", user_input
+            f"-======::OptionsFlowHandler.async_step_init::======- \nuser_input= {user_input},\nentry_data={self.config_entry.data}"
         )
 
         if user_input is not None:  # we asked to validate values entered by user
             errors, placeholders = await _async_validate_input(self.hass, user_input)
             if not errors:
-                # see met.no code, without next line entry.data of EXISTING entry
+                # if user cleared up `ignored files` or `ignored items` form fields
+                # user_input dict dict will not contain these keys, so we add them explicitly
+                if (
+                    CONF_IGNORED_FILES in self.config_entry.data
+                    and CONF_IGNORED_FILES not in user_input
+                ):
+                    user_input[CONF_IGNORED_FILES] = ""
+
+                if (
+                    CONF_IGNORED_ITEMS in self.config_entry.data
+                    and CONF_IGNORED_ITEMS not in user_input
+                ):
+                    user_input[CONF_IGNORED_ITEMS] = ""
+
+                # see met.no code, without update_entry the EXISTING entry
                 # will not be updated with user input, but entry.options will do
                 self.hass.config_entries.async_update_entry(
                     self.config_entry, data=user_input
                 )
+                # await self.hass.config_entries.async_reload(self.config_entry.entry_id)
                 return self.async_create_entry(title="", data=user_input)
             else:
                 # in case of errors in user_input, display them in the form
