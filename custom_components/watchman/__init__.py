@@ -201,7 +201,7 @@ async def add_services(hass: HomeAssistant):
 
         if not (send_notification or create_file):
             message = (
-                "Either `send_nofification` or `create_file` should be set to `true` "
+                "Either `send_notification` or `create_file` should be set to `true` "
                 "in service parameters."
             )
             await async_notification(hass, "Watchman error", message, error=True)
