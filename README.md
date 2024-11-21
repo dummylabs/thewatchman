@@ -21,7 +21,7 @@ The watchman is a custom integration for Home Assistant, which collects all the 
 The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to an action, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives **Ignored entities and actions** parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
 
 ## What is does not do
-The watchman will not report all available or missing entities within your system—only those that are actively used by Home Assistant, whether it is an automations, dashboard configuration, template sensor, etc.
+The watchman will not report all unavailable or unknown entities within your system — only those that are actively used by Home Assistant, whether it is an automations, dashboard configuration, template sensor, etc.
 
 ## Configuration
 > [!NOTE]
