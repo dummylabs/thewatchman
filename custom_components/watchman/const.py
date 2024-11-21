@@ -107,11 +107,6 @@ DEFAULT_OPTIONS = {
     CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*",
     CONF_CHECK_LOVELACE: False,
     CONF_STARTUP_DELAY: 0,
-    CONF_SECTION_NOTIFY_ACTION: {
-        CONF_SERVICE_NAME: "",
-        CONF_SERVICE_DATA2: "{}",
-        CONF_CHUNK_SIZE: 3500,
-    },
     CONF_SECTION_APPEARANCE_LOCATION: {
         CONF_HEADER: "-== Watchman Report ==-",
         CONF_REPORT_PATH: "",

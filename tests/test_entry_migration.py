@@ -42,7 +42,7 @@ old_config = {
 }
 
 
-async def test_entry_migration(hass):
+async def test_entry_migration_1to2(hass):
     """test watchman initialization"""
     # await async_init_integration(hass)
 
@@ -93,15 +93,7 @@ async def test_entry_migration(hass):
     ] == from_list(old_config[CONF_COLUMNS_WIDTH])
 
     # === nofity_action section ===
-    assert (
-        config_entry.data[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_NAME]
-        == old_config[CONF_SERVICE_NAME]
-    )
-    assert (
-        config_entry.data[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_DATA2]
-        == old_config[CONF_SERVICE_DATA2]
-    )
-    assert (
-        config_entry.data[CONF_SECTION_NOTIFY_ACTION][CONF_CHUNK_SIZE]
-        == old_config[CONF_CHUNK_SIZE]
-    )
+    assert CONF_SECTION_NOTIFY_ACTION not in config_entry.data
+    assert CONF_SERVICE_NAME not in config_entry.data
+    assert CONF_SERVICE_DATA2 not in config_entry.data
+    assert CONF_CHUNK_SIZE not in config_entry.data

@@ -17,6 +17,7 @@
 # See here for more info: https://docs.pytest.org/en/latest/fixture.html (note that
 # pytest includes fixtures OOB which you can use as defined on this page)
 from unittest.mock import patch
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 import pytest
 import homeassistant.components.persistent_notification as pn
@@ -38,3 +39,16 @@ def auto_enable_custom_integrations(enable_custom_integrations):  # pylint: disa
 async def setup_integration(hass: HomeAssistant) -> None:
     """Set up persistent notification integration."""
     assert await async_setup_component(hass, pn.DOMAIN, {})
+
+
+@pytest.fixture
+async def init_integration(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> MockConfigEntry:
+    """Set up the TechnoVE integration for testing."""
+    mock_config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    return mock_config_entry

@@ -26,7 +26,7 @@ from homeassistant.const import (
 from .coordinator import WatchmanCoordinator
 
 from .utils import (
-    is_service,
+    is_action,
     report,
     parse,
     table_renderer,
@@ -88,11 +88,9 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_IGNORED_FILES): cv.ensure_list,
                 vol.Optional(CONF_IGNORED_ITEMS): cv.ensure_list,
                 vol.Optional(CONF_HEADER, default=DEFAULT_HEADER): cv.string,
-                vol.Optional(CONF_SERVICE_NAME): cv.string,
                 vol.Optional(CONF_SERVICE_DATA): vol.Schema({}, extra=vol.ALLOW_EXTRA),
                 vol.Optional(CONF_INCLUDED_FOLDERS): cv.ensure_list,
                 vol.Optional(CONF_CHECK_LOVELACE, default=False): cv.boolean,
-                vol.Optional(CONF_CHUNK_SIZE, default=3500): cv.positive_int,
                 vol.Optional(CONF_IGNORED_STATES): MONITORED_STATES,
                 vol.Optional(CONF_COLUMNS_WIDTH): cv.ensure_list,
                 vol.Optional(CONF_STARTUP_DELAY, default=0): cv.positive_int,
@@ -187,44 +185,43 @@ async def add_services(hass: HomeAssistant):
     """adds report service"""
 
     async def async_handle_report(call):
-        """Handle the service call"""
+        """Handle the action call"""
         path = get_config(hass, CONF_REPORT_PATH)
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
         create_file = call.data.get(CONF_CREATE_FILE, True)
         test_mode = call.data.get(CONF_TEST_MODE, False)
-        # validate service params
+        action_data = call.data.get(CONF_SERVICE_DATA, None)
+        chunk_size = call.data.get(CONF_CHUNK_SIZE, 0)
+
+        # validate action params
         for param in call.data:
             if param not in CONF_ALLOWED_SERVICE_PARAMS:
                 raise HomeAssistantError(f"Unknown action parameter: `{param}`.")
 
-        if not (send_notification or create_file):
+        action_name = call.data.get(
+            CONF_ACTION_NAME, call.data.get(CONF_SERVICE_NAME, None)
+        )
+
+        if not (action_name or create_file):
             raise HomeAssistantError(
-                "Either [send_notification] or [create_file] should be set to true "
-                "in action parameters."
+                f"Either [{CONF_ACTION_NAME}] or [{CONF_CREATE_FILE}] should be specified."
+            )
+
+        if action_data and not action_name:
+            raise HomeAssistantError(
+                f"Missing [{CONF_ACTION_NAME}] parameter. The [{CONF_SERVICE_DATA}] parameter can only be used "
+                f"in conjunction with [{CONF_ACTION_NAME}] parameter."
             )
 
         if call.data.get(CONF_PARSE_CONFIG, False):
             await parse_config(hass, reason="service call")
 
-        service = call.data.get(CONF_ACTION_NAME, None) or call.data.get(
-            CONF_SERVICE_NAME, None
-        )
-
-        # call notification service even when send notification = False
-        if send_notification or service:
-            chunk_size = call.data.get(
-                CONF_CHUNK_SIZE, get_config(hass, CONF_CHUNK_SIZE)
+        # call notification action even when send notification = False
+        if send_notification or action_name:
+            _LOGGER.debugf(f"STRANGE: [{action_data}], [{action_name}]")
+            await async_report_to_notification(
+                hass, action_name, action_data, chunk_size
             )
-
-            service_data = call.data.get(CONF_SERVICE_DATA, None)
-
-            if service_data and not service:
-                raise HomeAssistantError(
-                    "Missing [action] parameter. The [data] parameter can only be used "
-                    "in conjunction with [action] parameter."
-                )
-
-            await async_report_to_notification(hass, service, service_data, chunk_size)
 
         if create_file:
             try:
@@ -378,47 +375,35 @@ async def async_report_to_file(hass, path, test_mode):
 
 
 async def async_report_to_notification(
-    hass: HomeAssistant, service_str: str, service_data: dict[str, Any], chunk_size: int
+    hass: HomeAssistant, action_str: str, service_data: dict[str, Any], chunk_size: int
 ):
-    """send report via notification service"""
-    _LOGGER.debugf(f"SERVICE_DATA: [{service_data}]")
+    """send report via notification action"""
 
-    if not service_str:
-        service_str = get_config(hass, CONF_SERVICE_NAME, None)
-        service_data = json.loads(get_config(hass, CONF_SERVICE_DATA2, None))
-        _LOGGER.debugf(f"ALTERED SERVICE_DATA: [{service_data}]")
+    if not action_str:
+        raise HomeAssistantError(f"Missing `{CONF_ACTION_NAME}` parameter.")
 
-    if not service_str:
-        await async_notification(
-            hass,
-            "Watchman Error",
-            "You should specify `service` parameter (in integration options or as `service` "
-            "parameter) in order to send report via notification",
-        )
-        return
-
-    if service_str and not isinstance(service_str, str):
+    if action_str and not isinstance(action_str, str):
         raise HomeAssistantError(
-            f"`action` parameter should be a string, got {service_str}"
+            f"`action` parameter should be a string, got {action_str}"
         )
 
-    if not is_service(hass, service_str):
-        raise HomeAssistantError(
-            f"{service_str} is not a valid action for notification"
-        )
+    if not is_action(hass, action_str):
+        raise HomeAssistantError(f"{action_str} is not a valid action for notification")
 
-    domain = service_str.split(".")[0]
-    service = ".".join(service_str.split(".")[1:])
+    domain = action_str.split(".")[0]
+    action = ".".join(action_str.split(".")[1:])
 
     data = {} if service_data is None else service_data
+
+    _LOGGER.debugf(f"SERVICE_DATA {data}")
 
     coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
     await coordinator.async_refresh()
     report_chunks = await report(hass, text_renderer, chunk_size)
-    for chunk in report_chunks:
-        data["message"] = chunk
-        # blocking=True ensures execution order
-        await hass.services.async_call(domain, service, data, blocking=True)
+    for msg_chunk in report_chunks:
+        data["message"] = msg_chunk
+        # blocking=True ensures send order
+        await hass.services.async_call(domain, action, data, blocking=True)
 
 
 async def async_notification(hass, title, message, error=False, n_id="watchman"):
@@ -431,12 +416,6 @@ async def async_notification(hass, title, message, error=False, n_id="watchman")
     )
     if error:
         raise HomeAssistantError(message.replace("`", ""))
-
-
-async def async_onboarding(hass, service, path):
-    """check if the user runs report for the first time"""
-    service = service or get_config(hass, CONF_SERVICE_NAME, None)
-    return not (service or await Path(path).exists())
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
@@ -456,7 +435,6 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
             data,
         )
         data[CONF_SECTION_APPEARANCE_LOCATION] = {}
-        data[CONF_SECTION_NOTIFY_ACTION] = {}
 
         if CONF_INCLUDED_FOLDERS in data:
             data[CONF_INCLUDED_FOLDERS] = ",".join(
@@ -495,19 +473,12 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
             del data[CONF_COLUMNS_WIDTH]
 
         if CONF_SERVICE_NAME in data:
-            data[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_NAME] = data[
-                CONF_SERVICE_NAME
-            ]
             del data[CONF_SERVICE_NAME]
 
         if CONF_SERVICE_DATA2 in data:
-            data[CONF_SECTION_NOTIFY_ACTION][CONF_SERVICE_DATA2] = data[
-                CONF_SERVICE_DATA2
-            ]
             del data[CONF_SERVICE_DATA2]
 
         if CONF_CHUNK_SIZE in data:
-            data[CONF_SECTION_NOTIFY_ACTION][CONF_CHUNK_SIZE] = data[CONF_CHUNK_SIZE]
             del data[CONF_CHUNK_SIZE]
 
         _LOGGER.info(

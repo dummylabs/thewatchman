@@ -7,12 +7,6 @@ report:
       required: false
       selector:
         boolean:
-    send_notification:
-      example: true
-      default: false
-      required: false
-      selector:
-        boolean:
     action:
       example: "persistent_notification.create"
       required: false
@@ -28,7 +22,7 @@ report:
       selector:
         boolean:
     chunk_size:
-      example: true
+      example: 3500
       default: 3500
       required: false
       selector:

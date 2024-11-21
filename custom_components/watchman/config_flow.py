@@ -3,8 +3,6 @@
 import os
 from types import MappingProxyType
 from typing import Any, Dict
-import json
-from json.decoder import JSONDecodeError
 from homeassistant.config_entries import (
     ConfigFlow,
     OptionsFlow,
@@ -17,8 +15,6 @@ from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
 import anyio
 from .utils import (
-    is_service,
-    get_columns_width,
     async_get_report_path,
     get_val,
     DebugLogger,
@@ -32,17 +28,13 @@ from .const import (
     CONF_HEADER,
     CONF_REPORT_PATH,
     CONF_IGNORED_ITEMS,
-    CONF_SERVICE_NAME,
-    CONF_SERVICE_DATA2,
     CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_STATES,
-    CONF_CHUNK_SIZE,
     CONF_COLUMNS_WIDTH,
     CONF_STARTUP_DELAY,
     CONF_FRIENDLY_NAMES,
     CONF_SECTION_APPEARANCE_LOCATION,
-    CONF_SECTION_NOTIFY_ACTION,
     MONITORED_STATES,
     DEFAULT_OPTIONS,
 )
@@ -73,12 +65,15 @@ def _get_data_schema() -> vol.Schema:
             vol.Optional(
                 CONF_IGNORED_FILES,
             ): select,
+            vol.Required(
+                CONF_STARTUP_DELAY,
+            ): cv.positive_int,
+            vol.Optional(
+                CONF_CHECK_LOVELACE,
+            ): cv.boolean,
             vol.Required(CONF_SECTION_APPEARANCE_LOCATION): data_entry_flow.section(
                 vol.Schema(
                     {
-                        vol.Optional(
-                            CONF_FRIENDLY_NAMES,
-                        ): cv.boolean,
                         vol.Required(
                             CONF_REPORT_PATH,
                         ): cv.string,
@@ -88,32 +83,13 @@ def _get_data_schema() -> vol.Schema:
                         vol.Required(
                             CONF_COLUMNS_WIDTH,
                         ): cv.string,
+                        vol.Optional(
+                            CONF_FRIENDLY_NAMES,
+                        ): cv.boolean,
                     }
                 ),
                 {"collapsed": True},
             ),
-            vol.Required(CONF_SECTION_NOTIFY_ACTION): data_entry_flow.section(
-                vol.Schema(
-                    {
-                        vol.Optional(
-                            CONF_SERVICE_NAME,
-                        ): cv.string,
-                        vol.Optional(
-                            CONF_SERVICE_DATA2,
-                        ): selector.TemplateSelector(),
-                        vol.Optional(
-                            CONF_CHUNK_SIZE,
-                        ): cv.positive_int,
-                    }
-                ),
-                {"collapsed": True},
-            ),
-            vol.Required(
-                CONF_STARTUP_DELAY,
-            ): cv.positive_int,
-            vol.Optional(
-                CONF_CHECK_LOVELACE,
-            ): cv.boolean,
         }
     )
 
@@ -158,21 +134,6 @@ async def _async_validate_input(
         if not await anyio.Path(folder).exists():
             errors["base"] = "invalid_report_path"
 
-    service_data = get_val(user_input, CONF_SERVICE_DATA2, CONF_SECTION_NOTIFY_ACTION)
-
-    if service_data:
-        try:
-            result = json.loads(service_data)
-            if not isinstance(result, dict):
-                errors["base"] = "malformed_json"
-        except JSONDecodeError:
-            errors["base"] = "malformed_json"
-
-    service_name = get_val(user_input, CONF_SERVICE_NAME, CONF_SECTION_NOTIFY_ACTION)
-    if service_name:
-        if not is_service(hass, service_name):
-            errors["base"] = "unknown_service"
-            placeholders["service"] = service_name
     return (
         MappingProxyType[str, str](errors),
         MappingProxyType[str, str](placeholders),

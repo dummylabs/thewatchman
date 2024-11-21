@@ -21,7 +21,7 @@
                     "ignored_items": "Ignored entities and actions:",
                     "ignored_states": "Exclude entities with the states below from the report:",
                     "ignored_files": "Ignored files (comma-separated):",
-                    "check_lovelace": "Parse dashboards UI (ex-Lovelace) configuration",
+                    "check_lovelace": "Parse UI controlled dashboards",
                     "startup_delay": "Startup delay for watchman sensors initialization"
                 },
                 "data_description": {
@@ -31,18 +31,6 @@
                     "ignored_files": "Comma-separated list of config files excluded from tracking"
                 },
                 "sections": {
-                    "notify_action_options": {
-                        "name": "Notification action options",
-                        "description": "Specify notification action to be automatically invoked by Watchman",
-                        "data": {
-                            "chunk_size": "Split large message to chunks (in bytes)",
-                            "service": "Notification action (e.g. notify.telegram)",
-                            "service_data": "Notification action data"
-                        },
-                        "data_description": {
-                            "service_data": "JSON object with notification action data, see documentation for details"
-                        }
-                    },
                     "appearance_location_options": {
                         "name": "Report appearance and location",
                         "data": {
@@ -65,15 +53,11 @@
             "fields": {
                 "create_file": {
                     "name": "Create file report",
-                    "description": "Whether report file should be created."
-                },
-                "send_notification": {
-                    "name": "Send notification",
-                    "description": "Whether report should be sent via notification action."
+                    "description": "Whether report file should be created"
                 },
                 "action": {
                     "name": "Notification action",
-                    "description": "Optional notification action to send report via (e.g. `persistent_notification.create`).  Overrides 'Notification action' setting from watchman configuration"
+                    "description": "Optional notification action to send report via (e.g. `persistent_notification.create`)"
                 },
                 "data": {
                     "name": "Notification action data parameters",
@@ -81,11 +65,11 @@
                 },
                 "parse_config": {
                     "name": "Force configuration parsing",
-                    "description": "Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required."
+                    "description": "Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required"
                 },
                 "chunk_size": {
                     "name": "Report chunk size",
-                    "description": "Maximum message size in bytes. If report size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional, default is 3500 or whatever specified in integration settings)"
+                    "description": "Maximum message size in bytes. If report size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional)"
                 }
             }
         }

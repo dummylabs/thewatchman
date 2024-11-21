@@ -23,18 +23,13 @@ from .const import (
     CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
-    CONF_SECTION_NOTIFY_ACTION,
-    CONF_SERVICE_DATA2,
-    CONF_SERVICE_NAME,
     CONF_STARTUP_DELAY,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_HEADER,
-    DEFAULT_CHUNK_SIZE,
     CONF_HEADER,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
-    CONF_CHUNK_SIZE,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
     BUNDLED_IGNORED_ITEMS,
@@ -137,10 +132,6 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
             return to_listi(entry.data, CONF_COLUMNS_WIDTH, section_name)
         else:
             return get_val(entry.data, key, section_name)
-
-    if key in [CONF_SERVICE_NAME, CONF_SERVICE_DATA2, CONF_CHUNK_SIZE]:
-        section_name = CONF_SECTION_NOTIFY_ACTION
-        return get_val(entry.data, key, section_name)
 
     assert False, "Unknown key {}".format(key)
 
@@ -269,7 +260,7 @@ def add_entry(_list, entry, yaml_file, lineno):
         _list[entry] = {yaml_file: [lineno]}
 
 
-def is_service(hass, entry):
+def is_action(hass, entry):
     """check whether config entry is a service"""
     if not isinstance(entry, str):
         return False
@@ -304,7 +295,7 @@ def check_services(hass):
     parsed_service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
     _LOGGER.debug("::check_services")
     for entry, occurrences in parsed_service_list.items():
-        if not is_service(hass, entry):
+        if not is_action(hass, entry):
             services_missing[entry] = occurrences
             _LOGGER.debug("service %s added to missing list", entry)
     return services_missing
@@ -323,7 +314,7 @@ def check_entitites(hass):
     entities_missing = {}
     _LOGGER.debug("::check_entities")
     for entry, occurrences in parsed_entity_list.items():
-        if is_service(hass, entry):  # this is a service, not entity
+        if is_action(hass, entry):  # this is a service, not entity
             _LOGGER.debug("entry %s is service, skipping", entry)
             continue
         state, _ = get_entity_state(hass, entry)
@@ -443,11 +434,6 @@ async def report(hass, render, chunk_size, test_mode=False):
     entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     files_parsed = hass.data[DOMAIN][HASS_DATA_FILES_PARSED]
     files_ignored = hass.data[DOMAIN][HASS_DATA_FILES_IGNORED]
-    chunk_size = (
-        get_config(hass, CONF_CHUNK_SIZE, DEFAULT_CHUNK_SIZE)
-        if chunk_size is None
-        else chunk_size
-    )
 
     rep = f"{header} \n"
     if services_missing:
