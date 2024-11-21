@@ -206,13 +206,16 @@ async def add_services(hass: HomeAssistant):
         if call.data.get(CONF_PARSE_CONFIG, False):
             await parse_config(hass, reason="service call")
 
-        if send_notification:
+        service = call.data.get(CONF_ACTION_NAME, None) or call.data.get(
+            CONF_SERVICE_NAME, None
+        )
+
+        # call notification service even when send notification = False
+        if send_notification or service:
             chunk_size = call.data.get(
                 CONF_CHUNK_SIZE, get_config(hass, CONF_CHUNK_SIZE)
             )
-            service = call.data.get(CONF_ACTION_NAME, None) or call.data.get(
-                CONF_SERVICE_NAME, None
-            )
+
             service_data = call.data.get(CONF_SERVICE_DATA, None)
 
             if service_data and not service:
