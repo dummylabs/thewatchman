@@ -4,6 +4,7 @@ from datetime import timedelta
 import time
 import json
 from dataclasses import dataclass
+from typing import Any
 import voluptuous as vol
 from anyio import Path
 from homeassistant.helpers import config_validation as cv
@@ -374,12 +375,15 @@ async def async_report_to_file(hass, path, test_mode):
 
 
 async def async_report_to_notification(
-    hass: HomeAssistant, service_str: str, service_data: str, chunk_size: int
+    hass: HomeAssistant, service_str: str, service_data: dict[str, Any], chunk_size: int
 ):
     """send report via notification service"""
+    _LOGGER.debugf(f"SERVICE_DATA: [{service_data}]")
+
     if not service_str:
         service_str = get_config(hass, CONF_SERVICE_NAME, None)
-        service_data = get_config(hass, CONF_SERVICE_DATA2, None)
+        service_data = json.loads(get_config(hass, CONF_SERVICE_DATA2, None))
+        _LOGGER.debugf(f"ALTERED SERVICE_DATA: [{service_data}]")
 
     if not service_str:
         await async_notification(
@@ -403,7 +407,7 @@ async def async_report_to_notification(
     domain = service_str.split(".")[0]
     service = ".".join(service_str.split(".")[1:])
 
-    data = {} if service_data is None else json.loads(service_data)
+    data = {} if service_data is None else service_data
 
     coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
     await coordinator.async_refresh()
