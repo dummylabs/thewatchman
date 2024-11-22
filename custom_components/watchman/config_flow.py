@@ -7,6 +7,7 @@ import logging
 from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv, selector
+from homeassistant.helpers.entity_registry import RegistryEntryDisabler
 import voluptuous as vol
 from .utils import is_service, get_columns_width, async_get_report_path
 
@@ -22,6 +23,7 @@ from .const import (
     CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_STATES,
+    CONF_IGNORE_DISABLED_BY,
     CONF_CHUNK_SIZE,
     CONF_COLUMNS_WIDTH,
     CONF_STARTUP_DELAY,
@@ -36,6 +38,7 @@ DEFAULT_DATA = {
     CONF_REPORT_PATH: "",
     CONF_IGNORED_ITEMS: [],
     CONF_IGNORED_STATES: [],
+    CONF_IGNORE_DISABLED_BY: [],
     CONF_CHUNK_SIZE: 3500,
     CONF_IGNORED_FILES: [],
     CONF_CHECK_LOVELACE: False,
@@ -92,7 +95,7 @@ class OptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         self.config_entry = config_entry
 
-    async def async_default(self, key, uinput=None):
+    async def async_default(self, key, uinput=None, *, stringify=True):
         """provide default value for an OptionsFlow field"""
         if uinput and key in uinput:
             # supply last entered value to display an error during form validation
@@ -108,6 +111,8 @@ class OptionsFlowHandler(OptionsFlow):
             elif key == CONF_REPORT_PATH:
                 result = await async_get_report_path(self.hass, None)
 
+        if not stringify:
+            return result
         if isinstance(result, list):
             return ", ".join([str(i) for i in result])
         if isinstance(result, dict):
@@ -197,6 +202,20 @@ class OptionsFlowHandler(OptionsFlow):
                         },
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(multiline=True)
+                    ),
+                    vol.Optional(
+                        CONF_IGNORE_DISABLED_BY,
+                        description={
+                            "suggested_value": await self.async_default(
+                                CONF_IGNORE_DISABLED_BY, uinput, stringify=False
+                            )
+                        },
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[e.value for e in RegistryEntryDisabler],
+                            multiple=True,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
                     ),
                     vol.Optional(
                         CONF_CHUNK_SIZE,

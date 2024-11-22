@@ -14,8 +14,10 @@ from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 from .const import (
+    CONF_IGNORE_DISABLED_BY,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_HEADER,
@@ -215,11 +217,13 @@ def check_entitites(hass):
         "unavail" if s == "unavailable" else s
         for s in get_config(hass, CONF_IGNORED_STATES, [])
     ]
+    ignore_disabled_by = get_config(hass, CONF_IGNORE_DISABLED_BY, [])
     if DOMAIN not in hass.data or HASS_DATA_PARSED_ENTITY_LIST not in hass.data[DOMAIN]:
         _LOGGER.error("Entity list not found")
         raise Exception("Entity list not found")
     parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     entities_missing = {}
+    entity_registry = er.async_get(hass)
     _LOGGER.debug("::check_entities")
     for entry, occurences in parsed_entity_list.items():
         if is_service(hass, entry):  # this is a service, not entity
@@ -229,6 +233,15 @@ def check_entitites(hass):
         if state in ignored_states:
             _LOGGER.debug("entry %s ignored due to ignored_states", entry)
             continue
+        if state == "missing":
+            if regentry := entity_registry.async_get(entry):
+                if regentry.disabled_by in ignore_disabled_by:
+                    _LOGGER.debug(
+                        "entry %s ignored due to disabled_by '%s'",
+                        entry,
+                        regentry.disabled_by,
+                    )
+                    continue
         if state in ["missing", "unknown", "unavail"]:
             entities_missing[entry] = occurences
             _LOGGER.debug("entry %s added to missing list", entry)
@@ -240,7 +253,7 @@ async def parse(hass, folders, ignored_files, root=None):
     files_parsed = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        fr"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
+        rf"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
     )
     service_pattern = re.compile(r"service:\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)")
     comment_pattern = re.compile(r"\s*#.*")

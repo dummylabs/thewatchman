@@ -10,10 +10,10 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_point_in_utc_time
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_registry import RegistryEntryDisabler
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_SERVICE_REGISTERED,
@@ -48,6 +48,7 @@ from .const import (
     CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_STATES,
+    CONF_IGNORE_DISABLED_BY,
     CONF_CHUNK_SIZE,
     CONF_CREATE_FILE,
     CONF_SEND_NOTIFICATION,
@@ -91,6 +92,9 @@ CONFIG_SCHEMA = vol.Schema(
                     "missing",
                     "unavailable",
                     "unknown",
+                ],
+                vol.Optional(CONF_IGNORE_DISABLED_BY): [
+                    e.value for e in RegistryEntryDisabler
                 ],
                 vol.Optional(CONF_COLUMNS_WIDTH): cv.ensure_list,
                 vol.Optional(CONF_STARTUP_DELAY, default=0): cv.positive_int,
