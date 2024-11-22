@@ -36,3 +36,19 @@ report:
           min: 0
           max: 100000
           mode: box
+
+add_ignored_items:
+  description: Add items (comma separated list) to ignored_items
+  fields:
+    items:
+      required: true
+      selector:
+        text:
+
+remove_ignored_items:
+  description: Remove items (comma separated list) from ignored_items
+  fields:
+    items:
+      required: true
+      selector:
+        text:

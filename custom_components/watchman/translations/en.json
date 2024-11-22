@@ -43,6 +43,26 @@
         }
     },
     "services": {
+        "add_ignored_items": {
+            "name": "Add ignored items",
+            "description": "Add items (comma separated list) to ignored_items",
+            "fields": {
+                "items": {
+                    "name": "Items",
+                    "description": "Comma separated list of items to add"
+                }
+            }
+        },
+        "remove_ignored_items": {
+            "name": "Remove ignored items",
+            "description": "Remove items (comma separated list) from ignored_items",
+            "fields": {
+                "items": {
+                    "name": "Items",
+                    "description": "Comma separated list of items to remove"
+                }
+            }
+        },
         "report": {
             "name": "Report",
             "description": "Run the Watchman report",

@@ -42,6 +42,7 @@ from .const import (
     CONF_HEADER,
     CONF_REPORT_PATH,
     CONF_IGNORED_ITEMS,
+    CONF_IGNORED_ITEMS_DYNAMIC,
     CONF_SERVICE_NAME,
     CONF_SERVICE_DATA,
     CONF_SERVICE_DATA2,
@@ -135,7 +136,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
-    await add_services(hass)
+    await add_services(hass, entry)
     await add_event_handlers(hass)
     if hass.is_running:
         # integration reloaded or options changed via UI
@@ -159,8 +160,9 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
         if cancel_handle:
             cancel_handle()
 
-    if hass.services.has_service(DOMAIN, "report"):
-        hass.services.async_remove(DOMAIN, "report")
+    for service in ["report", "add_ignored_items", "remove_ignored_items"]:
+        if hass.services.has_service(DOMAIN, service):
+            hass.services.async_remove(DOMAIN, service)
 
     unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
@@ -179,8 +181,43 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
     return unload_ok
 
 
-async def add_services(hass: HomeAssistant):
+async def add_services(hass: HomeAssistant, entry: ConfigEntry):
     """adds report service"""
+
+    async def async_update_dynamic_ignore_items(items, *, remove):
+        hass_data = dict(hass.data[DOMAIN_DATA])
+        dynamic_ignore_list = hass_data.get(CONF_IGNORED_ITEMS_DYNAMIC, [])
+
+        if isinstance(items, str):
+            items = [x.strip() for x in items.split(",") if x.strip()]
+
+        if not isinstance(items, list):
+            raise ValueError("Items must be of type list or string")
+
+        if remove:
+            _LOGGER.debug(
+                f"Removing items {items} from dynamic ignore items: {dynamic_ignore_list}"
+            )
+            dynamic_ignore_list = list(set(dynamic_ignore_list) - set(items))
+        else:
+            _LOGGER.debug(
+                f"Adding items {items} to dynamic ignore items: {dynamic_ignore_list}"
+            )
+            dynamic_ignore_list = list(set(dynamic_ignore_list + items))
+
+        _LOGGER.debug(f"New dynamic ignore items: {dynamic_ignore_list}")
+        hass_data[CONF_IGNORED_ITEMS_DYNAMIC] = dynamic_ignore_list
+        hass.config_entries.async_update_entry(entry, options=hass_data)
+
+    async def async_handle_add_ignored_items(call):
+        return await async_update_dynamic_ignore_items(
+            call.data.get("items", []), remove=False
+        )
+
+    async def async_handle_remove_ignored_items(call):
+        return await async_update_dynamic_ignore_items(
+            call.data.get("items", []), remove=True
+        )
 
     async def async_handle_report(call):
         """Handle the service call"""
@@ -249,6 +286,12 @@ async def add_services(hass: HomeAssistant):
                 )
 
     hass.services.async_register(DOMAIN, "report", async_handle_report)
+    hass.services.async_register(
+        DOMAIN, "add_ignored_items", async_handle_add_ignored_items
+    )
+    hass.services.async_register(
+        DOMAIN, "remove_ignored_items", async_handle_remove_ignored_items
+    )
 
 
 async def add_event_handlers(hass: HomeAssistant):
