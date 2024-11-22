@@ -214,10 +214,10 @@ class OptionsFlowHandler(OptionsFlow):
                 # see met.no code, without update_entry the EXISTING entry
                 # will not be updated with user input, but entry.options will do
                 self.hass.config_entries.async_update_entry(
-                    self.config_entry, data=user_input
+                    self.config_entry, data={**self.config_entry.data, **user_input}
                 )
                 # await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                return self.async_create_entry(title="", data=user_input)
+                return self.async_create_entry(title="", data={})
             else:
                 # in case of errors in user_input, display them in the form
                 # use previous user input as suggested values

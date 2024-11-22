@@ -8,15 +8,14 @@ from homeassistant.components.sensor.const import (
     SensorDeviceClass,
     SensorStateClass,
 )
+
+from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
 from homeassistant.const import MATCH_ALL
 from .entity import WatchmanEntity
 from .utils import DebugLogger, get_config
 
 from .const import (
-    CONF_IGNORED_FILES,
-    CONF_IGNORED_ITEMS,
-    CONF_INCLUDED_FOLDERS,
     COORD_DATA_ENTITY_ATTRS,
     COORD_DATA_LAST_UPDATE,
     COORD_DATA_MISSING_ENTITIES,
@@ -24,6 +23,7 @@ from .const import (
     COORD_DATA_SERVICE_ATTRS,
     DOMAIN,
     SENSOR_LAST_UPDATE,
+    SENSOR_MISSING_ACTIONS,
     SENSOR_MISSING_ENTITIES,
     SENSOR_MISSING_SERVICES,
 )
@@ -35,13 +35,15 @@ _LOGGER = DebugLogger(__name__)
 async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
     _LOGGER.debugf("platform::async_setup_entry::")
-    _LOGGER.debugf(
-        "entry.data[included_folders] %s", get_config(hass, CONF_INCLUDED_FOLDERS)
-    )
-    _LOGGER.debugf("entry.data[ignored_files] %s", get_config(hass, CONF_IGNORED_FILES))
-    _LOGGER.debugf("entry.data[ignored_items] %s", get_config(hass, CONF_IGNORED_ITEMS))
-
     coordinator = hass.data[DOMAIN][entry.entry_id]
+    # if sensor.watchman_missing_sensor exists in entity registry - this is an existing
+    # user and we don't want to break compatibility by changing sensor name to actions
+    entity_registry = er.async_get(hass)
+    action_sensor_name = (
+        SENSOR_MISSING_SERVICES
+        if entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
+        else SENSOR_MISSING_ACTIONS
+    )
     async_add_devices(
         [
             LastUpdateSensor(
@@ -63,8 +65,8 @@ async def async_setup_entry(hass, entry, async_add_devices):
             MissingServicesSensor(
                 coordinator=coordinator,
                 entity_description=SensorEntityDescription(
-                    key=SENSOR_MISSING_SERVICES,
-                    name=SENSOR_MISSING_SERVICES,
+                    key=action_sensor_name,
+                    name=action_sensor_name,
                     state_class=SensorStateClass.MEASUREMENT,
                 ),
             ),

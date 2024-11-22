@@ -2,6 +2,7 @@
 
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.helpers import entity_registry as er
 from . import from_list
 
 from custom_components.watchman.const import (
@@ -21,6 +22,8 @@ from custom_components.watchman.const import (
     CONF_STARTUP_DELAY,
     DOMAIN,
     CONF_IGNORED_FILES,
+    SENSOR_MISSING_ACTIONS,
+    SENSOR_MISSING_SERVICES,
 )
 
 # configuration for version 1
@@ -56,6 +59,15 @@ async def test_entry_migration_1to2(hass):
         options=old_config,
     )
 
+    entity_registry = er.async_get(hass)
+    entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "watchman_entry_watchman_missing_services",
+        suggested_object_id="watchman_missing_services",
+    )
+    assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
+    await hass.async_block_till_done(wait_background_tasks=True)
     config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
@@ -97,3 +109,7 @@ async def test_entry_migration_1to2(hass):
     assert CONF_SERVICE_NAME not in config_entry.data
     assert CONF_SERVICE_DATA2 not in config_entry.data
     assert CONF_CHUNK_SIZE not in config_entry.data
+    entity_registry = er.async_get(hass)
+    assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
+    assert not entity_registry.async_get(f"sensor.{SENSOR_MISSING_ACTIONS}")
+    print(f"---???---{entity_registry.entities.values()}")

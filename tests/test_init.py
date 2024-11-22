@@ -2,6 +2,7 @@
 
 from homeassistant.setup import async_setup_component
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from . import async_init_integration
 
 from custom_components.watchman.const import (
@@ -13,6 +14,9 @@ from custom_components.watchman.const import (
     HASS_DATA_MISSING_SERVICES,
     HASS_DATA_PARSED_ENTITY_LIST,
     HASS_DATA_PARSED_SERVICE_LIST,
+    SENSOR_LAST_UPDATE,
+    SENSOR_MISSING_ACTIONS,
+    SENSOR_MISSING_ENTITIES,
 )
 
 
@@ -27,6 +31,10 @@ async def test_init(hass):
     await async_init_integration(hass)
     assert "watchman_data" in hass.data
     assert hass.services.has_service(DOMAIN, "report")
+    entity_registry = er.async_get(hass)
+    assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_ACTIONS}")
+    assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_ENTITIES}")
+    assert entity_registry.async_get(f"sensor.{SENSOR_LAST_UPDATE}")
 
 
 async def test_missing(hass):
