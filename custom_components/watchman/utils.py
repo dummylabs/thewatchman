@@ -337,9 +337,9 @@ async def parse(hass, folders, ignored_files, root=None):
     service_pattern = re.compile(
         r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"
     )
-    # comment_pattern = re.compile(r"\s*#.*")
     comment_pattern = re.compile(
-        r"(^\s*description:\s*(?:[\'\"])(?:.*)(?:[\'\"]))|(\s*#.*)"
+        r"(^\s*(?:description|example):.*)|(\s*#.*)"
+        # r"(^\s*description:\s*(?:[\'\"])(?:.*)(?:[\'\"]))|(\s*#.*)"
     )
     parsed_entity_list = {}
     parsed_service_list = {}

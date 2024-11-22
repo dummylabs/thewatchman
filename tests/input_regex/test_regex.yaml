@@ -11,6 +11,19 @@ state_attr('sensor.test7'
 states.sensor.test10
 states.sensor.test11.state
 
+# should not be detected
+description: "should not be captured: sensor.test12"
+description:"should not be captured: sensor.test12"
+   description:"should not be captured: sensor.test12"
+   description: "should not be captured: sensor.test12"
+description: 'sensor.test12'
+description: " " sensor.test12 "
+description: " "" sensor.test12 "
+description:" '' sensor.test12 "
+example: sensor.test12
+description: sensor.test12
+description:sensor.test12
+
 air_quality.test_entity
 alarm_control_panel.test_entity
 assist_satellite.test_entity
