@@ -26,6 +26,7 @@ from homeassistant.const import (
 from .coordinator import WatchmanCoordinator
 
 from .utils import (
+    async_get_report_path,
     is_action,
     report,
     parse,
@@ -39,6 +40,7 @@ from .const import (
     CONF_ACTION_NAME,
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
+    DEFAULT_OPTIONS,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_HEADER,
@@ -48,7 +50,6 @@ from .const import (
     CONF_IGNORED_ITEMS,
     CONF_SERVICE_NAME,
     CONF_SERVICE_DATA,
-    CONF_SERVICE_DATA2,
     CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_STATES,
@@ -428,57 +429,54 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         return False
     else:
         # migrate from ConfigEntry.options to ConfigEntry.data
-        data = {**config_entry.options}
         _LOGGER.info(
             "Start Watchman configuration entry migration to version 2. Source data: %s",
-            data,
+            config_entry.options,
         )
-        data[CONF_SECTION_APPEARANCE_LOCATION] = {}
+        data = DEFAULT_OPTIONS
 
-        if CONF_INCLUDED_FOLDERS in data:
-            data[CONF_INCLUDED_FOLDERS] = ",".join(
-                str(x) for x in data[CONF_INCLUDED_FOLDERS]
-            )
+        data[CONF_INCLUDED_FOLDERS] = (
+            hass.config.path()
+            if CONF_INCLUDED_FOLDERS not in config_entry.options
+            else ",".join(str(x) for x in config_entry.options[CONF_INCLUDED_FOLDERS])
+        )
 
-        if CONF_IGNORED_ITEMS in data:
+        data[CONF_IGNORED_STATES] = config_entry.options.get(CONF_IGNORED_STATES, [])
+        data[CONF_CHECK_LOVELACE] = config_entry.options.get(CONF_CHECK_LOVELACE, False)
+
+        if CONF_IGNORED_ITEMS in config_entry.options:
             data[CONF_IGNORED_ITEMS] = ",".join(
-                str(x) for x in data[CONF_IGNORED_ITEMS]
+                str(x) for x in config_entry.options[CONF_IGNORED_ITEMS]
             )
-        if CONF_IGNORED_FILES in data:
+
+        if CONF_IGNORED_FILES in config_entry.options:
             data[CONF_IGNORED_FILES] = ",".join(
-                str(x) for x in data[CONF_IGNORED_FILES]
+                str(x) for x in config_entry.options[CONF_IGNORED_FILES]
             )
 
-        if CONF_FRIENDLY_NAMES in data:
-            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES] = data[
-                CONF_FRIENDLY_NAMES
+        if CONF_FRIENDLY_NAMES in config_entry.options:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES] = (
+                config_entry.options[CONF_FRIENDLY_NAMES]
+            )
+
+        data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
+            config_entry.options.get(
+                CONF_REPORT_PATH, async_get_report_path(hass, None)
+            )
+        )
+
+        if CONF_HEADER in config_entry.options:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER] = config_entry.options[
+                CONF_HEADER
             ]
-            del data[CONF_FRIENDLY_NAMES]
 
-        if CONF_REPORT_PATH in data:
-            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = data[
-                CONF_REPORT_PATH
-            ]
-            del data[CONF_REPORT_PATH]
-
-        if CONF_HEADER in data:
-            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER] = data[CONF_HEADER]
-            del data[CONF_HEADER]
-
-        if CONF_COLUMNS_WIDTH in data:
+        if CONF_COLUMNS_WIDTH in config_entry.options:
             data[CONF_SECTION_APPEARANCE_LOCATION][CONF_COLUMNS_WIDTH] = ",".join(
-                str(x) for x in data[CONF_COLUMNS_WIDTH]
+                str(x) for x in config_entry.options[CONF_COLUMNS_WIDTH]
             )
-            del data[CONF_COLUMNS_WIDTH]
 
-        if CONF_SERVICE_NAME in data:
-            del data[CONF_SERVICE_NAME]
-
-        if CONF_SERVICE_DATA2 in data:
-            del data[CONF_SERVICE_DATA2]
-
-        if CONF_CHUNK_SIZE in data:
-            del data[CONF_CHUNK_SIZE]
+        if CONF_STARTUP_DELAY in config_entry.options:
+            data[CONF_STARTUP_DELAY] = config_entry.options[CONF_STARTUP_DELAY]
 
         _LOGGER.info(
             "Successfully migrated Watchman configuration entry from version %d.%d. to version %d.%d",
