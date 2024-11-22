@@ -219,6 +219,11 @@ async def add_services(hass: HomeAssistant, entry: ConfigEntry):
             call.data.get("items", []), remove=True
         )
 
+    async def async_handle_clear_ignored_items(call):
+        hass_data = dict(hass.data[DOMAIN_DATA])
+        hass_data[CONF_IGNORED_ITEMS_DYNAMIC] = []
+        hass.config_entries.async_update_entry(entry, options=hass_data)
+
     async def async_handle_report(call):
         """Handle the service call"""
         config = hass.data.get(DOMAIN_DATA, {})
@@ -291,6 +296,9 @@ async def add_services(hass: HomeAssistant, entry: ConfigEntry):
     )
     hass.services.async_register(
         DOMAIN, "remove_ignored_items", async_handle_remove_ignored_items
+    )
+    hass.services.async_register(
+        DOMAIN, "clear_ignored_items", async_handle_clear_ignored_items
     )
 
 

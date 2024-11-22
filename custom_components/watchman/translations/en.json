@@ -63,6 +63,10 @@
                 }
             }
         },
+        "clear_ignored_items": {
+            "name": "Clear ignored items",
+            "description": "Clear dynamic ignored items"
+        },
         "report": {
             "name": "Report",
             "description": "Run the Watchman report",

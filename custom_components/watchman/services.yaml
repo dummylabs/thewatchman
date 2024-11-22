@@ -52,3 +52,6 @@ remove_ignored_items:
       required: true
       selector:
         text:
+
+clear_ignored_items:
+  description: Clear dynamic ignored items
