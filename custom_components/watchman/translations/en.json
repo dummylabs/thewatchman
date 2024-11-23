@@ -53,23 +53,28 @@
             "fields": {
                 "create_file": {
                     "name": "Create file report",
-                    "description": "Whether report file should be created"
+                    "description": "Whether report file should be created (Usually True)"
                 },
                 "action": {
-                    "name": "Notification action",
+                    "name": "Send report as notification",
                     "description": "Optional notification action to send report via (e.g. `persistent_notification.create`)"
                 },
                 "data": {
                     "name": "Notification action data parameters",
-                    "description": "Optional notification action parameters (e.g. `title: Report`)"
+                    "description": "Optional parameters for notification action (e.g. `title: Report`)"
                 },
                 "parse_config": {
                     "name": "Force configuration parsing",
-                    "description": "Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required"
+                    "description": "Parse configuration files before generating the report. Usually, this is done automatically by Watchman, so this flag is typically not required."
                 },
                 "chunk_size": {
-                    "name": "Report chunk size",
-                    "description": "Maximum message size in bytes. If report size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional)"
+                    "name": "Notification message chunk size",
+                    "description": "Maximum message size in bytes. Some notification services limit the maximum message size. If the report size exceeds chunk_size, it will be sent in multiple subsequent notifications.(optional)"
+                }
+            },
+            "sections": {
+                "advanced_options": {
+                    "name": "Advanced options"
                 }
             }
         }
