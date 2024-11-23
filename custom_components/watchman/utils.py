@@ -75,10 +75,10 @@ class DebugLogger(logging.getLoggerClass()):
         logging.getLogger(__name__).debug(":M {}".format(msg), *args)
 
     def info(self, msg, *args):
-        logging.getLogger(__name__).info(":M {}".format(msg), *args)
+        logging.getLogger(__name__).info("{}".format(msg), *args)
 
     def error(self, msg, *args):
-        logging.getLogger(__name__).error(":M {}".format(msg), *args)
+        logging.getLogger(__name__).error("{}".format(msg), *args)
 
 
 _LOGGER = DebugLogger(__name__)
@@ -337,10 +337,7 @@ async def parse(hass, folders, ignored_files, root=None):
     service_pattern = re.compile(
         r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"
     )
-    comment_pattern = re.compile(
-        r"(^\s*(?:description|example):.*)|(\s*#.*)"
-        # r"(^\s*description:\s*(?:[\'\"])(?:.*)(?:[\'\"]))|(\s*#.*)"
-    )
+    comment_pattern = re.compile(r"(^\s*(?:description|example):.*)|(\s*#.*)")
     parsed_entity_list = {}
     parsed_service_list = {}
     effectively_ignored = []
