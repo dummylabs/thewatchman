@@ -30,18 +30,18 @@ Integration settings are available in Settings->Devices & Services->Watchman->Co
 
 [![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/)
 
-Option | Description | Default
+Option | Description | Example
 ------------ | ------------- | -------------
 Folders to watch | Comma-separated list of folders to scan for entities and actions recursively. | `/config`
-Ignored entities and actions | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman?tab=readme-ov-file#ignored-entities-and-actions-formely-known-as-services-option-example) below. | `None`
-Exclude entity states | Select which states will be excluded from the report | `None`
-Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `None`
+Ignored entities and actions | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman?tab=readme-ov-file#ignored-entities-and-actions-formely-known-as-services-option-example) below. | `sensor.my_sensor1, sensor.my_sensor2`
+Exclude entity states | Select which states will be excluded from the report | N/A
+Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `*/blueprints/*, */custom_components/*, */esphome/*`
 Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/actions may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
-Parse UI controlled dsahboards | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | `False`
-Report location | Report location and filename. | `"/config/watchman_report.txt"`
-Custom header for the report | Custom header for watchman report. | `"-== Watchman Report ==-"`
+Parse UI controlled dsahboards | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | N/A
+Report location | Report location and filename. | `/config/watchman_report.txt`
+Custom header for the report | Custom header for watchman report. | `-== Watchman Report ==-`
 Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`
-Add friendly names | Add friendly name of the entity to the report whenever possible. | `False`
+Add friendly names | Add friendly name of the entity to the report whenever possible. | N/A
 
 ### Ignored files option example
 * Ignore a file: `*/automations.yaml`
