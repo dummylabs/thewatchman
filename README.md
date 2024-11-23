@@ -61,7 +61,7 @@ The text version of the report can be generated using `watchman.report` action f
 > Versions prior to 0.6.4 had report parameter named `service`, now it is renamed to `action`. Old parameter name still supported to preserve compatibilty with existing automations.
 
 Parameter | Key | Description | Default
------------- | ------------- | -------------
+------------ | ------------- | -------------| -------------
 Force configuration parsing |`parse_config`| Forces watchman to parse Home Assistant configuration files and rebuild entity and actions list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration. | `False`
 Send report as notification |`action`| Home assistant notification action to send report via, e.g. `persistent_notification.create`. See compatibility note below.| ``
 Notification action data |`data`| A json object with additional notification action parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
