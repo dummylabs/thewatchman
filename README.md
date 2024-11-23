@@ -49,7 +49,7 @@ Add friendly names | Add friendly name of the entity to the report whenever poss
 * Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
 <img src="https://raw.githubusercontent.com/dummylabs/thewatchman/main/images/ignored_files_ui.png" width=50%>
 
-### Ignored entities and actions (formely known as 'services') option example
+### Ignored entities and actions example
 * Ignore an entity: `person.dummylabs`
 * Ignore everything in sensor domain: `sensor.*`
 * Ignore any entity/action which name ends with "_ble": `*.*_ble`
