@@ -38,8 +38,7 @@
                             "report_header": "Custom header for the report",
                             "report_path": "Report file location e.g. /config/report.txt",
                             "friendly_names": "Add entity friendly names to the report"
-                        },
-                        "data_description": {}
+                        }
                     }
                 },
                 "description": "[Help on settings](https://github.com/dummylabs/thewatchman#configuration)"
