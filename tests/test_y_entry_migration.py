@@ -45,11 +45,14 @@ old_config = {
 }
 
 
-async def test_entry_migration_1to2(hass):
+async def test_entry_migration_1to2(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+):
     """test watchman initialization"""
     # await async_init_integration(hass)
 
-    config_entry = MockConfigEntry(
+    mock_config_entry = MockConfigEntry(
         domain=DOMAIN,
         title="WM",
         unique_id="unique_id",
@@ -59,57 +62,65 @@ async def test_entry_migration_1to2(hass):
         options=old_config,
     )
 
-    entity_registry = er.async_get(hass)
     entity_registry.async_get_or_create(
         "sensor",
         DOMAIN,
         "watchman_entry_watchman_missing_services",
         suggested_object_id="watchman_missing_services",
+        config_entry=mock_config_entry,
     )
     assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
     await hass.async_block_till_done(wait_background_tasks=True)
-    config_entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(config_entry.entry_id)
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
 
     assert "watchman_data" in hass.data
     assert hass.services.has_service(DOMAIN, "report")
 
-    assert config_entry.data[CONF_INCLUDED_FOLDERS] == from_list(
+    assert mock_config_entry.data[CONF_INCLUDED_FOLDERS] == from_list(
         old_config[CONF_INCLUDED_FOLDERS]
     )
-    assert config_entry.data[CONF_IGNORED_ITEMS] == from_list(
+    assert mock_config_entry.data[CONF_IGNORED_ITEMS] == from_list(
         old_config[CONF_IGNORED_ITEMS]
     )
-    assert config_entry.data[CONF_IGNORED_FILES] == from_list(
+    assert mock_config_entry.data[CONF_IGNORED_FILES] == from_list(
         old_config[CONF_IGNORED_FILES]
     )
 
-    assert config_entry.data[CONF_STARTUP_DELAY] == old_config[CONF_STARTUP_DELAY]
+    assert mock_config_entry.data[CONF_STARTUP_DELAY] == old_config[CONF_STARTUP_DELAY]
 
-    assert config_entry.data[CONF_IGNORED_STATES] == old_config[CONF_IGNORED_STATES]
-    assert config_entry.data[CONF_CHECK_LOVELACE] == old_config[CONF_CHECK_LOVELACE]
-    # === appearance_and_location section ===
-    assert config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES]
     assert (
-        config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER]
+        mock_config_entry.data[CONF_IGNORED_STATES] == old_config[CONF_IGNORED_STATES]
+    )
+    assert (
+        mock_config_entry.data[CONF_CHECK_LOVELACE] == old_config[CONF_CHECK_LOVELACE]
+    )
+    # === appearance_and_location section ===
+    assert mock_config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES]
+    assert (
+        mock_config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER]
         == old_config[CONF_HEADER]
     )
     assert (
-        config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH]
+        mock_config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH]
         == old_config[CONF_REPORT_PATH]
     )
 
-    assert config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][
+    assert mock_config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][
         CONF_COLUMNS_WIDTH
     ] == from_list(old_config[CONF_COLUMNS_WIDTH])
 
     # === nofity_action section ===
-    assert CONF_SECTION_NOTIFY_ACTION not in config_entry.data
-    assert CONF_SERVICE_NAME not in config_entry.data
-    assert CONF_SERVICE_DATA2 not in config_entry.data
-    assert CONF_CHUNK_SIZE not in config_entry.data
-    entity_registry = er.async_get(hass)
-    assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
+    assert CONF_SECTION_NOTIFY_ACTION not in mock_config_entry.data
+    assert CONF_SERVICE_NAME not in mock_config_entry.data
+    assert CONF_SERVICE_DATA2 not in mock_config_entry.data
+    assert CONF_CHUNK_SIZE not in mock_config_entry.data
+    e = entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
+    assert e
     assert not entity_registry.async_get(f"sensor.{SENSOR_MISSING_ACTIONS}")
-    print(f"---???---{entity_registry.entities.values()}")
+    # entity_registry.async_remove(e.entity_id)
+    # assert not entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
+    # await hass.config_entries.async_remove(mock_config_entry.entry_id)
+    # await hass.async_block_till_done()
+    # print(f"---???---{entity_registry.entities.values()}")

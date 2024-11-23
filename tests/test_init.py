@@ -26,12 +26,11 @@ async def test_async_setup(hass: HomeAssistant):
     await hass.async_block_till_done()
 
 
-async def test_init(hass):
+async def test_init(hass: HomeAssistant, entity_registry: er.EntityRegistry):
     """test watchman initialization"""
     await async_init_integration(hass)
     assert "watchman_data" in hass.data
     assert hass.services.has_service(DOMAIN, "report")
-    entity_registry = er.async_get(hass)
     assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_ACTIONS}")
     assert entity_registry.async_get(f"sensor.{SENSOR_MISSING_ENTITIES}")
     assert entity_registry.async_get(f"sensor.{SENSOR_LAST_UPDATE}")
