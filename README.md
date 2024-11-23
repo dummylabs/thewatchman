@@ -60,7 +60,7 @@ The text version of the report can be generated using `watchman.report` action f
 > [!NOTE]
 > Versions prior to 0.6.4 had report parameter named `service`, now it is renamed to `action`. Old parameter name still supported to preserve compatibilty with existing automations.
 
-Parameter | Key | Description | Default
+Parameter | YAML key | Description | Default
 ------------ | ------------- | -------------| -------------
 Force configuration parsing |`parse_config`| Forces watchman to parse Home Assistant configuration files and rebuild entity and actions list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration. | `False`
 Send report as notification |`action`| Home assistant notification action to send report via, e.g. `persistent_notification.create`. See compatibility note below.| ``
@@ -83,10 +83,10 @@ data:
 ## Sensors
 
 > [!NOTE]
-> Versions prior to 0.6.4 had a sensor named `sensor.watchman_missing_services`. Latest versions provide sensor `sensor.watchman_missing_actions` if integration was installed from scratch (new user).
+> Versions prior to 0.6.4 had a sensor named `sensor.watchman_missing_services`. Latest versions use another name: `sensor.watchman_missing_actions` if integration was installed from scratch (new user).
 > Existing users who upgraded from previous versions will have old sensor name to preserve compatibilty with their scripts and dashboards. They can rename sensor themselves or just remove integration and install it again.
 
-Besides of the report, integration provides a few sensors:
+Besides of the report, integration provides a few sensors which can be used within automations or dashboards:
 - sensor.watchman_missing_entities
 - sensor.watchman_missing_actions
 - sensor.watchman_last_updated
