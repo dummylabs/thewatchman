@@ -4,4 +4,10 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-python3 -m pip install --requirement requirements.txt
+scripts/install/pip_packages "pip<23.2,>=21.3.1"
+scripts/install/pip_packages setuptools wheel
+scripts/install/pip_packages \
+    --requirement requirements.txt \
+    --requirement requirements_test.txt
+
+#pre-commit  install --config .github/pre-commit-config.yaml

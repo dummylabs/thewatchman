@@ -4,18 +4,24 @@
 +--------------------------------+---------+--------------------------------------------------------------+
 | Action ID                      | State   | Location                                                     |
 +--------------------------------+---------+--------------------------------------------------------------+
-| fake.service1                  | missing | ../../../../../../tests/input/test_services.yaml:1           |
-| fake.service2                  | missing | ../../../../../../tests/input/test_services.yaml:2           |
-| timer.cancel                   | missing | ../../../../../../tests/input/test_services.yaml:3           |
+| fake.service1                  | missing | ../../../../../../../../workspaces/thewatchman/tests/input/t |
+|                                |         | est_services.yaml:1                                          |
+| fake.service2                  | missing | ../../../../../../../../workspaces/thewatchman/tests/input/t |
+|                                |         | est_services.yaml:2                                          |
+| timer.cancel                   | missing | ../../../../../../../../workspaces/thewatchman/tests/input/t |
+|                                |         | est_services.yaml:3                                          |
 +--------------------------------+---------+--------------------------------------------------------------+
 
 -== Missing 3 entity(ies) from 4 found in your config:
 +--------------------------------+---------+--------------------------------------------------------------+
 | Entity ID                      | State   | Location                                                     |
 +--------------------------------+---------+--------------------------------------------------------------+
-| sensor.test1_unknown           | unknown | ../../../../../../tests/input/test_sensors.yaml:1            |
-| sensor.test2_missing           | missing | ../../../../../../tests/input/test_sensors.yaml:2            |
-| sensor.test3_unavail           | unavail | ../../../../../../tests/input/test_sensors.yaml:3            |
+| sensor.test1_unknown           | unknown | ../../../../../../../../workspaces/thewatchman/tests/input/t |
+|                                |         | est_sensors.yaml:1                                           |
+| sensor.test2_missing           | missing | ../../../../../../../../workspaces/thewatchman/tests/input/t |
+|                                |         | est_sensors.yaml:2                                           |
+| sensor.test3_unavail           | unavail | ../../../../../../../../workspaces/thewatchman/tests/input/t |
+|                                |         | est_sensors.yaml:3                                           |
 +--------------------------------+---------+--------------------------------------------------------------+
 
 -== Report created on 01 Jan 1970 00:00:00
