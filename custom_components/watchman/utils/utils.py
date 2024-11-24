@@ -17,6 +17,27 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
+DEFAULT_DOMAINS = [
+    "group",
+    "input_boolean",
+    "input_select",
+    "input_text",
+    "script",
+    "alert",
+    "automation",
+    "counter",
+    "input_datetime",
+    "input_number",
+    "input_button",
+    "person",
+    "plant",
+    "proximity",
+    "sun",
+    "timer",
+    "zone",
+    "schedule",
+]
+
 from .logger import _LOGGER, INDENT
 from ..const import (
     CONF_CHECK_LOVELACE,
@@ -299,7 +320,7 @@ async def parse(hass, folders, ignored_files, root=None):
     parsed_files_count = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        rf"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
+        rf"(({ "|".join([*Platform, *DEFAULT_DOMAINS]) })\.[A-Za-z_*0-9]+)"
     )
     service_pattern = re.compile(
         r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"
