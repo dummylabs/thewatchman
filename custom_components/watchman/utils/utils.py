@@ -1,5 +1,6 @@
 """Miscellaneous support functions for watchman"""
 
+from venv import logger
 import anyio
 import re
 import fnmatch
@@ -16,7 +17,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
-from .logger import _LOGGER
+from .logger import _LOGGER, INDENT
 from ..const import (
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_FILES,
@@ -202,12 +203,9 @@ async def async_get_next_file(folder_tuples, ignored_files):
     ignored_files_re = re.compile(ignored_files)
     for folder_name, glob_pattern in folder_tuples:
         _LOGGER.debug(
-            "Scan folder %s with pattern %s for configuration files",
-            folder_name,
-            glob_pattern,
+            f"{INDENT}Scan folder {folder_name} with pattern {glob_pattern} for configuration files"
         )
         async for filename in anyio.Path(folder_name).glob(glob_pattern):
-            _LOGGER.debug("Found file %s.", filename)
             yield (
                 str(filename),
                 (ignored_files and ignored_files_re.match(str(filename))),
@@ -216,7 +214,6 @@ async def async_get_next_file(folder_tuples, ignored_files):
 
 def add_entry(_list, entry, yaml_file, lineno):
     """Add entry to list of missing entities/services with line number information"""
-    _LOGGER.debug("Added %s to the list", entry)
     if entry in _list:
         if yaml_file in _list[entry]:
             _list[entry].get(yaml_file, []).append(lineno)
@@ -249,7 +246,11 @@ def get_entity_state(hass, entry, friendly_names=False):
 def check_services(hass):
     """check if entries from config file are services"""
     services_missing = {}
+    _LOGGER.debug(f"::check_services:: Triaging list of found actions")
     if "missing" in get_config(hass, CONF_IGNORED_STATES, []):
+        _LOGGER.debug(
+            f"{INDENT}MISSING state set as ignored in config, so final list of reported actions is empty."
+        )
         return services_missing
     if (
         DOMAIN not in hass.data
@@ -257,43 +258,45 @@ def check_services(hass):
     ):
         raise HomeAssistantError("Service list not found")
     parsed_service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
-    _LOGGER.debug("::check_services")
     for entry, occurrences in parsed_service_list.items():
         if not is_action(hass, entry):
             services_missing[entry] = occurrences
-            _LOGGER.debug("service %s added to missing list", entry)
+            _LOGGER.debug(f"{INDENT}service {entry} added to the report")
     return services_missing
 
 
 def check_entitites(hass):
     """check if entries from config file are entities with an active state"""
+    _LOGGER.debug(f"::check_entities:: Triaging list of found entities")
+
     ignored_states = [
         "unavail" if s == "unavailable" else s
         for s in get_config(hass, CONF_IGNORED_STATES, [])
     ]
     if DOMAIN not in hass.data or HASS_DATA_PARSED_ENTITY_LIST not in hass.data[DOMAIN]:
-        _LOGGER.error("Entity list not found")
+        _LOGGER.error(f"{INDENT}Entity list not found")
         raise Exception("Entity list not found")
     parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     entities_missing = {}
-    _LOGGER.debug("::check_entities")
     for entry, occurrences in parsed_entity_list.items():
         if is_action(hass, entry):  # this is a service, not entity
-            _LOGGER.debug("entry %s is service, skipping", entry)
+            _LOGGER.debug(f"{INDENT}entry {entry} is service, skipping")
             continue
         state, _ = get_entity_state(hass, entry)
         if state in ignored_states:
-            _LOGGER.debug("entry %s ignored due to ignored_states", entry)
+            _LOGGER.debug(
+                f"{INDENT}entry {entry} with state {state} skipped due to ignored_states"
+            )
             continue
         if state in ["missing", "unknown", "unavail"]:
             entities_missing[entry] = occurrences
-            _LOGGER.debug("entry %s added to missing list", entry)
+            _LOGGER.debug(f"{INDENT}entry {entry} added to the report")
     return entities_missing
 
 
 async def parse(hass, folders, ignored_files, root=None):
     """Parse a yaml or json file for entities/services"""
-    files_parsed = 0
+    parsed_files_count = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
         rf"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
@@ -304,13 +307,12 @@ async def parse(hass, folders, ignored_files, root=None):
     comment_pattern = re.compile(r"(^\s*(?:description|example):.*)|(\s*#.*)")
     parsed_entity_list = {}
     parsed_service_list = {}
-    effectively_ignored = []
-    _LOGGER.debug("::parse started")
+    parsed_files = []
+    effectively_ignored_files = []
     async for yaml_file, ignored in async_get_next_file(folders, ignored_files):
         short_path = os.path.relpath(yaml_file, root)
         if ignored:
-            effectively_ignored.append(short_path)
-            _LOGGER.debug("%s ignored", yaml_file)
+            effectively_ignored_files.append(short_path)
             continue
 
         try:
@@ -332,8 +334,8 @@ async def parse(hass, folders, ignored_files, root=None):
                         val = match.group(1)
                         add_entry(parsed_service_list, val, short_path, lineno)
                     lineno += 1
-            files_parsed += 1
-            _LOGGER.debug("%s parsed", yaml_file)
+            parsed_files_count += 1
+            parsed_files.append(short_path)
         except OSError as exception:
             _LOGGER.error("Unable to parse %s: %s", yaml_file, exception)
         except UnicodeDecodeError as exception:
@@ -342,7 +344,6 @@ async def parse(hass, folders, ignored_files, root=None):
                 yaml_file,
                 exception,
             )
-
     # remove ignored entities and services from resulting lists
     ignored_items = get_config(hass, CONF_IGNORED_ITEMS, [])
     ignored_items = list(set(ignored_items + BUNDLED_IGNORED_ITEMS))
@@ -360,15 +361,19 @@ async def parse(hass, folders, ignored_files, root=None):
         k: v for k, v in parsed_service_list.items() if k not in excluded_services
     }
 
-    _LOGGER.debug("Parsed files: %s", files_parsed)
-    _LOGGER.debug("Ignored files: %s", effectively_ignored)
-    _LOGGER.debug("Found entities: %s", len(parsed_entity_list))
-    _LOGGER.debug("Found services: %s", len(parsed_service_list))
+    _LOGGER.debug(f"{INDENT}Parsed {parsed_files_count} files: {parsed_files}")
+    _LOGGER.debug(
+        f"{INDENT}Ignored {len(effectively_ignored_files)} files: {effectively_ignored_files}",
+    )
+    _LOGGER.debug(
+        f"{INDENT}Found {len(parsed_entity_list)} entities and {len(parsed_service_list)} actions"
+    )
+
     return (
         parsed_entity_list,
         parsed_service_list,
-        files_parsed,
-        len(effectively_ignored),
+        parsed_files_count,
+        len(effectively_ignored_files),
     )
 
 

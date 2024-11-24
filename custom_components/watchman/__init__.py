@@ -24,7 +24,7 @@ from homeassistant.const import (
 )
 
 from .coordinator import WatchmanCoordinator
-from .utils.logger import _LOGGER
+from .utils.logger import _LOGGER, INDENT
 
 from .utils.utils import (
     async_get_report_path,
@@ -121,8 +121,9 @@ class WMData:
 
 async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
     """Set up this integration using UI"""
-    _LOGGER.debug("::async_setup_entry::")
-    _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
+    _LOGGER.debug(
+        f"::async_setup_entry:: Integration setup in progress. Home assistant path: {hass.config.path("")}"
+    )
 
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=entry.title)
     coordinator.async_set_updated_data(None)
@@ -216,7 +217,6 @@ async def add_services(hass: HomeAssistant):
 
         # call notification action even when send notification = False
         if send_notification or action_name:
-            _LOGGER.debug(f"STRANGE: [{action_data}], [{action_name}]")
             await async_report_to_notification(
                 hass, action_name, action_data, chunk_size
             )
@@ -324,7 +324,9 @@ async def parse_config(hass: HomeAssistant, reason=None):
 
     included_folders = get_included_folders(hass)
     ignored_files = get_config(hass, CONF_IGNORED_FILES, None)
-    _LOGGER.debug(f"::parse_config:: IGNORED_FILES={ignored_files}")
+    _LOGGER.debug(
+        f"::parse_config:: called due to {reason} IGNORED_FILES={ignored_files}"
+    )
 
     parsed_entity_list, parsed_service_list, files_parsed, files_ignored = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
@@ -335,11 +337,7 @@ async def parse_config(hass: HomeAssistant, reason=None):
     hass.data[DOMAIN][HASS_DATA_FILES_IGNORED] = files_ignored
     hass.data[DOMAIN][HASS_DATA_PARSE_DURATION] = time.time() - start_time
     _LOGGER.debug(
-        "%s files parsed and %s files ignored in %.2fs. due to %s",
-        files_parsed,
-        files_ignored,
-        hass.data[DOMAIN][HASS_DATA_PARSE_DURATION],
-        reason,
+        f"{INDENT}Parsing took {hass.data[DOMAIN][HASS_DATA_PARSE_DURATION]:.2f}s."
     )
 
 

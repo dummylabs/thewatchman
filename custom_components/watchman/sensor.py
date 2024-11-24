@@ -31,7 +31,6 @@ from .const import (
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
-    _LOGGER.debug("platform::async_setup_entry::")
     coordinator = hass.data[DOMAIN][entry.entry_id]
     # if sensor.watchman_missing_sensor exists in entity registry - this is an existing
     # user and we don't want to break compatibility by changing sensor name to actions

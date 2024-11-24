@@ -21,7 +21,6 @@ class WatchmanEntity(CoordinatorEntity):
     ) -> None:
         """Initialize Watchman entity."""
         super().__init__(coordinator)
-        _LOGGER.debug("WatchmanEntity::__init__")
         self.entity_description = entity_description
         # per sensor unique_id
         self._attr_unique_id = (

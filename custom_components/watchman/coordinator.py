@@ -73,8 +73,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_ENTITY_ATTRS: entity_attrs,
         }
 
-        _LOGGER.debug("Watchman sensors updated")
-        _LOGGER.debug("entities missing: %s", len(entities_missing))
-        _LOGGER.debug("services missing: %s", len(services_missing))
-
+        _LOGGER.debug(
+            f"::coordinator:: Watchman sensors updated, actions: {len(services_missing)}, entities: {len(entities_missing)}"
+        )
         return self.data
