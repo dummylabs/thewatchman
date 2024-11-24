@@ -22,6 +22,7 @@ from .const import (
     DEFAULT_CHUNK_SIZE,
     CONF_HEADER,
     CONF_IGNORED_ITEMS,
+    CONF_IGNORED_ITEMS_DYNAMIC,
     CONF_IGNORED_STATES,
     CONF_CHUNK_SIZE,
     CONF_COLUMNS_WIDTH,
@@ -286,8 +287,12 @@ async def parse(hass, folders, ignored_files, root=None):
             )
 
     # remove ignored entities and services from resulting lists
+    ignored_items_dynamic = get_config(hass, CONF_IGNORED_ITEMS_DYNAMIC, [])
     ignored_items = get_config(hass, CONF_IGNORED_ITEMS, [])
-    ignored_items = list(set(ignored_items + BUNDLED_IGNORED_ITEMS))
+    ignored_items = list(
+        set(ignored_items + ignored_items_dynamic + BUNDLED_IGNORED_ITEMS)
+    )
+    _LOGGER.debug("Ignored items: %s", ignored_items)
     excluded_entities = []
     excluded_services = []
     for itm in ignored_items:
