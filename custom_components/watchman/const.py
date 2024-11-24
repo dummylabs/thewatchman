@@ -13,6 +13,8 @@ DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
 
+PACKAGE_NAME = "custom_components.watchman"
+
 HASS_DATA_PARSED_ENTITY_LIST = "entity_list"
 HASS_DATA_PARSED_SERVICE_LIST = "service_list"
 HASS_DATA_FILES_PARSED = "files_parsed"

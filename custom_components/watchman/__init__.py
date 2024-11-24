@@ -24,8 +24,9 @@ from homeassistant.const import (
 )
 
 from .coordinator import WatchmanCoordinator
+from .utils.logger import _LOGGER
 
-from .utils import (
+from .utils.utils import (
     async_get_report_path,
     is_action,
     report,
@@ -33,7 +34,6 @@ from .utils import (
     table_renderer,
     text_renderer,
     get_config,
-    DebugLogger,
 )
 
 from .const import (
@@ -78,8 +78,6 @@ from .const import (
     VERSION,
 )
 
-_LOGGER = DebugLogger(__name__)
-
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
@@ -123,8 +121,8 @@ class WMData:
 
 async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
     """Set up this integration using UI"""
-    _LOGGER.debugf("::async_setup_entry::")
-    _LOGGER.debugt("Home assistant path: %s", hass.config.path(""))
+    _LOGGER.debug("::async_setup_entry::")
+    _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
 
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=entry.title)
     coordinator.async_set_updated_data(None)
@@ -218,7 +216,7 @@ async def add_services(hass: HomeAssistant):
 
         # call notification action even when send notification = False
         if send_notification or action_name:
-            _LOGGER.debugf(f"STRANGE: [{action_data}], [{action_name}]")
+            _LOGGER.debug(f"STRANGE: [{action_data}], [{action_name}]")
             await async_report_to_notification(
                 hass, action_name, action_data, chunk_size
             )
@@ -273,7 +271,7 @@ async def add_event_handlers(hass: HomeAssistant):
     async def async_on_service_changed(event):
         service = f"{event.data['domain']}.{event.data['service']}"
         if service in hass.data[DOMAIN].get(HASS_DATA_PARSED_SERVICE_LIST, []):
-            _LOGGER.debugt("Monitored service changed: %s", service)
+            _LOGGER.debug("Monitored service changed: %s", service)
             coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
             await coordinator.async_refresh()
 
@@ -292,7 +290,7 @@ async def add_event_handlers(hass: HomeAssistant):
             new_state = state_or_missing("new_state")
             checked_states = set(MONITORED_STATES) - set(ignored_states)
             if new_state in checked_states or old_state in checked_states:
-                _LOGGER.debugt("Monitored entity changed: %s", event.data["entity_id"])
+                _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
                 coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
                 await coordinator.async_refresh()
 
@@ -326,7 +324,7 @@ async def parse_config(hass: HomeAssistant, reason=None):
 
     included_folders = get_included_folders(hass)
     ignored_files = get_config(hass, CONF_IGNORED_FILES, None)
-    _LOGGER.debugf(f"::parse_config:: IGNORED_FILES={ignored_files}")
+    _LOGGER.debug(f"::parse_config:: IGNORED_FILES={ignored_files}")
 
     parsed_entity_list, parsed_service_list, files_parsed, files_ignored = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
@@ -336,7 +334,7 @@ async def parse_config(hass: HomeAssistant, reason=None):
     hass.data[DOMAIN][HASS_DATA_FILES_PARSED] = files_parsed
     hass.data[DOMAIN][HASS_DATA_FILES_IGNORED] = files_ignored
     hass.data[DOMAIN][HASS_DATA_PARSE_DURATION] = time.time() - start_time
-    _LOGGER.debugt(
+    _LOGGER.debug(
         "%s files parsed and %s files ignored in %.2fs. due to %s",
         files_parsed,
         files_ignored,
@@ -395,7 +393,7 @@ async def async_report_to_notification(
 
     data = {} if service_data is None else service_data
 
-    _LOGGER.debugf(f"SERVICE_DATA {data}")
+    _LOGGER.debug(f"SERVICE_DATA {data}")
 
     coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
     await coordinator.async_refresh()

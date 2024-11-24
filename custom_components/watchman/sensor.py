@@ -13,7 +13,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
 from homeassistant.const import MATCH_ALL
 from .entity import WatchmanEntity
-from .utils import DebugLogger, get_config
+from .utils.logger import _LOGGER
 
 from .const import (
     COORD_DATA_ENTITY_ATTRS,
@@ -29,12 +29,9 @@ from .const import (
 )
 
 
-_LOGGER = DebugLogger(__name__)
-
-
 async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
-    _LOGGER.debugf("platform::async_setup_entry::")
+    _LOGGER.debug("platform::async_setup_entry::")
     coordinator = hass.data[DOMAIN][entry.entry_id]
     # if sensor.watchman_missing_sensor exists in entity registry - this is an existing
     # user and we don't want to break compatibility by changing sensor name to actions

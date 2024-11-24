@@ -14,11 +14,9 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
 import anyio
-from .utils import (
-    async_get_report_path,
-    get_val,
-    DebugLogger,
-)
+from .utils.utils import async_get_report_path, get_val
+
+from .utils.logger import _LOGGER
 
 from .const import (
     CONFIG_ENTRY_MINOR_VERSION,
@@ -45,8 +43,6 @@ IGNORED_ITEMS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 IGNORED_STATES_SCHEMA = vol.Schema(MONITORED_STATES)
 IGNORED_FILES_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 COLUMNS_WIDTH_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.positive_int]))
-
-_LOGGER = DebugLogger(__name__)
 
 
 def _get_data_schema() -> vol.Schema:
@@ -149,7 +145,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
-        _LOGGER.debugf("::async_step_user::")
+        _LOGGER.debug("::async_step_user::")
         options = DEFAULT_OPTIONS
         options[CONF_SECTION_APPEARANCE_LOCATION][
             CONF_REPORT_PATH
@@ -171,7 +167,7 @@ class OptionsFlowHandler(OptionsFlow):
     """
 
     def __init__(self, config_entry: ConfigEntry) -> None:
-        _LOGGER.debugf("::OptionsFlowHandler.__init::")
+        _LOGGER.debug("::OptionsFlowHandler.__init::")
         self.config_entry = config_entry
 
     async def async_get_key_in_section(self, data, key, section=None):
@@ -190,7 +186,7 @@ class OptionsFlowHandler(OptionsFlow):
            If no errors found, it should return creates_entry
         """
 
-        _LOGGER.debugf(
+        _LOGGER.debug(
             f"-======::OptionsFlowHandler.async_step_init::======- \nuser_input= {user_input},\nentry_data={self.config_entry.data}"
         )
 
@@ -221,7 +217,7 @@ class OptionsFlowHandler(OptionsFlow):
             else:
                 # in case of errors in user_input, display them in the form
                 # use previous user input as suggested values
-                _LOGGER.debugf(
+                _LOGGER.debug(
                     "::OptionsFlowHandler.async_step_init:: validation results errors:[%s] placehoders:[%s]",
                     errors,
                     placeholders,

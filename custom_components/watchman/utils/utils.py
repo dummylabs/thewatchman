@@ -4,7 +4,6 @@ import anyio
 import re
 import fnmatch
 import time
-import logging
 from datetime import datetime
 from textwrap import wrap
 import os
@@ -17,7 +16,8 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
-from .const import (
+from .logger import _LOGGER
+from ..const import (
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_FILES,
     CONF_INCLUDED_FOLDERS,
@@ -46,42 +46,6 @@ from .const import (
     REPORT_ENTRY_TYPE_SERVICE,
     DEFAULT_OPTIONS,
 )
-
-
-class DebugLogger(logging.getLoggerClass()):
-    """
-    :F  - function calls
-    :T  - additional trace info
-    :M  - miscellaneous
-    :U  - unspecified
-    One can apply log filters to debug output: https://www.home-assistant.io/integrations/logger/#log-filters
-    """
-
-    def __init__(self, name, level=logging.NOTSET):
-        super().__init__(name, level)
-
-    def debug(self, msg, *args):
-        # Ugly hack, FIXME! By some reason the line commented below is not working
-        # super().debug(":U {}".format(msg), *args)
-        logging.getLogger(__name__).debug(":U {}".format(msg), *args)
-
-    def debugf(self, msg, *args):
-        logging.getLogger(__name__).debug(":F {}".format(msg), *args)
-
-    def debugt(self, msg, *args):
-        logging.getLogger(__name__).debug(":T {}".format(msg), *args)
-
-    def debugm(self, msg, *args):
-        logging.getLogger(__name__).debug(":M {}".format(msg), *args)
-
-    def info(self, msg, *args):
-        logging.getLogger(__name__).info("{}".format(msg), *args)
-
-    def error(self, msg, *args):
-        logging.getLogger(__name__).error("{}".format(msg), *args)
-
-
-_LOGGER = DebugLogger(__name__)
 
 
 def get_val(
@@ -144,7 +108,7 @@ async def async_get_report_path(hass, path):
     folder, _ = os.path.split(out_path)
     if not await anyio.Path(folder).exists():
         raise HomeAssistantError(f"Incorrect report_path: {out_path}.")
-    _LOGGER.debugf(
+    _LOGGER.debug(
         "::async_get_report_path:: input path [%s], output path [%s]", path, out_path
     )
     return out_path

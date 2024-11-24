@@ -8,9 +8,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 from .const import DOMAIN, VERSION
-from .utils import DebugLogger
-
-_LOGGER = DebugLogger(logging.getLogger(__name__))
+from .utils.utils import _LOGGER
 
 
 class WatchmanEntity(CoordinatorEntity):
@@ -23,7 +21,7 @@ class WatchmanEntity(CoordinatorEntity):
     ) -> None:
         """Initialize Watchman entity."""
         super().__init__(coordinator)
-        _LOGGER.debugf("WatchmanEntity::__init__")
+        _LOGGER.debug("WatchmanEntity::__init__")
         self.entity_description = entity_description
         # per sensor unique_id
         self._attr_unique_id = (
