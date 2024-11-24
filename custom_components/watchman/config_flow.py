@@ -156,7 +156,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         ] = await async_get_report_path(self.hass, None)
         options[CONF_INCLUDED_FOLDERS] = self.hass.config.path()
         options[CONF_IGNORED_FILES] = DEFAULT_OPTIONS[CONF_IGNORED_FILES]
-        return self.async_create_entry(title="", data=options)
+        return self.async_create_entry(title="Watchman", data=options)
 
     @staticmethod
     @callback
