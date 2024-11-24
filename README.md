@@ -1,5 +1,5 @@
 > [!NOTE]
-> Updated documentation for 0.6.4 beta is here: https://github.com/dummylabs/thewatchman/tree/v0.6.4-dev
+> This is updated documentation for 0.6.4 beta. Documentation for 0.6.3 is here: https://github.com/dummylabs/thewatchman/tree/v0.6.3
 
 # The Watchman
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
