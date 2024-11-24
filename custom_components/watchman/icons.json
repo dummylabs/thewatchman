@@ -1,0 +1,10 @@
+{
+    "services": {
+        "report": {
+            "service": "mdi:shield-search",
+            "sections": {
+                "advanced_options": "mdi:shield-sun-outline"
+            }
+        }
+    }
+}

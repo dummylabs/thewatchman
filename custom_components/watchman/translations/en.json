@@ -8,35 +8,38 @@
     "options": {
         "error": {
             "invalid_included_folders": "included_folders should be a comma separated list of configuration folders",
-            "invalid_columns_width": "columns_width should be a list of 3 positive integers",
-            "wrong_value_ignored_states": "Accepted values are: 'unavailable', 'missing' and 'unknown'",
-            "malformed_json": "service data should be a valid json dictionary",
-            "unknown_service": "unknown service: `{service}`"
+            "invalid_columns_width": "Report column width should be a list of 3 positive integers",
+            "malformed_json": "Notification action data should be a valid json dictionary",
+            "unknown_service": "unknown action: `{service}`",
+            "invalid_report_path": "report file location is invalid, the path does not exist"
         },
         "step": {
             "init": {
                 "title": "Watchman settings",
                 "data": {
-                    "service": "Notification service (e.g. notify.telegram)",
-                    "service_data": "Notification service data",
-                    "included_folders": "Included folders",
-                    "report_header": "Custom header for the report",
-                    "report_path": "Report location e.g. /config/report.txt",
-                    "ignored_items": "Ignored entities and services",
-                    "ignored_states": "Ignored entity states",
-                    "chunk_size": "Message chunk size in bytes (used with notification service)",
-                    "ignored_files": "Ignored files (comma-separated)",
-                    "check_lovelace": "Parse dashboards UI (ex-Lovelace) configuration",
-                    "columns_width": "List of report columns width, e.g. 30, 7, 60",
-                    "startup_delay": "Startup delay for watchman sensors initialization",
-                    "friendly_names": "Add friendly names to the report"
+                    "included_folders": "Folders to watch:",
+                    "ignored_items": "Ignored entities and actions:",
+                    "ignored_states": "Exclude entities with the states below from the report:",
+                    "ignored_files": "Ignored files (comma-separated):",
+                    "check_lovelace": "Parse UI controlled dashboards",
+                    "startup_delay": "Startup delay for watchman sensors initialization"
                 },
                 "data_description": {
-                    "service_data": "JSON object with notification service data, see documentation for details",
                     "included_folders": "Comma-separated list of folders where watchman should look for config files",
-                    "ignored_items": "Comma-separated list of entities and services excluded from tracking",
+                    "ignored_items": "Comma-separated list of entities and actions excluded from tracking",
                     "ignored_states": "Comma-separated list of the states excluded from tracking",
                     "ignored_files": "Comma-separated list of config files excluded from tracking"
+                },
+                "sections": {
+                    "appearance_location_options": {
+                        "name": "Report appearance and location",
+                        "data": {
+                            "columns_width": "List of report columns width, e.g. 30, 7, 60",
+                            "report_header": "Custom header for the report",
+                            "report_path": "Report file location e.g. /config/report.txt",
+                            "friendly_names": "Add entity friendly names to the report"
+                        }
+                    }
                 },
                 "description": "[Help on settings](https://github.com/dummylabs/thewatchman#configuration)"
             }
@@ -49,27 +52,28 @@
             "fields": {
                 "create_file": {
                     "name": "Create file report",
-                    "description": "Whether report file should be created (optional, true by default)"
+                    "description": "Whether report file should be created (Usually True)"
                 },
-                "send_notification": {
-                    "name": "Send notification",
-                    "description": "Whether report should be sent via notification service (optional, false by default)"
-                },
-                "service": {
-                    "name": "Notification service",
-                    "description": "Notification service to send report via (optional). Overrides 'service' setting from watchman configuration"
+                "action": {
+                    "name": "Send report as notification",
+                    "description": "Optional notification action to send report via (e.g. `persistent_notification.create`)"
                 },
                 "data": {
-                    "name": "Notification service data parameters",
-                    "description": "Additional data in form of key:value pairs for notification service (optional)"
+                    "name": "Notification action data parameters",
+                    "description": "Optional parameters for notification action (e.g. `title: Report`)"
                 },
                 "parse_config": {
                     "name": "Force configuration parsing",
-                    "description": "Parse configuration files before report is created. Usually this is done by watchman automatically, so this flag is not required. (optional, false by default)"
+                    "description": "Parse configuration files before generating the report. Usually, this is done automatically by Watchman, so this flag is typically not required."
                 },
                 "chunk_size": {
-                    "name": "Report chunk size",
-                    "description": "Maximum message size in bytes. If report size exceeds chunk_size, the report will be sent in several subsequent notifications. (optional, default is 3500 or whatever specified in integration settings)"
+                    "name": "Notification message chunk size",
+                    "description": "Maximum message size in bytes. Some notification services limit the maximum message size. If the report size exceeds chunk_size, it will be sent in multiple subsequent notifications.(optional)"
+                }
+            },
+            "sections": {
+                "advanced_options": {
+                    "name": "Advanced options"
                 }
             }
         }

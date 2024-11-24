@@ -1,5 +1,6 @@
 # pylint: disable=protected-access,redefined-outer-name
 """Global fixtures for integration."""
+
 # Fixtures allow you to replace functions with a Mock object. You can perform
 # many options via the Mock to reflect a particular behavior from the original
 # function that you want to see without going through the function's actual logic.
@@ -16,8 +17,12 @@
 # See here for more info: https://docs.pytest.org/en/latest/fixture.html (note that
 # pytest includes fixtures OOB which you can use as defined on this page)
 from unittest.mock import patch
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 import pytest
+import homeassistant.components.persistent_notification as pn
+from homeassistant.core import HomeAssistant
+from homeassistant.setup import async_setup_component
 
 pytest_plugins = "pytest_homeassistant_custom_component"  # pylint: disable=invalid-name
 
@@ -25,18 +30,25 @@ pytest_plugins = "pytest_homeassistant_custom_component"  # pylint: disable=inva
 # This fixture enables loading custom integrations in all tests.
 # Remove to enable selective use of this fixture
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations): # pylint: disable=unused-argument
+def auto_enable_custom_integrations(enable_custom_integrations):  # pylint: disable=unused-argument
     """Automatically enable loading custom integrations in all tests."""
     yield
 
 
-# This fixture is used to prevent HomeAssistant from attempting to create and dismiss persistent
-# notifications. These calls would fail without this fixture since the persistent_notification
-# integration is never loaded during a test.
-@pytest.fixture(name="skip_notifications", autouse=True)
-def skip_notifications_fixture():
-    """Skip notification calls."""
-    with patch("homeassistant.components.persistent_notification.async_create"), patch(
-        "homeassistant.components.persistent_notification.async_dismiss"
-    ):
-        yield
+@pytest.fixture(autouse=True)
+async def setup_integration(hass: HomeAssistant) -> None:
+    """Set up persistent notification integration."""
+    assert await async_setup_component(hass, pn.DOMAIN, {})
+
+
+@pytest.fixture
+async def init_integration(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> MockConfigEntry:
+    """Set up the TechnoVE integration for testing."""
+    mock_config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    return mock_config_entry

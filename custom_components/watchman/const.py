@@ -4,7 +4,10 @@ from homeassistant.const import Platform
 
 DOMAIN = "watchman"
 DOMAIN_DATA = "watchman_data"
-VERSION = "0.6.3"
+VERSION = "0.6.4"
+
+CONFIG_ENTRY_VERSION = 2
+CONFIG_ENTRY_MINOR_VERSION = 1
 
 DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
@@ -35,6 +38,7 @@ CONF_HEADER = "report_header"
 CONF_REPORT_PATH = "report_path"
 CONF_IGNORED_ITEMS = "ignored_items"
 CONF_SERVICE_NAME = "service"
+CONF_ACTION_NAME = "action"
 CONF_SERVICE_DATA = "data"
 CONF_SERVICE_DATA2 = "service_data"
 CONF_INCLUDED_FOLDERS = "included_folders"
@@ -51,6 +55,7 @@ CONF_TEST_MODE = "test_mode"
 # configuration parameters allowed in watchman.report service data
 CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SERVICE_NAME,
+    CONF_ACTION_NAME,
     CONF_CHUNK_SIZE,
     CONF_CREATE_FILE,
     CONF_SEND_NOTIFICATION,
@@ -59,12 +64,16 @@ CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_TEST_MODE,
 ]
 
+CONF_SECTION_APPEARANCE_LOCATION = "appearance_location_options"
+CONF_SECTION_NOTIFY_ACTION = "notify_action_options"
+
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
 
 SENSOR_LAST_UPDATE = "watchman_last_updated"
 SENSOR_MISSING_ENTITIES = "watchman_missing_entities"
 SENSOR_MISSING_SERVICES = "watchman_missing_services"
+SENSOR_MISSING_ACTIONS = "watchman_missing_actions"
 MONITORED_STATES = ["unavailable", "unknown", "missing"]
 
 TRACKED_EVENT_DOMAINS = [
@@ -91,3 +100,18 @@ BUNDLED_IGNORED_ITEMS = [
 
 # Platforms
 PLATFORMS = [Platform.SENSOR]
+
+DEFAULT_OPTIONS = {
+    CONF_INCLUDED_FOLDERS: "/config",
+    CONF_IGNORED_ITEMS: "",
+    CONF_IGNORED_STATES: [],
+    CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*",
+    CONF_CHECK_LOVELACE: False,
+    CONF_STARTUP_DELAY: 0,
+    CONF_SECTION_APPEARANCE_LOCATION: {
+        CONF_HEADER: "-== Watchman Report ==-",
+        CONF_REPORT_PATH: "",
+        CONF_COLUMNS_WIDTH: "30, 7, 60",
+        CONF_FRIENDLY_NAMES: False,
+    },
+}

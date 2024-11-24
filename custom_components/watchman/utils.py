@@ -9,21 +9,27 @@ from datetime import datetime
 from textwrap import wrap
 import os
 from typing import Any
+from types import MappingProxyType
 import pytz
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
 
 from .const import (
+    CONF_CHECK_LOVELACE,
+    CONF_IGNORED_FILES,
+    CONF_INCLUDED_FOLDERS,
+    CONF_REPORT_PATH,
+    CONF_SECTION_APPEARANCE_LOCATION,
+    CONF_STARTUP_DELAY,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_HEADER,
-    DEFAULT_CHUNK_SIZE,
     CONF_HEADER,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
-    CONF_CHUNK_SIZE,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
     BUNDLED_IGNORED_ITEMS,
@@ -38,26 +44,110 @@ from .const import (
     HASS_DATA_PARSED_SERVICE_LIST,
     REPORT_ENTRY_TYPE_ENTITY,
     REPORT_ENTRY_TYPE_SERVICE,
+    DEFAULT_OPTIONS,
 )
 
-_LOGGER = logging.getLogger(__name__)
+
+class DebugLogger(logging.getLoggerClass()):
+    """
+    :F  - function calls
+    :T  - additional trace info
+    :M  - miscellaneous
+    :U  - unspecified
+    One can apply log filters to debug output: https://www.home-assistant.io/integrations/logger/#log-filters
+    """
+
+    def __init__(self, name, level=logging.NOTSET):
+        super().__init__(name, level)
+
+    def debug(self, msg, *args):
+        # Ugly hack, FIXME! By some reason the line commented below is not working
+        # super().debug(":U {}".format(msg), *args)
+        logging.getLogger(__name__).debug(":U {}".format(msg), *args)
+
+    def debugf(self, msg, *args):
+        logging.getLogger(__name__).debug(":F {}".format(msg), *args)
+
+    def debugt(self, msg, *args):
+        logging.getLogger(__name__).debug(":T {}".format(msg), *args)
+
+    def debugm(self, msg, *args):
+        logging.getLogger(__name__).debug(":M {}".format(msg), *args)
+
+    def info(self, msg, *args):
+        logging.getLogger(__name__).info("{}".format(msg), *args)
+
+    def error(self, msg, *args):
+        logging.getLogger(__name__).error("{}".format(msg), *args)
 
 
-def get_config(hass: HomeAssistant, key, default):
+_LOGGER = DebugLogger(__name__)
+
+
+def get_val(
+    options: MappingProxyType[str, Any], key: str, section: str | None = None
+) -> Any:
+    val = None
+    if section:
+        try:
+            val = options[section][key]
+        except KeyError:
+            _LOGGER.error(
+                "Key %s is missing in secion %s, return default value", key, section
+            )
+            val = DEFAULT_OPTIONS[section][key]
+    else:
+        val = options.get(key, DEFAULT_OPTIONS[key])
+    return val
+
+
+def to_lists(options, key, section=None):
+    val = get_val(options, key, section)
+    return [x.strip() for x in val.split(",") if x.strip()]
+
+
+def to_listi(options, key, section=None):
+    val = get_val(options, key, section)
+    return [int(x) for x in val.split(",") if x.strip()]
+
+
+def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any:
     """get configuration value"""
-    if DOMAIN_DATA not in hass.data:
-        return default
-    return hass.data[DOMAIN_DATA].get(key, default)
+    assert hass.data.get(DOMAIN_DATA)
+    entry = hass.config_entries.async_get_entry(
+        hass.data[DOMAIN_DATA]["config_entry_id"]
+    )
+
+    assert isinstance(entry, ConfigEntry)
+
+    if key in [CONF_INCLUDED_FOLDERS, CONF_IGNORED_ITEMS, CONF_IGNORED_FILES]:
+        return to_lists(entry.data, key)
+
+    if key in [CONF_IGNORED_STATES, CONF_CHECK_LOVELACE, CONF_STARTUP_DELAY]:
+        return get_val(entry.data, key)
+
+    if key in [CONF_HEADER, CONF_REPORT_PATH, CONF_COLUMNS_WIDTH, CONF_FRIENDLY_NAMES]:
+        section_name = CONF_SECTION_APPEARANCE_LOCATION
+        if key == CONF_COLUMNS_WIDTH:
+            return to_listi(entry.data, CONF_COLUMNS_WIDTH, section_name)
+        else:
+            return get_val(entry.data, key, section_name)
+
+    assert False, "Unknown key {}".format(key)
 
 
 async def async_get_report_path(hass, path):
     """if path not specified, create report in config directory with default filename"""
+    out_path = path
     if not path:
-        path = hass.config.path(DEFAULT_REPORT_FILENAME)
-    folder, _ = os.path.split(path)
+        out_path = hass.config.path(DEFAULT_REPORT_FILENAME)
+    folder, _ = os.path.split(out_path)
     if not await anyio.Path(folder).exists():
-        raise HomeAssistantError(f"Incorrect report_path: {path}.")
-    return path
+        raise HomeAssistantError(f"Incorrect report_path: {out_path}.")
+    _LOGGER.debugf(
+        "::async_get_report_path:: input path [%s], output path [%s]", path, out_path
+    )
+    return out_path
 
 
 def get_columns_width(user_width):
@@ -83,7 +173,7 @@ def table_renderer(hass, entry_type):
     if entry_type == REPORT_ENTRY_TYPE_SERVICE:
         services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
         service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
-        table.field_names = ["Service ID", "State", "Location"]
+        table.field_names = ["Action ID", "State", "Location"]
         for service in services_missing:
             row = [
                 fill(service, columns_width[0]),
@@ -170,8 +260,10 @@ def add_entry(_list, entry, yaml_file, lineno):
         _list[entry] = {yaml_file: [lineno]}
 
 
-def is_service(hass, entry):
+def is_action(hass, entry):
     """check whether config entry is a service"""
+    if not isinstance(entry, str):
+        return False
     domain, service = entry.split(".")[0], ".".join(entry.split(".")[1:])
     return hass.services.has_service(domain, service)
 
@@ -203,7 +295,7 @@ def check_services(hass):
     parsed_service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
     _LOGGER.debug("::check_services")
     for entry, occurrences in parsed_service_list.items():
-        if not is_service(hass, entry):
+        if not is_action(hass, entry):
             services_missing[entry] = occurrences
             _LOGGER.debug("service %s added to missing list", entry)
     return services_missing
@@ -222,7 +314,7 @@ def check_entitites(hass):
     entities_missing = {}
     _LOGGER.debug("::check_entities")
     for entry, occurrences in parsed_entity_list.items():
-        if is_service(hass, entry):  # this is a service, not entity
+        if is_action(hass, entry):  # this is a service, not entity
             _LOGGER.debug("entry %s is service, skipping", entry)
             continue
         state, _ = get_entity_state(hass, entry)
@@ -240,10 +332,12 @@ async def parse(hass, folders, ignored_files, root=None):
     files_parsed = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        fr"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
+        rf"(({ "|".join(Platform) })\.[A-Za-z_*0-9]+)"
     )
-    service_pattern = re.compile(r"service:\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)")
-    comment_pattern = re.compile(r"\s*#.*")
+    service_pattern = re.compile(
+        r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"
+    )
+    comment_pattern = re.compile(r"(^\s*(?:description|example):.*)|(\s*#.*)")
     parsed_entity_list = {}
     parsed_service_list = {}
     effectively_ignored = []
@@ -340,23 +434,18 @@ async def report(hass, render, chunk_size, test_mode=False):
     entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     files_parsed = hass.data[DOMAIN][HASS_DATA_FILES_PARSED]
     files_ignored = hass.data[DOMAIN][HASS_DATA_FILES_IGNORED]
-    chunk_size = (
-        get_config(hass, CONF_CHUNK_SIZE, DEFAULT_CHUNK_SIZE)
-        if chunk_size is None
-        else chunk_size
-    )
 
     rep = f"{header} \n"
     if services_missing:
-        rep += f"\n-== Missing {len(services_missing)} service(s) from "
+        rep += f"\n-== Missing {len(services_missing)} action(s) from "
         rep += f"{len(service_list)} found in your config:\n"
         rep += render(hass, REPORT_ENTRY_TYPE_SERVICE)
         rep += "\n"
     elif len(service_list) > 0:
-        rep += f"\n-== Congratulations, all {len(service_list)} services from "
+        rep += f"\n-== Congratulations, all {len(service_list)} actions from "
         rep += "your config are available!\n"
     else:
-        rep += "\n-== No services found in configuration files!\n"
+        rep += "\n-== No actions found in configuration files!\n"
 
     if entities_missing:
         rep += f"\n-== Missing {len(entities_missing)} entity(ies) from "

@@ -1,38 +1,40 @@
 report:
   description: Run watchman report
   fields:
-    create_file:
-      example: true
-      default: true
-      required: false
-      selector:
-        boolean:
-    send_notification:
-      example: true
-      default: false
-      required: false
-      selector:
-        boolean:
-    service:
-      example: "notify.telegram"
-      required: false
-      selector:
-        text:
-    data:
-      example: "parse_mode: html"
-
     parse_config:
       example: true
       default: false
-      required: false
+      required: true
       selector:
         boolean:
-    chunk_size:
-      example: true
-      default: false
-      required: false
-      selector:
-        number:
-          min: 0
-          max: 100000
-          mode: box
+    advanced_options:
+      collapsed: true
+      fields:
+        action:
+          example: "persistent_notification.create"
+          default: "persistent_notification.create"
+          required: false
+          advanced: true
+          selector:
+            text:
+        data:
+          example: "title: Watchman Report"
+          required: false
+          advanced: true
+        chunk_size:
+          example: 3500
+          default: 3500
+          required: false
+          advanced: true
+          selector:
+            number:
+              min: 0
+              max: 100000
+              mode: box
+        create_file:
+          example: true
+          default: true
+          required: true
+          selector:
+            boolean:
+
