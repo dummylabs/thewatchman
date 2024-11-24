@@ -4,7 +4,7 @@ report:
     parse_config:
       example: true
       default: false
-      required: true
+      required: false
       selector:
         boolean:
     advanced_options:
@@ -34,7 +34,7 @@ report:
         create_file:
           example: true
           default: true
-          required: true
+          required: false
           selector:
             boolean:
 
