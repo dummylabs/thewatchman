@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 import time
-import json
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 import voluptuous as vol
@@ -21,6 +21,11 @@ from homeassistant.const import (
     EVENT_SERVICE_REMOVED,
     EVENT_STATE_CHANGED,
     EVENT_CALL_SERVICE,
+    SERVICE_RELOAD,
+)
+from homeassistant.components.homeassistant import (
+    SERVICE_RELOAD_CORE_CONFIG,
+    SERVICE_RELOAD_ALL,
 )
 
 from .coordinator import WatchmanCoordinator
@@ -100,6 +105,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 type WMConfigEntry = ConfigEntry[WMData]
+parser_lock = asyncio.Lock()
 
 
 @dataclass
@@ -251,22 +257,26 @@ async def add_event_handlers(hass: HomeAssistant):
         await async_schedule_refresh_states(hass, startup_delay)
 
     async def async_on_configuration_changed(event):
-        typ = event.event_type
-        if typ == EVENT_CALL_SERVICE:
-            domain = event.data.get("domain", None)
-            service = event.data.get("service", None)
-            if domain in TRACKED_EVENT_DOMAINS and service in [
-                "reload_core_config",
-                "reload",
-            ]:
-                await parse_config(hass, reason="configuration changes")
-                coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
-                await coordinator.async_refresh()
+        # prevent multiple parse attempts when several events triggered simultaneously
+        if not parser_lock.locked():
+            async with parser_lock:
+                event_type = event.event_type
+                if event_type == EVENT_CALL_SERVICE:
+                    domain = event.data.get("domain", None)
+                    service = event.data.get("service", None)
+                    if domain in TRACKED_EVENT_DOMAINS and service in [
+                        SERVICE_RELOAD_CORE_CONFIG,
+                        SERVICE_RELOAD,
+                        SERVICE_RELOAD_ALL,
+                    ]:
+                        await parse_config(hass, reason=f"{domain}.{service} call")
+                        coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
+                        await coordinator.async_refresh()
 
-        elif typ in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
-            await parse_config(hass, reason="configuration changes")
-            coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
-            await coordinator.async_refresh()
+                elif event_type in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
+                    await parse_config(hass, reason=f"event: {event_type}")
+                    coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
+                    await coordinator.async_refresh()
 
     async def async_on_service_changed(event):
         service = f"{event.data['domain']}.{event.data['service']}"
@@ -302,6 +312,7 @@ async def add_event_handlers(hass: HomeAssistant):
 
     hdlr = []
     hdlr.append(
+        # track service calls which update HA configuration
         hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
     )
     hdlr.append(
@@ -320,6 +331,7 @@ async def add_event_handlers(hass: HomeAssistant):
 
 async def parse_config(hass: HomeAssistant, reason=None):
     """parse home assistant configuration files"""
+
     start_time = time.time()
 
     included_folders = get_included_folders(hass)
