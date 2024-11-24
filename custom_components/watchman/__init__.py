@@ -461,7 +461,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
 
         data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
             config_entry.options.get(
-                CONF_REPORT_PATH, async_get_report_path(hass, None)
+                CONF_REPORT_PATH, await async_get_report_path(hass, None)
             )
         )
 
