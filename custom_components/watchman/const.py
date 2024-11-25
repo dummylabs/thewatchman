@@ -76,7 +76,7 @@ SENSOR_LAST_UPDATE = "watchman_last_updated"
 SENSOR_MISSING_ENTITIES = "watchman_missing_entities"
 SENSOR_MISSING_SERVICES = "watchman_missing_services"
 SENSOR_MISSING_ACTIONS = "watchman_missing_actions"
-MONITORED_STATES = ["unavailable", "unknown", "missing"]
+MONITORED_STATES = ["unavailable", "unknown", "missing", "disabled"]
 
 TRACKED_EVENT_DOMAINS = [
     "homeassistant",
@@ -113,7 +113,7 @@ DEFAULT_OPTIONS = {
     CONF_SECTION_APPEARANCE_LOCATION: {
         CONF_HEADER: "-== Watchman Report ==-",
         CONF_REPORT_PATH: "",
-        CONF_COLUMNS_WIDTH: "30, 7, 60",
+        CONF_COLUMNS_WIDTH: "30, 8, 60",
         CONF_FRIENDLY_NAMES: False,
     },
 }

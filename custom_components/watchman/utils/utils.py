@@ -11,7 +11,7 @@ from types import MappingProxyType
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-
+from homeassistant.helpers import entity_registry as er
 
 from .logger import _LOGGER, INDENT
 from ..const import (
@@ -135,15 +135,21 @@ def is_action(hass, entry):
 
 def get_entity_state(hass, entry, friendly_names=False):
     """returns entity state or missing if entity does not extst"""
-    entity = hass.states.get(entry)
+    entity_state = hass.states.get(entry)
+    entity_registry = er.async_get(hass)
     name = None
-    if entity and entity.attributes.get("friendly_name", None):
+    if entity_state and entity_state.attributes.get("friendly_name", None):
         if friendly_names:
-            name = entity.name
-    # fix for #75, some integrations return non-string states
-    state = (
-        "missing" if not entity else str(entity.state).replace("unavailable", "unavail")
-    )
+            name = entity_state.name
+
+    if not entity_state:
+        state = "missing"
+        if regentry := entity_registry.async_get(entry):
+            if regentry.disabled_by:
+                state = "disabled"
+    else:
+        state = str(entity_state.state).replace("unavailable", "unavail")
+
     return state, name
 
 
@@ -192,7 +198,7 @@ def check_entitites(hass):
                 f"{INDENT}entry {entry} with state {state} skipped due to ignored_states"
             )
             continue
-        if state in ["missing", "unknown", "unavail"]:
+        if state in ["missing", "unknown", "unavail", "disabled"]:
             entities_missing[entry] = occurrences
             _LOGGER.debug(f"{INDENT}entry {entry} added to the report")
     return entities_missing
