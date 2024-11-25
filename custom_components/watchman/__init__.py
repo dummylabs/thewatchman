@@ -6,7 +6,6 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 import voluptuous as vol
-from anyio import Path
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util

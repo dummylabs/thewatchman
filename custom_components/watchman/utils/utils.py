@@ -1,6 +1,5 @@
 """Miscellaneous support functions for watchman"""
 
-from venv import logger
 import anyio
 import re
 import fnmatch
@@ -17,26 +16,6 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
-DEFAULT_DOMAINS = [
-    "group",
-    "input_boolean",
-    "input_select",
-    "input_text",
-    "script",
-    "alert",
-    "automation",
-    "counter",
-    "input_datetime",
-    "input_number",
-    "input_button",
-    "person",
-    "plant",
-    "proximity",
-    "sun",
-    "timer",
-    "zone",
-    "schedule",
-]
 
 from .logger import _LOGGER, INDENT
 from ..const import (
@@ -67,6 +46,7 @@ from ..const import (
     REPORT_ENTRY_TYPE_ENTITY,
     REPORT_ENTRY_TYPE_SERVICE,
     DEFAULT_OPTIONS,
+    DEFAULT_HA_DOMAINS,
 )
 
 
@@ -320,7 +300,7 @@ async def parse(hass, folders, ignored_files, root=None):
     parsed_files_count = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        rf"(({ "|".join([*Platform, *DEFAULT_DOMAINS]) })\.[A-Za-z_*0-9]+)"
+        rf"(({ "|".join([*Platform, *DEFAULT_HA_DOMAINS]) })\.[A-Za-z_*0-9]+)"
     )
     service_pattern = re.compile(
         r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"

@@ -117,3 +117,26 @@ DEFAULT_OPTIONS = {
         CONF_FRIENDLY_NAMES: False,
     },
 }
+
+# additional domains to detect entities which are not included into
+# homeassistant.const.Platform enum
+DEFAULT_HA_DOMAINS = [
+    "group",
+    "input_boolean",
+    "input_select",
+    "input_text",
+    "script",
+    "alert",
+    "automation",
+    "counter",
+    "input_datetime",
+    "input_number",
+    "input_button",
+    "person",
+    "plant",
+    "proximity",
+    "sun",
+    "timer",
+    "zone",
+    "schedule",
+]
