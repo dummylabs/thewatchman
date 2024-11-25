@@ -8,7 +8,7 @@
 |                                |         | est_services.yaml:1                                          |
 | fake.service2                  | missing | ../../../../../../../../workspaces/thewatchman/tests/input/t |
 |                                |         | est_services.yaml:2                                          |
-| timer.cancel                   | missing | ../../../../../../../../workspaces/thewatchman/tests/input/t |
+| timer_.cancel                  | missing | ../../../../../../../../workspaces/thewatchman/tests/input/t |
 |                                |         | est_services.yaml:3                                          |
 +--------------------------------+---------+--------------------------------------------------------------+
 
