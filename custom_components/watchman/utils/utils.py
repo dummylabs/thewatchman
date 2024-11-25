@@ -12,7 +12,6 @@ from types import MappingProxyType
 import pytz
 from prettytable import PrettyTable
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
@@ -33,7 +32,6 @@ from ..const import (
     CONF_IGNORED_STATES,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
-    BUNDLED_IGNORED_ITEMS,
     DEFAULT_REPORT_FILENAME,
     HASS_DATA_CHECK_DURATION,
     HASS_DATA_FILES_IGNORED,
@@ -75,6 +73,12 @@ def to_lists(options, key, section=None):
 def to_listi(options, key, section=None):
     val = get_val(options, key, section)
     return [int(x) for x in val.split(",") if x.strip()]
+
+
+def get_entry(hass: HomeAssistant) -> Any:
+    return hass.config_entries.async_get_entry(
+        hass.data[DOMAIN_DATA]["config_entry_id"]
+    )
 
 
 def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any:
@@ -213,15 +217,6 @@ async def async_get_next_file(folder_tuples, ignored_files):
             )
 
 
-def add_entry(_list, entry, yaml_file, lineno):
-    """Add entry to list of missing entities/services with line number information"""
-    if entry in _list:
-        if yaml_file in _list[entry]:
-            _list[entry].get(yaml_file, []).append(lineno)
-    else:
-        _list[entry] = {yaml_file: [lineno]}
-
-
 def is_action(hass, entry):
     """check whether config entry is a service"""
     if not isinstance(entry, str):
@@ -293,89 +288,6 @@ def check_entitites(hass):
             entities_missing[entry] = occurrences
             _LOGGER.debug(f"{INDENT}entry {entry} added to the report")
     return entities_missing
-
-
-async def parse(hass, folders, ignored_files, root=None):
-    """Parse a yaml or json file for entities/services"""
-    parsed_files_count = 0
-    entity_pattern = re.compile(
-        r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        rf"(({ "|".join([*Platform, *DEFAULT_HA_DOMAINS]) })\.[A-Za-z_*0-9]+)"
-    )
-    service_pattern = re.compile(
-        r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"
-    )
-    comment_pattern = re.compile(r"(^\s*(?:description|example):.*)|(\s*#.*)")
-    parsed_entity_list = {}
-    parsed_service_list = {}
-    parsed_files = []
-    effectively_ignored_files = []
-    async for yaml_file, ignored in async_get_next_file(folders, ignored_files):
-        short_path = os.path.relpath(yaml_file, root)
-        if ignored:
-            effectively_ignored_files.append(short_path)
-            continue
-
-        try:
-            lineno = 1
-            async with await anyio.open_file(
-                yaml_file, mode="r", encoding="utf-8"
-            ) as f:
-                async for line in f:
-                    line = re.sub(comment_pattern, "", line)
-                    for match in re.finditer(entity_pattern, line):
-                        typ, val = match.group(1), match.group(2)
-                        if (
-                            typ != "service:"
-                            and "*" not in val
-                            and not val.endswith(".yaml")
-                        ):
-                            add_entry(parsed_entity_list, val, short_path, lineno)
-                    for match in re.finditer(service_pattern, line):
-                        val = match.group(1)
-                        add_entry(parsed_service_list, val, short_path, lineno)
-                    lineno += 1
-            parsed_files_count += 1
-            parsed_files.append(short_path)
-        except OSError as exception:
-            _LOGGER.error("Unable to parse %s: %s", yaml_file, exception)
-        except UnicodeDecodeError as exception:
-            _LOGGER.error(
-                "Unable to parse %s: %s. Use UTF-8 encoding to avoid this error",
-                yaml_file,
-                exception,
-            )
-    # remove ignored entities and services from resulting lists
-    ignored_items = get_config(hass, CONF_IGNORED_ITEMS, [])
-    ignored_items = list(set(ignored_items + BUNDLED_IGNORED_ITEMS))
-    excluded_entities = []
-    excluded_services = []
-    for itm in ignored_items:
-        if itm:
-            excluded_entities.extend(fnmatch.filter(parsed_entity_list, itm))
-            excluded_services.extend(fnmatch.filter(parsed_service_list, itm))
-
-    parsed_entity_list = {
-        k: v for k, v in parsed_entity_list.items() if k not in excluded_entities
-    }
-    parsed_service_list = {
-        k: v for k, v in parsed_service_list.items() if k not in excluded_services
-    }
-
-    _LOGGER.debug(f"{INDENT}Parsed {parsed_files_count} files: {parsed_files}")
-    _LOGGER.debug(
-        f"{INDENT}Ignored {len(effectively_ignored_files)} files: {effectively_ignored_files}",
-    )
-    _LOGGER.debug(
-        f"{INDENT}Found {len(parsed_entity_list)} entities and {len(parsed_service_list)} actions"
-    )
-
-    return (
-        parsed_entity_list,
-        parsed_service_list,
-        parsed_files_count,
-        len(effectively_ignored_files),
-    )
 
 
 def fill(data, width, extra=None):
