@@ -69,7 +69,7 @@ def get_entry(hass: HomeAssistant) -> Any:
 
 
 def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any:
-    """get configuration value"""
+    """get configuration value from ConfigEntry"""
     assert hass.data.get(DOMAIN_DATA)
     entry = hass.config_entries.async_get_entry(
         hass.data[DOMAIN_DATA]["config_entry_id"]
@@ -126,7 +126,7 @@ async def async_get_next_file(folder_tuples, ignored_files):
 
 
 def is_action(hass, entry):
-    """check whether config entry is a service"""
+    """check whether config entry is an action"""
     if not isinstance(entry, str):
         return False
     domain, service = entry.split(".")[0], ".".join(entry.split(".")[1:])
