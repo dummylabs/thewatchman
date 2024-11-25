@@ -28,8 +28,8 @@
 |           |         | _servic  |
 |           |         | es.yaml  |
 |           |         | :2       |
-| timer.c   | missing | ../../.  |
-| ancel     |         | ./../..  |
+| timer_.   | missing | ../../.  |
+| cancel    |         | ./../..  |
 |           |         | /../../  |
 |           |         | ../work  |
 |           |         | spaces/  |
