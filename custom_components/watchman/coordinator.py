@@ -6,6 +6,7 @@ from token import INDENT
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from .utils.report import fill
 from .utils.parser import parse_config
 from .const import (
     COORD_DATA_ENTITY_ATTRS,
@@ -24,7 +25,6 @@ from .utils.utils import (
     check_entitites,
     check_services,
     get_entity_state,
-    fill,
     get_entry,
 )
 from .utils.logger import _LOGGER

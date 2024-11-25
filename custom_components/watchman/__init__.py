@@ -3,7 +3,6 @@
 from datetime import timedelta
 import asyncio
 from dataclasses import dataclass
-from typing import Any
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 from homeassistant.components import persistent_notification
@@ -28,14 +27,11 @@ from homeassistant.components.homeassistant import (
 
 from .coordinator import WatchmanCoordinator
 from .utils.logger import _LOGGER
+from .utils.report import async_report_to_file, async_report_to_notification
 
 from .utils.utils import (
     async_get_report_path,
     get_entry,
-    is_action,
-    report,
-    table_renderer,
-    text_renderer,
     get_config,
 )
 
@@ -247,9 +243,6 @@ async def add_event_handlers(hass: HomeAssistant):
         await async_schedule_refresh_states(hass, startup_delay)
 
     async def async_on_configuration_changed(event):
-        # if not parser_lock.locked():
-        #     entry = get_entry(hass)
-        # async with parser_lock:
         entry = get_entry(hass)
         event_type = event.event_type
         if event_type == EVENT_CALL_SERVICE:
@@ -318,66 +311,6 @@ async def add_event_handlers(hass: HomeAssistant):
     hdlr.append(hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed))
     hdlr.append(hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed))
     hass.data[DOMAIN][HASS_DATA_CANCEL_HANDLERS] = hdlr
-
-
-async def async_report_to_file(hass, path, test_mode):
-    """save report to a file"""
-    coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
-    await coordinator.async_refresh()
-    report_chunks = await report(
-        hass, table_renderer, chunk_size=0, test_mode=test_mode
-    )
-
-    def write(path):
-        with open(path, "w", encoding="utf-8") as report_file:
-            for chunk in report_chunks:
-                report_file.write(chunk)
-
-    await hass.async_add_executor_job(write, path)
-
-
-async def async_report_to_notification(
-    hass: HomeAssistant, action_str: str, service_data: dict[str, Any], chunk_size: int
-):
-    """send report via notification action"""
-
-    if not action_str:
-        raise HomeAssistantError(f"Missing `{CONF_ACTION_NAME}` parameter.")
-
-    if action_str and not isinstance(action_str, str):
-        raise HomeAssistantError(
-            f"`action` parameter should be a string, got {action_str}"
-        )
-
-    if not is_action(hass, action_str):
-        raise HomeAssistantError(f"{action_str} is not a valid action for notification")
-
-    domain = action_str.split(".")[0]
-    action = ".".join(action_str.split(".")[1:])
-
-    data = {} if service_data is None else service_data
-
-    _LOGGER.debug(f"SERVICE_DATA {data}")
-
-    coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
-    await coordinator.async_refresh()
-    report_chunks = await report(hass, text_renderer, chunk_size)
-    for msg_chunk in report_chunks:
-        data["message"] = msg_chunk
-        # blocking=True ensures send order
-        await hass.services.async_call(domain, action, data, blocking=True)
-
-
-async def async_notification(hass, title, message, error=False, n_id="watchman"):
-    """Show a persistent notification"""
-    persistent_notification.async_create(
-        hass,
-        message,
-        title=title,
-        notification_id=n_id,
-    )
-    if error:
-        raise HomeAssistantError(message.replace("`", ""))
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
