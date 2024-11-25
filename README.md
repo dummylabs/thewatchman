@@ -162,8 +162,8 @@ The code for the actions report looks very similar:
 type: markdown
 content: >-
   <h2> <img src="https://brands.home-assistant.io/watchman/icon.png" alt="WM Logo" width="32" height="32"> Watchman report</h2>
-  <h3> Missing actios: {{ states.sensor.watchman_missing_actions.state }} </h3>
-  {%- for item in state_attr("sensor.watchman_missing_action", "entities") %}
+  <h3> Missing actions: {{ states.sensor.watchman_missing_actions.state }} </h3>
+  {%- for item in state_attr("sensor.watchman_missing_actions", "entities") %}
   <hr><table><tr> <td>  <ha-icon icon='mdi:cloud-alert'></ha-icon> {{ item.id }}
   <a title="{{item.occurrences}}">{{item.occurrences.split('/')[-1].split(':')[0]}}</a>
   </td></tr></table>
