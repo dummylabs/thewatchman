@@ -6,7 +6,7 @@ import time
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from prettytable import PrettyTable
-from .utils import get_config, get_entity_state, is_action
+from .utils import get_config, get_entity_state, get_entry, is_action
 from .logger import _LOGGER
 from ..const import (
     CONF_ACTION_NAME,
@@ -195,11 +195,10 @@ def get_columns_width(user_width):
 
 async def async_report_to_file(hass, path, test_mode):
     """save report to a file"""
-    coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
-    await coordinator.async_refresh()
     report_chunks = await report(
         hass, table_renderer, chunk_size=0, test_mode=test_mode
     )
+    await get_entry(hass).runtime_data.coordinator.async_refresh()
 
     def write(path):
         with open(path, "w", encoding="utf-8") as report_file:
@@ -207,6 +206,7 @@ async def async_report_to_file(hass, path, test_mode):
                 report_file.write(chunk)
 
     await hass.async_add_executor_job(write, path)
+    _LOGGER.debug(f"::async_report_to_file:: Repost saved to {path}")
 
 
 async def async_report_to_notification(

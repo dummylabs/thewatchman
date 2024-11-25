@@ -102,7 +102,7 @@ async def _async_validate_input(
             x.strip() for x in user_input[CONF_INCLUDED_FOLDERS].split(",") if x.strip()
         ]
         for path in included_folders_list:
-            if not await anyio.Path(path).exists():
+            if not await anyio.Path(path.strip()).exists():
                 errors |= {
                     CONF_INCLUDED_FOLDERS: "{} is not a valid path ".format(path)
                 }
@@ -118,17 +118,22 @@ async def _async_validate_input(
             if len(columns_width) != 3:
                 raise ValueError()
             columns_width = COLUMNS_WIDTH_SCHEMA(columns_width)
-            # user_input[CONF_COLUMNS_WIDTH] = get_columns_width(columns_width)
         except (ValueError, vol.Invalid):
             errors["base"] = "invalid_columns_width"
 
     report_path = get_val(
         user_input, CONF_REPORT_PATH, CONF_SECTION_APPEARANCE_LOCATION
     )
-    if report_path:
-        folder, _ = os.path.split(report_path)
-        if not await anyio.Path(folder).exists():
+    if report_path.strip():
+        folder, f_name = os.path.split(report_path)
+        if (
+            not folder.strip()
+            or not f_name.strip()
+            or not await anyio.Path(folder).exists()
+        ):
             errors["base"] = "invalid_report_path"
+    else:
+        errors["base"] = "invalid_report_path"
 
     return (
         MappingProxyType[str, str](errors),
