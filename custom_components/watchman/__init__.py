@@ -5,7 +5,6 @@ import asyncio
 from dataclasses import dataclass
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
-from homeassistant.components import persistent_notification
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.exceptions import HomeAssistantError

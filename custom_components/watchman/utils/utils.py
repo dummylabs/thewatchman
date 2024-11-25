@@ -150,7 +150,7 @@ def get_entity_state(hass, entry, friendly_names=False):
 def check_services(hass):
     """check if entries from config file are services"""
     services_missing = {}
-    _LOGGER.debug(f"::check_services:: Triaging list of found actions")
+    _LOGGER.debug("::check_services:: Triaging list of found actions")
     if "missing" in get_config(hass, CONF_IGNORED_STATES, []):
         _LOGGER.debug(
             f"{INDENT}MISSING state set as ignored in config, so final list of reported actions is empty."
@@ -171,7 +171,7 @@ def check_services(hass):
 
 def check_entitites(hass):
     """check if entries from config file are entities with an active state"""
-    _LOGGER.debug(f"::check_entities:: Triaging list of found entities")
+    _LOGGER.debug("::check_entities:: Triaging list of found entities")
 
     ignored_states = [
         "unavail" if s == "unavailable" else s

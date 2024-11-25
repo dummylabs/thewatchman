@@ -3,6 +3,7 @@
 import time
 import asyncio
 from token import INDENT
+from typing import Any
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -65,7 +66,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             # first run, home assistant still loading
             # parse_config will be scheduled once HA is fully loaded
 
-    async def _async_update_data(self) -> None:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Fetch Watchman data"""
 
         if not parser_lock.locked():
@@ -137,4 +138,4 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     )
 
                     return self.data
-        return None
+        return {}
