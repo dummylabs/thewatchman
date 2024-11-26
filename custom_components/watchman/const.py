@@ -140,3 +140,6 @@ DEFAULT_HA_DOMAINS = [
     "zone",
     "schedule",
 ]
+
+# Watchman will ignore lines started from these words followed by :
+PARSER_STOP_WORDS = ["description", "example", "icon", "title"]

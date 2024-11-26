@@ -21,6 +21,7 @@ from ..const import (
     HASS_DATA_PARSE_DURATION,
     HASS_DATA_PARSED_ENTITY_LIST,
     HASS_DATA_PARSED_SERVICE_LIST,
+    PARSER_STOP_WORDS,
 )
 
 
@@ -63,7 +64,9 @@ async def parse(hass, folders, ignored_files, root_path=None):
     service_pattern = re.compile(
         r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"
     )
-    comment_pattern = re.compile(r"(^\s*(?:description|example):.*)|(\s*#.*)")
+    comment_pattern = re.compile(
+        rf"(^\s*(?:{"|".join([*PARSER_STOP_WORDS])}):.*)|(\s*#.*)"
+    )
     parsed_entity_list = {}
     parsed_service_list = {}
     parsed_files = []
