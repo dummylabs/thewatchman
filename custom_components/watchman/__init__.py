@@ -61,7 +61,6 @@ from .const import (
     CONF_STARTUP_DELAY,
     CONF_FRIENDLY_NAMES,
     CONF_ALLOWED_SERVICE_PARAMS,
-    CONF_TEST_MODE,
     CONF_SECTION_APPEARANCE_LOCATION,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
@@ -176,7 +175,6 @@ async def add_services(hass: HomeAssistant):
         path = get_config(hass, CONF_REPORT_PATH)
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
         create_file = call.data.get(CONF_CREATE_FILE, True)
-        test_mode = call.data.get(CONF_TEST_MODE, False)
         action_data = call.data.get(CONF_SERVICE_DATA, None)
         chunk_size = call.data.get(CONF_CHUNK_SIZE, 0)
 
@@ -213,7 +211,7 @@ async def add_services(hass: HomeAssistant):
 
         if create_file:
             try:
-                await async_report_to_file(hass, path, test_mode=test_mode)
+                await async_report_to_file(hass, path)
             except OSError as exception:
                 raise HomeAssistantError(f"Unable to write report: {exception}")
 

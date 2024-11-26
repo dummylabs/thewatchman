@@ -53,7 +53,6 @@ CONF_PARSE_CONFIG = "parse_config"
 CONF_COLUMNS_WIDTH = "columns_width"
 CONF_STARTUP_DELAY = "startup_delay"
 CONF_FRIENDLY_NAMES = "friendly_names"
-CONF_TEST_MODE = "test_mode"
 # configuration parameters allowed in watchman.report service data
 CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SERVICE_NAME,
@@ -63,7 +62,6 @@ CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SEND_NOTIFICATION,
     CONF_PARSE_CONFIG,
     CONF_SERVICE_DATA,
-    CONF_TEST_MODE,
 ]
 
 CONF_SECTION_APPEARANCE_LOCATION = "appearance_location_options"
@@ -76,7 +74,7 @@ SENSOR_LAST_UPDATE = "watchman_last_updated"
 SENSOR_MISSING_ENTITIES = "watchman_missing_entities"
 SENSOR_MISSING_SERVICES = "watchman_missing_services"
 SENSOR_MISSING_ACTIONS = "watchman_missing_actions"
-MONITORED_STATES = ["unavailable", "unknown", "missing"]
+MONITORED_STATES = ["unavailable", "unknown", "missing", "disabled"]
 
 TRACKED_EVENT_DOMAINS = [
     "homeassistant",
@@ -113,7 +111,7 @@ DEFAULT_OPTIONS = {
     CONF_SECTION_APPEARANCE_LOCATION: {
         CONF_HEADER: "-== Watchman Report ==-",
         CONF_REPORT_PATH: "",
-        CONF_COLUMNS_WIDTH: "30, 7, 60",
+        CONF_COLUMNS_WIDTH: "30, 8, 60",
         CONF_FRIENDLY_NAMES: False,
     },
 }
