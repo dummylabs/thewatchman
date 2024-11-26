@@ -23,6 +23,8 @@ description:" '' sensor.test12 "
 example: sensor.test12
 description: sensor.test12
 description:sensor.test12
+icon: sensor.test13
+title: sensor.test14
 
 air_quality.test_entity
 alarm_control_panel.test_entity
