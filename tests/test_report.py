@@ -16,71 +16,72 @@ from . import async_init_integration, assert_files_equal
 TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
 
 
-async def _short_path(yaml_file, root):
+async def mock_path(yaml_file, root):
     return os.path.sep.join(yaml_file.split(os.path.sep)[-2:])
 
 
+async def mock_stats(hass, start_time):
+    return ("01 Jan 1970 00:00:00", 0.01, 0.105, 0.0003)
+
+
+@patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
+@patch("custom_components.watchman.utils.parser.async_get_short_path", new=mock_path)
 async def test_table_default(hass, tmpdir):
     """test table rendering"""
     base_report = "/workspaces/thewatchman/tests/input/test_report1.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report1.txt")
 
-    with patch(
-        "custom_components.watchman.utils.parser.async_get_short_path",
-        side_effect=_short_path,
-    ):
-        await async_init_integration(
-            hass,
-            add_params={
-                CONF_IGNORED_STATES: "",
-                CONF_IGNORED_FILES: "",
-                CONF_SECTION_APPEARANCE_LOCATION: {
-                    CONF_REPORT_PATH: test_report,
-                },
+    await async_init_integration(
+        hass,
+        add_params={
+            CONF_IGNORED_STATES: "",
+            CONF_IGNORED_FILES: "",
+            CONF_SECTION_APPEARANCE_LOCATION: {
+                CONF_REPORT_PATH: test_report,
             },
-        )
+        },
+    )
 
-        hass.states.async_set("sensor.test1_unknown", "unknown")
-        hass.states.async_set("sensor.test2_missing", "missing")
-        hass.states.async_set("sensor.test3_unavail", "unavailable")
-        hass.states.async_set("sensor.test4_avail", "42")
-        await hass.async_block_till_done()
-        await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
-        await hass.async_block_till_done()
-        assert_files_equal(base_report, test_report)
+    hass.states.async_set("sensor.test1_unknown", "unknown")
+    hass.states.async_set("sensor.test2_missing", "missing")
+    hass.states.async_set("sensor.test3_unavail", "unavailable")
+    hass.states.async_set("sensor.test4_avail", "42")
+    await hass.async_block_till_done()
+    await hass.services.async_call(DOMAIN, "report")
+    await hass.async_block_till_done()
+    assert_files_equal(base_report, test_report)
 
 
+@patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
+@patch("custom_components.watchman.utils.parser.async_get_short_path", new=mock_path)
 async def test_table_no_missing(hass, tmpdir):
     """test table rendering with no missing elements"""
     base_report = "/workspaces/thewatchman/tests/input/test_report2.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report2.txt")
-    with patch(
-        "custom_components.watchman.utils.parser.async_get_short_path",
-        side_effect=_short_path,
-    ):
-        await async_init_integration(
-            hass,
-            add_params={
-                CONF_IGNORED_STATES: ["missing"],
-                CONF_IGNORED_FILES: "",
-                CONF_SECTION_APPEARANCE_LOCATION: {
-                    CONF_REPORT_PATH: test_report,
-                },
+    await async_init_integration(
+        hass,
+        add_params={
+            CONF_IGNORED_STATES: ["missing"],
+            CONF_IGNORED_FILES: "",
+            CONF_SECTION_APPEARANCE_LOCATION: {
+                CONF_REPORT_PATH: test_report,
             },
-        )
+        },
+    )
 
-        hass.states.async_set("sensor.test1_unknown", "unknown")
-        hass.states.async_set("sensor.test2_missing", "missing")
-        hass.states.async_set("sensor.test3_unavail", "unavailable")
-        hass.states.async_set("sensor.test4_avail", "42")
-        await hass.async_block_till_done()
-        await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
-        await hass.async_block_till_done()
-        assert_files_equal(base_report, test_report)
+    hass.states.async_set("sensor.test1_unknown", "unknown")
+    hass.states.async_set("sensor.test2_missing", "missing")
+    hass.states.async_set("sensor.test3_unavail", "unavailable")
+    hass.states.async_set("sensor.test4_avail", "42")
+    await hass.async_block_till_done()
+    await hass.services.async_call(DOMAIN, "report")
+    await hass.async_block_till_done()
+    assert_files_equal(base_report, test_report)
 
 
+@patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
 async def test_table_all_clear(hass, tmpdir):
     """test table rendering with no entries"""
     base_report = "/workspaces/thewatchman/tests/input/test_report3.txt"
@@ -103,36 +104,34 @@ async def test_table_all_clear(hass, tmpdir):
     hass.states.async_set("sensor.test4_avail", "42")
     await hass.async_block_till_done()
 
-    await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
+    await hass.services.async_call(DOMAIN, "report")
     await hass.async_block_till_done()
     assert_files_equal(base_report, test_report)
 
 
+@patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
+@patch("custom_components.watchman.utils.parser.async_get_short_path", new=mock_path)
 async def test_column_resize(hass, tmpdir):
     """test table rendering with narrow columns"""
     base_report = "/workspaces/thewatchman/tests/input/test_report4.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report4.txt")
-    with patch(
-        "custom_components.watchman.utils.parser.async_get_short_path",
-        side_effect=_short_path,
-    ):
-        await async_init_integration(
-            hass,
-            add_params={
-                CONF_IGNORED_STATES: [],
-                CONF_IGNORED_FILES: "",
-                CONF_SECTION_APPEARANCE_LOCATION: {
-                    CONF_REPORT_PATH: test_report,
-                    CONF_COLUMNS_WIDTH: "7, 7, 7",
-                },
+    await async_init_integration(
+        hass,
+        add_params={
+            CONF_IGNORED_STATES: [],
+            CONF_IGNORED_FILES: "",
+            CONF_SECTION_APPEARANCE_LOCATION: {
+                CONF_REPORT_PATH: test_report,
+                CONF_COLUMNS_WIDTH: "7, 7, 7",
             },
-        )
-        hass.states.async_set("sensor.test1_unknown", "unknown")
-        hass.states.async_set("sensor.test2_missing", "missing")
-        hass.states.async_set("sensor.test3_unavail", "unavailable")
-        hass.states.async_set("sensor.test4_avail", "42")
-        await hass.async_block_till_done()
-        await hass.services.async_call(DOMAIN, "report", {"test_mode": True})
-        await hass.async_block_till_done()
-        assert_files_equal(base_report, test_report)
+        },
+    )
+    hass.states.async_set("sensor.test1_unknown", "unknown")
+    hass.states.async_set("sensor.test2_missing", "missing")
+    hass.states.async_set("sensor.test3_unavail", "unavailable")
+    hass.states.async_set("sensor.test4_avail", "42")
+    await hass.async_block_till_done()
+    await hass.services.async_call(DOMAIN, "report")
+    await hass.async_block_till_done()
+    assert_files_equal(base_report, test_report)

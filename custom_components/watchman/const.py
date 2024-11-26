@@ -53,7 +53,6 @@ CONF_PARSE_CONFIG = "parse_config"
 CONF_COLUMNS_WIDTH = "columns_width"
 CONF_STARTUP_DELAY = "startup_delay"
 CONF_FRIENDLY_NAMES = "friendly_names"
-CONF_TEST_MODE = "test_mode"
 # configuration parameters allowed in watchman.report service data
 CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SERVICE_NAME,
@@ -63,7 +62,6 @@ CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SEND_NOTIFICATION,
     CONF_PARSE_CONFIG,
     CONF_SERVICE_DATA,
-    CONF_TEST_MODE,
 ]
 
 CONF_SECTION_APPEARANCE_LOCATION = "appearance_location_options"

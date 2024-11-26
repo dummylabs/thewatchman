@@ -29,7 +29,22 @@ from ..const import (
 )
 
 
-async def report(hass, render, chunk_size, test_mode=False):
+async def parsing_stats(hass, start_time):
+    """separate func for test mocking"""
+
+    def get_timezone(hass):
+        return pytz.timezone(hass.config.time_zone)
+
+    timezone = await hass.async_add_executor_job(get_timezone, hass)
+    return (
+        datetime.now(timezone).strftime("%d %b %Y %H:%M:%S"),
+        hass.data[DOMAIN][HASS_DATA_PARSE_DURATION],
+        hass.data[DOMAIN][HASS_DATA_CHECK_DURATION],
+        time.time() - start_time,
+    )
+
+
+async def report(hass, render, chunk_size):
     """generates watchman report either as a table or as a list"""
     if DOMAIN not in hass.data:
         raise HomeAssistantError("No data for report, refresh required.")
@@ -67,21 +82,12 @@ async def report(hass, render, chunk_size, test_mode=False):
     else:
         rep += "\n-== No entities found in configuration files!\n"
 
-    def get_timezone(hass):
-        return pytz.timezone(hass.config.time_zone)
-
-    timezone = await hass.async_add_executor_job(get_timezone, hass)
-
-    if not test_mode:
-        report_datetime = datetime.now(timezone).strftime("%d %b %Y %H:%M:%S")
-        parse_duration = hass.data[DOMAIN][HASS_DATA_PARSE_DURATION]
-        check_duration = hass.data[DOMAIN][HASS_DATA_CHECK_DURATION]
-        render_duration = time.time() - start_time
-    else:
-        report_datetime = "01 Jan 1970 00:00:00"
-        parse_duration = 0.01
-        check_duration = 0.105
-        render_duration = 0.0003
+    (
+        report_datetime,
+        parse_duration,
+        check_duration,
+        render_duration,
+    ) = await parsing_stats(hass, start_time)
 
     rep += f"\n-== Report created on {report_datetime}\n"
     rep += (
@@ -193,11 +199,9 @@ def get_columns_width(user_width):
     return default_width
 
 
-async def async_report_to_file(hass, path, test_mode):
+async def async_report_to_file(hass, path):
     """save report to a file"""
-    report_chunks = await report(
-        hass, table_renderer, chunk_size=0, test_mode=test_mode
-    )
+    report_chunks = await report(hass, table_renderer, chunk_size=0)
     await get_entry(hass).runtime_data.coordinator.async_refresh()
 
     def write(path):
