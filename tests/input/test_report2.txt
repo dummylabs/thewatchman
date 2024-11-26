@@ -6,10 +6,8 @@
 +--------------------------------+----------+--------------------------------------------------------------+
 | Entity ID                      | State    | Location                                                     |
 +--------------------------------+----------+--------------------------------------------------------------+
-| sensor.test1_unknown           | unknown  | ../../../../../../../../workspaces/thewatchman/tests/input/t |
-|                                |          | est_sensors.yaml:1                                           |
-| sensor.test3_unavail           | unavail  | ../../../../../../../../workspaces/thewatchman/tests/input/t |
-|                                |          | est_sensors.yaml:3                                           |
+| sensor.test1_unknown           | unknown  | input/test_sensors.yaml:1                                    |
+| sensor.test3_unavail           | unavail  | input/test_sensors.yaml:3                                    |
 +--------------------------------+----------+--------------------------------------------------------------+
 
 -== Report created on 01 Jan 1970 00:00:00

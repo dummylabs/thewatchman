@@ -4,84 +4,36 @@
 +-----------+---------+----------+
 | Action ID | State   | Location |
 +-----------+---------+----------+
-| fake.se   | missing | ../../.  |
-| rvice1    |         | ./../..  |
-|           |         | /../../  |
-|           |         | ../work  |
-|           |         | spaces/  |
-|           |         | thewatc  |
-|           |         | hman/te  |
-|           |         | sts/inp  |
-|           |         | ut/test  |
-|           |         | _servic  |
-|           |         | es.yaml  |
-|           |         | :1       |
-| fake.se   | missing | ../../.  |
-| rvice2    |         | ./../..  |
-|           |         | /../../  |
-|           |         | ../work  |
-|           |         | spaces/  |
-|           |         | thewatc  |
-|           |         | hman/te  |
-|           |         | sts/inp  |
-|           |         | ut/test  |
-|           |         | _servic  |
-|           |         | es.yaml  |
-|           |         | :2       |
-| timer_.   | missing | ../../.  |
-| cancel    |         | ./../..  |
-|           |         | /../../  |
-|           |         | ../work  |
-|           |         | spaces/  |
-|           |         | thewatc  |
-|           |         | hman/te  |
-|           |         | sts/inp  |
-|           |         | ut/test  |
-|           |         | _servic  |
-|           |         | es.yaml  |
-|           |         | :3       |
+| fake.se   | missing | input/t  |
+| rvice1    |         | est_ser  |
+|           |         | vices.y  |
+|           |         | aml:1    |
+| fake.se   | missing | input/t  |
+| rvice2    |         | est_ser  |
+|           |         | vices.y  |
+|           |         | aml:2    |
+| timer_.   | missing | input/t  |
+| cancel    |         | est_ser  |
+|           |         | vices.y  |
+|           |         | aml:3    |
 +-----------+---------+----------+
 
 -== Missing 3 entity(ies) from 4 found in your config:
 +-----------+---------+----------+
 | Entity ID | State   | Location |
 +-----------+---------+----------+
-| sensor.   | unknown | ../../.  |
-| test1_u   |         | ./../..  |
-| nknown    |         | /../../  |
-|           |         | ../work  |
-|           |         | spaces/  |
-|           |         | thewatc  |
-|           |         | hman/te  |
-|           |         | sts/inp  |
-|           |         | ut/test  |
-|           |         | _sensor  |
-|           |         | s.yaml:  |
-|           |         | 1        |
-| sensor.   | missing | ../../.  |
-| test2_m   |         | ./../..  |
-| issing    |         | /../../  |
-|           |         | ../work  |
-|           |         | spaces/  |
-|           |         | thewatc  |
-|           |         | hman/te  |
-|           |         | sts/inp  |
-|           |         | ut/test  |
-|           |         | _sensor  |
-|           |         | s.yaml:  |
-|           |         | 2        |
-| sensor.   | unavail | ../../.  |
-| test3_u   |         | ./../..  |
-| navail    |         | /../../  |
-|           |         | ../work  |
-|           |         | spaces/  |
-|           |         | thewatc  |
-|           |         | hman/te  |
-|           |         | sts/inp  |
-|           |         | ut/test  |
-|           |         | _sensor  |
-|           |         | s.yaml:  |
-|           |         | 3        |
+| sensor.   | unknown | input/t  |
+| test1_u   |         | est_sen  |
+| nknown    |         | sors.ya  |
+|           |         | ml:1     |
+| sensor.   | missing | input/t  |
+| test2_m   |         | est_sen  |
+| issing    |         | sors.ya  |
+|           |         | ml:2     |
+| sensor.   | unavail | input/t  |
+| test3_u   |         | est_sen  |
+| navail    |         | sors.ya  |
+|           |         | ml:3     |
 +-----------+---------+----------+
 
 -== Report created on 01 Jan 1970 00:00:00

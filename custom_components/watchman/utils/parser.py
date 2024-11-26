@@ -48,7 +48,12 @@ async def parse_config(hass: HomeAssistant, reason=None):
     )
 
 
-async def parse(hass, folders, ignored_files, root=None):
+async def async_get_short_path(yaml_file, root):
+    """for unit tests mocking"""
+    return os.path.relpath(yaml_file, root)
+
+
+async def parse(hass, folders, ignored_files, root_path=None):
     """Parse a yaml or json file for entities/services"""
     parsed_files_count = 0
     entity_pattern = re.compile(
@@ -64,7 +69,7 @@ async def parse(hass, folders, ignored_files, root=None):
     parsed_files = []
     effectively_ignored_files = []
     async for yaml_file, ignored in async_get_next_file(folders, ignored_files):
-        short_path = os.path.relpath(yaml_file, root)
+        short_path = await async_get_short_path(yaml_file, root_path)
         if ignored:
             effectively_ignored_files.append(short_path)
             continue
