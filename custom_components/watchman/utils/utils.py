@@ -149,6 +149,8 @@ def get_entity_state(hass, entry, friendly_names=False):
                 state = "disabled"
     else:
         state = str(entity_state.state).replace("unavailable", "unavail")
+        if entry.split(".")[0] == "input_button" and state == "unknown":
+            state = "available"
 
     return state, name
 
