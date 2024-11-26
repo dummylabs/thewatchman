@@ -96,6 +96,8 @@ BUNDLED_IGNORED_ITEMS = [
     "timer.started",
     "timer.restarted",
     "timer.paused",
+    "event.*",
+    "date.*",
 ]
 
 # Platforms
