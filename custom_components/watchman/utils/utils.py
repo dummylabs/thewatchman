@@ -9,7 +9,7 @@ from typing import Any
 from types import MappingProxyType
 
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, split_entity_id
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 
@@ -149,7 +149,7 @@ def get_entity_state(hass, entry, friendly_names=False):
                 state = "disabled"
     else:
         state = str(entity_state.state).replace("unavailable", "unavail")
-        if entry.split(".")[0] == "input_button" and state == "unknown":
+        if split_entity_id(entry)[0] == "input_button" and state == "unknown":
             state = "available"
 
     return state, name
