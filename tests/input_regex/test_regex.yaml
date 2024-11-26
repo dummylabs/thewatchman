@@ -34,9 +34,11 @@ camera.test_entity
 climate.test_entity
 conversation.test_entity
 cover.test_entity
+# date will be ignored #171
 date.test_entity
 datetime.test_entity
 device_tracker.test_entity
+# events will be ignored #171
 event.test_entity
 fan.test_entity
 geo_location.test_entity
