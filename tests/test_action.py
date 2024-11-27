@@ -1,4 +1,4 @@
-"""Test regexp rules"""
+"""Test regexp rules."""
 
 import pytest
 import homeassistant.components.persistent_notification as pn
@@ -16,7 +16,7 @@ TEST_INCLUDED_FOLDERS = "/workspaces/thewatchman/tests/input_regex"
 
 
 async def test_notification_action(hass):
-    """Test calling notification action from within watchman.report"""
+    """Test calling notification action from within watchman.report."""
     notifications = pn._async_get_or_create_notifications(hass)
     assert len(notifications) == 0
 
@@ -45,7 +45,7 @@ async def test_notification_action(hass):
 
 
 async def test_notification_service(hass):
-    """Test calling notification action from within watchman.report"""
+    """Test calling notification action from within watchman.report."""
     notifications = pn._async_get_or_create_notifications(hass)
     assert len(notifications) == 0
 
@@ -70,11 +70,11 @@ async def test_notification_service(hass):
     notification = notifications[list(notifications)[0]]
     assert "report_header" in notification["message"]
 
-    ## todo: test for calling parse config from watchman.report service
+    # todo: test for calling parse config from watchman.report service
 
 
 async def test_notification_action_no_flag(hass):
-    """Test calling notification action from within watchman.report"""
+    """Test calling notification action from within watchman.report."""
     notifications = pn._async_get_or_create_notifications(hass)
     assert len(notifications) == 0
 
@@ -91,7 +91,7 @@ async def test_notification_action_no_flag(hass):
 
 
 async def test_notification_action_wrong_action(hass):
-    """Test calling notification action from within watchman.report"""
+    """Test calling notification action from within watchman.report."""
     notifications = pn._async_get_or_create_notifications(hass)
     assert len(notifications) == 0
 
@@ -112,7 +112,7 @@ async def test_notification_action_wrong_action(hass):
 
 
 async def test_notification_action_no_action(hass):
-    """Test calling notification action from within watchman.report"""
+    """Test calling notification action from within watchman.report."""
     notifications = pn._async_get_or_create_notifications(hass)
     assert len(notifications) == 0
 

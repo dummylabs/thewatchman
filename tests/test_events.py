@@ -1,4 +1,4 @@
-"""Test proper handling of entity state changes"""
+"""Test proper handling of entity state changes."""
 
 from homeassistant.core import callback
 from custom_components.watchman.const import (
@@ -10,11 +10,11 @@ from . import async_init_integration
 
 
 async def test_add_service(hass):
-    """test adding and removing service events"""
+    """Test adding and removing service events."""
 
     @callback
     def dummy_service_handler(event):  # pylint: disable=unused-argument
-        """dummy service handler."""
+        """Test service handler."""
 
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
@@ -32,7 +32,7 @@ async def test_add_service(hass):
 
 
 async def test_change_state(hass):
-    """test change entity state events"""
+    """Test change entity state events."""
 
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
@@ -47,7 +47,7 @@ async def test_change_state(hass):
 
 
 async def test_remove_entity(hass):
-    """test entity removal"""
+    """Test entity removal."""
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
     hass.states.async_set("sensor.test3_unavail", "unavailable")
@@ -60,7 +60,7 @@ async def test_remove_entity(hass):
 
 
 async def test_add_entity(hass):
-    """test entity addition"""
+    """Test entity addition."""
     await async_init_integration(hass)
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")

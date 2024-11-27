@@ -49,7 +49,7 @@ async def test_entry_migration_1to2(
     hass: HomeAssistant,
     entity_registry: er.EntityRegistry,
 ):
-    """test watchman initialization"""
+    """Test watchman initialization."""
     # await async_init_integration(hass)
 
     mock_config_entry = MockConfigEntry(

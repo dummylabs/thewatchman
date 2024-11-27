@@ -1,4 +1,4 @@
-"""Test regexp rules"""
+"""Test regexp rules."""
 
 from custom_components.watchman.const import (
     DOMAIN,
@@ -12,7 +12,7 @@ TEST_INCLUDED_FOLDERS = "/workspaces/thewatchman/tests/input_regex"
 
 
 async def test_regex(hass):
-    """test missing entities detection"""
+    """Test missing entities detection."""
     await async_init_integration(
         hass, add_params={CONF_INCLUDED_FOLDERS: TEST_INCLUDED_FOLDERS}
     )

@@ -1,13 +1,12 @@
 """Test setup process."""
 
-from homeassistant.setup import async_setup_component
 from homeassistant.core import HomeAssistant
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from collections.abc import Generator
 from typing import Any
 import pytest
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 
 from . import async_init_integration
 

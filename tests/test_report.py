@@ -1,4 +1,4 @@
-"""Test table reports"""
+"""Test table reports."""
 
 import os
 from unittest.mock import patch
@@ -17,17 +17,19 @@ TEST_INCLUDED_FOLDERS = ["/workspaces/thewatchman/tests/input"]
 
 
 async def mock_path(yaml_file, root):
+    """Mock function for get_report path."""
     return os.path.sep.join(yaml_file.split(os.path.sep)[-2:])
 
 
 async def mock_stats(hass, start_time):
+    """Mock function for report stats."""
     return ("01 Jan 1970 00:00:00", 0.01, 0.105, 0.0003)
 
 
 @patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
 @patch("custom_components.watchman.utils.parser.async_get_short_path", new=mock_path)
 async def test_table_default(hass, tmpdir):
-    """test table rendering"""
+    """Test table rendering."""
     base_report = "/workspaces/thewatchman/tests/input/test_report1.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report1.txt")
@@ -56,7 +58,7 @@ async def test_table_default(hass, tmpdir):
 @patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
 @patch("custom_components.watchman.utils.parser.async_get_short_path", new=mock_path)
 async def test_table_no_missing(hass, tmpdir):
-    """test table rendering with no missing elements"""
+    """Test table rendering with no missing elements."""
     base_report = "/workspaces/thewatchman/tests/input/test_report2.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report2.txt")
@@ -83,7 +85,7 @@ async def test_table_no_missing(hass, tmpdir):
 
 @patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
 async def test_table_all_clear(hass, tmpdir):
-    """test table rendering with no entries"""
+    """Test table rendering with no entries."""
     base_report = "/workspaces/thewatchman/tests/input/test_report3.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report3.txt")
@@ -112,7 +114,7 @@ async def test_table_all_clear(hass, tmpdir):
 @patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
 @patch("custom_components.watchman.utils.parser.async_get_short_path", new=mock_path)
 async def test_column_resize(hass, tmpdir):
-    """test table rendering with narrow columns"""
+    """Test table rendering with narrow columns."""
     base_report = "/workspaces/thewatchman/tests/input/test_report4.txt"
     # reports stored here: /tmp/pytest-of-root/pytest-current/<test_name>_pyloop_current
     test_report = tmpdir.join("test_report4.txt")

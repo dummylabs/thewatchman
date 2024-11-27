@@ -27,7 +27,7 @@ async def test_async_setup(hass: HomeAssistant):
 
 
 async def test_init(hass: HomeAssistant, entity_registry: er.EntityRegistry):
-    """test watchman initialization"""
+    """Test watchman initialization."""
     await async_init_integration(hass)
     assert "watchman_data" in hass.data
     assert hass.services.has_service(DOMAIN, "report")
@@ -37,7 +37,7 @@ async def test_init(hass: HomeAssistant, entity_registry: er.EntityRegistry):
 
 
 async def test_missing(hass):
-    """test missing entities detection"""
+    """Test missing entities detection."""
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
     hass.states.async_set("sensor.test3_unavail", "unavailable")
@@ -48,7 +48,7 @@ async def test_missing(hass):
 
 
 async def test_ignored_state(hass):
-    """test single ingnored state processing"""
+    """Test single ingnored state processing."""
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
     hass.states.async_set("sensor.test3_unavail", "unavailable")
@@ -59,7 +59,7 @@ async def test_ignored_state(hass):
 
 
 async def test_multiple_ignored_states(hass):
-    """test multiple ingnored states processing"""
+    """Test multiple ingnored states processing."""
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
     hass.states.async_set("sensor.test3_unavail", "unavailable")
@@ -72,7 +72,7 @@ async def test_multiple_ignored_states(hass):
 
 
 async def test_ignored_files(hass):
-    """test ignored files processing"""
+    """Test ignored files processing."""
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
     hass.states.async_set("sensor.test3_unavail", "unavailable")
@@ -85,7 +85,7 @@ async def test_ignored_files(hass):
 
 
 async def test_ignored_items(hass):
-    """test ignored files processing"""
+    """Test ignored items processing."""
     hass.states.async_set("sensor.test1_unknown", "unknown")
     hass.states.async_set("sensor.test2_missing", "missing")
     hass.states.async_set("sensor.test3_unavail", "unavailable")
