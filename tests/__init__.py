@@ -12,8 +12,9 @@ from custom_components.watchman.const import (
 )
 
 
-def from_list(l):
-    return ",".join(str(x) for x in l)
+def from_list(list):
+    """Support function."""
+    return ",".join(str(x) for x in list)
 
 
 async def async_init_integration(
@@ -43,7 +44,7 @@ async def async_init_integration(
 
 
 def assert_files_equal(test, ref):
-    """compare two files line by line"""
+    """Compare two files line by line."""
     test_array = open(test, encoding="utf-8").readlines()
     for idx, row in enumerate(open(ref, encoding="utf-8")):
         assert test_array[idx].strip() == row.strip()

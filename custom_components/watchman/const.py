@@ -1,4 +1,4 @@
-"definition of constants"
+"""Definition of constants."""
 
 from homeassistant.const import Platform
 

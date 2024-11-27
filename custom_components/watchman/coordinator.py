@@ -1,4 +1,4 @@
-"""Data update coordinator for Watchman"""
+"""Data update coordinator for Watchman."""
 
 import time
 import asyncio
@@ -67,7 +67,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             # parse_config will be scheduled once HA is fully loaded
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch Watchman data"""
+        """Fetch Watchman data."""
 
         if not parser_lock.locked():
             async with parser_lock:

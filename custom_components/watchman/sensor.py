@@ -1,4 +1,4 @@
-"""Watchman sensors definition"""
+"""Watchman sensors definition."""
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -13,7 +13,6 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
 from homeassistant.const import MATCH_ALL
 from .entity import WatchmanEntity
-from .utils.logger import _LOGGER
 
 from .const import (
     COORD_DATA_ENTITY_ATTRS,
@@ -30,7 +29,7 @@ from .const import (
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
-    """Setup sensor platform."""
+    """Set up sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     # if sensor.watchman_missing_sensor exists in entity registry - this is an existing
     # user and we don't want to break compatibility by changing sensor name to actions
@@ -71,7 +70,7 @@ async def async_setup_entry(hass, entry, async_add_devices):
 
 
 class LastUpdateSensor(WatchmanEntity, SensorEntity):
-    """Timestamp sensor for last watchman update time"""
+    """Timestamp sensor for last watchman update time."""
 
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"
@@ -99,7 +98,7 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
 
 
 class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
-    """Number of missing entities from watchman report"""
+    """Number of missing entities from watchman report."""
 
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"
@@ -140,7 +139,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
 
 
 class MissingServicesSensor(WatchmanEntity, SensorEntity):
-    """Number of missing services from watchman report"""
+    """Number of missing services from watchman report."""
 
     _attr_should_poll = False
     _attr_icon = "mdi:shield-half-full"

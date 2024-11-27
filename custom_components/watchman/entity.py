@@ -1,6 +1,5 @@
-"""Represents Watchman service in the device registry of Home Assistant"""
+"""Represents Watchman service in the device registry of Home Assistant."""
 
-import logging
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import (
@@ -8,7 +7,6 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 from .const import DOMAIN, VERSION
-from .utils.utils import _LOGGER
 
 
 class WatchmanEntity(CoordinatorEntity):

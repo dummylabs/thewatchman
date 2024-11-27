@@ -1,4 +1,4 @@
-"""Miscellaneous support functions for watchman"""
+"""Miscellaneous support functions for Watchman."""
 
 import anyio
 import re
@@ -38,6 +38,7 @@ from ..const import (
 def get_val(
     options: MappingProxyType[str, Any], key: str, section: str | None = None
 ) -> Any:
+    """Return value of a key."""
     val = None
     if section:
         try:
@@ -53,23 +54,26 @@ def get_val(
 
 
 def to_lists(options, key, section=None):
+    """Transform configuration value to the list of strings."""
     val = get_val(options, key, section)
     return [x.strip() for x in val.split(",") if x.strip()]
 
 
 def to_listi(options, key, section=None):
+    """Transform configuration value to the list of integers."""
     val = get_val(options, key, section)
     return [int(x) for x in val.split(",") if x.strip()]
 
 
 def get_entry(hass: HomeAssistant) -> Any:
+    """Return Watchman's ConfigEntry instance."""
     return hass.config_entries.async_get_entry(
         hass.data[DOMAIN_DATA]["config_entry_id"]
     )
 
 
 def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any:
-    """get configuration value from ConfigEntry"""
+    """Get configuration value from ConfigEntry."""
     assert hass.data.get(DOMAIN_DATA)
     entry = hass.config_entries.async_get_entry(
         hass.data[DOMAIN_DATA]["config_entry_id"]
@@ -94,7 +98,7 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
 
 
 async def async_get_report_path(hass, path):
-    """if path not specified, create report in config directory with default filename"""
+    """Provide path for the report."""
     out_path = path
     if not path:
         out_path = hass.config.path(DEFAULT_REPORT_FILENAME)
@@ -108,7 +112,7 @@ async def async_get_report_path(hass, path):
 
 
 async def async_get_next_file(folder_tuples, ignored_files):
-    """Returns next file for scan"""
+    """Return next file for scan."""
     if not ignored_files:
         ignored_files = ""
     else:
@@ -126,7 +130,7 @@ async def async_get_next_file(folder_tuples, ignored_files):
 
 
 def is_action(hass, entry):
-    """check whether config entry is an action"""
+    """Check whether config entry is an action."""
     if not isinstance(entry, str):
         return False
     domain, service = entry.split(".")[0], ".".join(entry.split(".")[1:])
@@ -134,7 +138,7 @@ def is_action(hass, entry):
 
 
 def get_entity_state(hass, entry, friendly_names=False):
-    """returns entity state or missing if entity does not extst"""
+    """Return entity state or missing if entity does not extst."""
     entity_state = hass.states.get(entry)
     entity_registry = er.async_get(hass)
     name = None
@@ -156,7 +160,7 @@ def get_entity_state(hass, entry, friendly_names=False):
 
 
 def check_services(hass):
-    """check if entries from config file are services"""
+    """Check if entries from config file are services."""
     services_missing = {}
     _LOGGER.debug("::check_services:: Triaging list of found actions")
     if "missing" in get_config(hass, CONF_IGNORED_STATES, []):
@@ -178,7 +182,7 @@ def check_services(hass):
 
 
 def check_entitites(hass):
-    """check if entries from config file are entities with an active state"""
+    """Check if entries from config file are entities with an active state."""
     _LOGGER.debug("::check_entities:: Triaging list of found entities")
 
     ignored_states = [

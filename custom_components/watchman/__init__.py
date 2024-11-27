@@ -1,4 +1,4 @@
-"""https://github.com/dummylabs/thewatchman§"""
+"""The Watchman integration."""
 
 from datetime import timedelta
 import asyncio
@@ -101,13 +101,15 @@ parser_lock = asyncio.Lock()
 
 @dataclass
 class WMData:
+    """Watchman runtime data."""
+
     coordinator: WatchmanCoordinator
     force_parsing: bool
     parse_reason: str | None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
-    """Set up this integration using UI"""
+    """Set up this integration using UI."""
     _LOGGER.debug(
         f"::async_setup_entry:: Integration setup in progress. Home assistant path: {hass.config.path("")}"
     )
@@ -137,12 +139,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
 
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
-    """Reload integration when options changed"""
+    """Reload integration when options changed."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disable=unused-argument
-    """Handle integration unload"""
+    """Handle integration unload."""
     for cancel_handle in hass.data[DOMAIN].get(HASS_DATA_CANCEL_HANDLERS, []):
         if cancel_handle:
             cancel_handle()
@@ -168,10 +170,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
 
 
 async def add_services(hass: HomeAssistant):
-    """adds report service"""
+    """Add report service."""
 
     async def async_handle_report(call):
-        """Handle the action call"""
+        """Handle the action call."""
         path = get_config(hass, CONF_REPORT_PATH)
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
         create_file = call.data.get(CONF_CREATE_FILE, True)
@@ -219,16 +221,16 @@ async def add_services(hass: HomeAssistant):
 
 
 async def add_event_handlers(hass: HomeAssistant):
-    """add event handlers"""
+    """Add event handlers."""
 
     async def async_schedule_refresh_states(hass, delay):
-        """schedule refresh of the sensors state"""
+        """Schedule refresh of the sensors state."""
         now = dt_util.utcnow()
         next_interval = now + timedelta(seconds=delay)
         async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
 
     async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
-        """refresh sensors state"""
+        """Refresh sensors state."""
         hass.data.get(DOMAIN_DATA)
         entry = get_entry(hass)
         entry.runtime_data.force_parsing = True
@@ -267,10 +269,10 @@ async def add_event_handlers(hass: HomeAssistant):
             await coordinator.async_refresh()
 
     async def async_on_state_changed(event):
-        """refresh monitored entities on state change"""
+        """Refresh monitored entities on state change."""
 
         def state_or_missing(state_id):
-            """return missing state if entity not found"""
+            """Return missing state if entity not found."""
             return "missing" if not event.data[state_id] else event.data[state_id].state
 
         if event.data["entity_id"] in hass.data[DOMAIN].get(
@@ -311,6 +313,7 @@ async def add_event_handlers(hass: HomeAssistant):
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
+    """Migrate ConfigEntry persistent data to a new version."""
     if config_entry.version > 1:
         # This means the user has downgraded from a future version
         _LOGGER.error(

@@ -1,3 +1,5 @@
+"""Reporting function of Watchman."""
+
 from datetime import datetime
 from typing import Any
 import pytz
@@ -30,7 +32,7 @@ from ..const import (
 
 
 async def parsing_stats(hass, start_time):
-    """separate func for test mocking"""
+    """Separate func for test mocking."""
 
     def get_timezone(hass):
         return pytz.timezone(hass.config.time_zone)
@@ -45,7 +47,7 @@ async def parsing_stats(hass, start_time):
 
 
 async def report(hass, render, chunk_size):
-    """generates watchman report either as a table or as a list"""
+    """Generate Watchman report either as a table or as a list."""
     if DOMAIN not in hass.data:
         raise HomeAssistantError("No data for report, refresh required.")
 
@@ -108,7 +110,7 @@ async def report(hass, render, chunk_size):
 
 
 def table_renderer(hass, entry_type):
-    """Render ASCII tables in the report"""
+    """Render ASCII tables in the report."""
     table = PrettyTable()
     columns_width = get_config(hass, CONF_COLUMNS_WIDTH, None)
     columns_width = get_columns_width(columns_width)
@@ -149,7 +151,7 @@ def table_renderer(hass, entry_type):
 
 
 def text_renderer(hass, entry_type):
-    """Render plain lists in the report"""
+    """Render plain lists in the report."""
     result = ""
     if entry_type == REPORT_ENTRY_TYPE_SERVICE:
         services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
@@ -172,7 +174,7 @@ def text_renderer(hass, entry_type):
 
 
 def fill(data, width, extra=None):
-    """arrange data by table column width"""
+    """Arrange data by table column width."""
     if data and isinstance(data, dict):
         key, val = next(iter(data.items()))
         out = f"{key}:{','.join([str(v) for v in val])}"
@@ -185,7 +187,7 @@ def fill(data, width, extra=None):
 
 
 def get_columns_width(user_width):
-    """define width of the report columns"""
+    """Define width of the report columns."""
     default_width = [30, 7, 60]
     if not user_width:
         return default_width
@@ -200,7 +202,7 @@ def get_columns_width(user_width):
 
 
 async def async_report_to_file(hass, path):
-    """save report to a file"""
+    """Save report to a file."""
     report_chunks = await report(hass, table_renderer, chunk_size=0)
     await get_entry(hass).runtime_data.coordinator.async_refresh()
 
@@ -216,7 +218,7 @@ async def async_report_to_file(hass, path):
 async def async_report_to_notification(
     hass: HomeAssistant, action_str: str, service_data: dict[str, Any], chunk_size: int
 ):
-    """send report via notification action"""
+    """Send report via notification action."""
 
     if not action_str:
         raise HomeAssistantError(f"Missing `{CONF_ACTION_NAME}` parameter.")

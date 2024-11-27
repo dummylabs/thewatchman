@@ -1,3 +1,5 @@
+"""Watchman parser funcions."""
+
 import fnmatch
 import os
 import re
@@ -26,7 +28,7 @@ from ..const import (
 
 
 async def parse_config(hass: HomeAssistant, reason=None):
-    """parse home assistant configuration files"""
+    """Parse home assistant configuration files."""
 
     start_time = time.time()
 
@@ -50,16 +52,16 @@ async def parse_config(hass: HomeAssistant, reason=None):
 
 
 async def async_get_short_path(yaml_file, root):
-    """for unit tests mocking"""
+    """Provide short path for unit test mocking."""
     return os.path.relpath(yaml_file, root)
 
 
 async def parse(hass, folders, ignored_files, root_path=None):
-    """Parse a yaml or json file for entities/services"""
+    """Parse a yaml or json file for entities/services."""
     parsed_files_count = 0
     entity_pattern = re.compile(
         r"(?:(?<=\s)|(?<=^)|(?<=\")|(?<=\'))([A-Za-z_0-9]*\s*:)?(?:\s*)?(?:states.)?"
-        rf"(({ "|".join([*Platform, *DEFAULT_HA_DOMAINS]) })\.[A-Za-z_*0-9]+)"
+        rf"(({"|".join([*Platform, *DEFAULT_HA_DOMAINS])})\.[A-Za-z_*0-9]+)"
     )
     service_pattern = re.compile(
         r"(?:service|action):\s*([A-Za-z_0-9]*\.[A-Za-z_0-9]+)"
@@ -140,7 +142,7 @@ async def parse(hass, folders, ignored_files, root_path=None):
 
 
 def add_entry(_list, entry, yaml_file, lineno):
-    """Add entry to list of missing entities/services with line number information"""
+    """Add entry to list of missing entities/services with line number information."""
     if entry in _list:
         if yaml_file in _list[entry]:
             _list[entry].get(yaml_file, []).append(lineno)
@@ -149,7 +151,7 @@ def add_entry(_list, entry, yaml_file, lineno):
 
 
 def get_included_folders(hass):
-    """gather the list of folders to parse"""
+    """Gather the list of folders to parse."""
     folders = []
 
     for fld in get_config(hass, CONF_INCLUDED_FOLDERS, None):

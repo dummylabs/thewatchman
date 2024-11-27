@@ -1,4 +1,4 @@
-"ConfigFlow definition for watchman"
+"""ConfigFlow definition for Watchman."""
 
 import os
 from types import MappingProxyType
@@ -142,14 +142,13 @@ async def _async_validate_input(
 
 
 class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
-    """
-    Config flow used to set up new instance of integration
-    """
+    """Config flow used to set up new instance of integration."""
 
     VERSION = CONFIG_ENTRY_VERSION
     MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+        """Create new Watchman entry via UI."""
         _LOGGER.debug("::async_step_user::")
         options = DEFAULT_OPTIONS
         options[CONF_SECTION_APPEARANCE_LOCATION][
@@ -167,15 +166,15 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
 
 class OptionsFlowHandler(OptionsFlow):
-    """
-    Options flow used to change configuration (options) of existing instance of integration
-    """
+    """Options flow used to change configuration (options) of existing instance of integration."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
+        """Handle UI options dialog."""
         _LOGGER.debug("::OptionsFlowHandler.__init::")
         self.config_entry = config_entry
 
     async def async_get_key_in_section(self, data, key, section=None):
+        """Return value of a key in ConfigEntry.data."""
         if section:
             if section in data:
                 return section[data].get(key, None)
@@ -184,8 +183,9 @@ class OptionsFlowHandler(OptionsFlow):
         return None
 
     async def async_step_init(self, user_input=None) -> ConfigFlowResult:
-        """
-        Manage the options form. This method is invoked twice:
+        """Manage the options form.
+
+        This method is invoked twice.
         1. To populate form with default values (user_input=None)
         2. To validate values entered by user (user_imput = {user_data})
            If no errors found, it should return creates_entry
