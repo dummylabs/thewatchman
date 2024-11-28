@@ -28,7 +28,6 @@ from ..const import (
     CONF_IGNORED_STATES,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
-    DEFAULT_REPORT_FILENAME,
     HASS_DATA_PARSED_ENTITY_LIST,
     HASS_DATA_PARSED_SERVICE_LIST,
     DEFAULT_OPTIONS,
@@ -97,22 +96,15 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
     assert False, "Unknown key {}".format(key)
 
 
-async def async_get_report_path(hass, path):
+async def async_is_valid_path(path):
     """Provide path for the report."""
-    out_path = path
-    if not path:
-        out_path = hass.config.path(DEFAULT_REPORT_FILENAME)
-    folder, _ = os.path.split(out_path)
-    if not await anyio.Path(folder).exists():
-        raise HomeAssistantError(f"Incorrect report_path: {out_path}.")
-    _LOGGER.debug(
-        "::async_get_report_path:: input path [%s], output path [%s]", path, out_path
-    )
-    return out_path
+    folder, f_name = os.path.split(path)
+    _LOGGER.debug(f"@@@[{folder}] [{f_name}] [{path}]")
+    return folder.strip() and f_name.strip() and await anyio.Path(folder).exists()
 
 
 async def async_get_next_file(folder_tuples, ignored_files):
-    """Return next file for scan."""
+    """Return next file from scan queue."""
     if not ignored_files:
         ignored_files = ""
     else:
@@ -138,7 +130,7 @@ def is_action(hass, entry):
 
 
 def get_entity_state(hass, entry, friendly_names=False):
-    """Return entity state or missing if entity does not extst."""
+    """Return entity state or 'missing' if entity does not extst."""
     entity_state = hass.states.get(entry)
     entity_registry = er.async_get(hass)
     name = None
@@ -159,8 +151,8 @@ def get_entity_state(hass, entry, friendly_names=False):
     return state, name
 
 
-def check_services(hass):
-    """Check if entries from config file are services."""
+def renew_missing_actions_list(hass):
+    """Update list of missing actions when an action gets registered or removed."""
     services_missing = {}
     _LOGGER.debug("::check_services:: Triaging list of found actions")
     if "missing" in get_config(hass, CONF_IGNORED_STATES, []):
@@ -181,8 +173,8 @@ def check_services(hass):
     return services_missing
 
 
-def check_entitites(hass):
-    """Check if entries from config file are entities with an active state."""
+def renew_missing_entities_list(hass):
+    """Update list of missing entities when a service from a config file changed its state."""
     _LOGGER.debug("::check_entities:: Triaging list of found entities")
 
     ignored_states = [

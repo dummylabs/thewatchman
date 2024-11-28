@@ -1,6 +1,5 @@
 """ConfigFlow definition for Watchman."""
 
-import os
 from types import MappingProxyType
 from typing import Any, Dict
 from homeassistant.config_entries import (
@@ -14,13 +13,14 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
 import anyio
-from .utils.utils import async_get_report_path, get_val
+from .utils.utils import async_is_valid_path, get_val
 
 from .utils.logger import _LOGGER
 
 from .const import (
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
+    DEFAULT_REPORT_FILENAME,
     DOMAIN,
     CONF_IGNORED_FILES,
     CONF_HEADER,
@@ -92,10 +92,11 @@ def _get_data_schema() -> vol.Schema:
 
 async def _async_validate_input(
     hass: HomeAssistant,
-    user_input: dict[str, Any] | None = None,
+    user_input: dict[str, Any],
 ) -> tuple[MappingProxyType[str, str], MappingProxyType[str, str]]:
     errors: Dict[str, str] = {}
     placeholders: Dict[str, str] = {}
+
     # check user supplied folders
     if CONF_INCLUDED_FOLDERS in user_input:
         included_folders_list = [
@@ -121,19 +122,13 @@ async def _async_validate_input(
         except (ValueError, vol.Invalid):
             errors["base"] = "invalid_columns_width"
 
-    report_path = get_val(
-        user_input, CONF_REPORT_PATH, CONF_SECTION_APPEARANCE_LOCATION
-    )
-    if report_path.strip():
-        folder, f_name = os.path.split(report_path)
-        if (
-            not folder.strip()
-            or not f_name.strip()
-            or not await anyio.Path(folder).exists()
-        ):
+    if (
+        CONF_SECTION_APPEARANCE_LOCATION in user_input
+        and CONF_REPORT_PATH in user_input[CONF_SECTION_APPEARANCE_LOCATION]
+    ):
+        report_path = user_input[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH]
+        if not await async_is_valid_path(report_path):
             errors["base"] = "invalid_report_path"
-    else:
-        errors["base"] = "invalid_report_path"
 
     return (
         MappingProxyType[str, str](errors),
@@ -151,9 +146,9 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Create new Watchman entry via UI."""
         _LOGGER.debug("::async_step_user::")
         options = DEFAULT_OPTIONS
-        options[CONF_SECTION_APPEARANCE_LOCATION][
-            CONF_REPORT_PATH
-        ] = await async_get_report_path(self.hass, None)
+        options[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
+            self.hass.config.path(DEFAULT_REPORT_FILENAME)
+        )
         options[CONF_INCLUDED_FOLDERS] = self.hass.config.path()
         options[CONF_IGNORED_FILES] = DEFAULT_OPTIONS[CONF_IGNORED_FILES]
         return self.async_create_entry(title="Watchman", data=options)

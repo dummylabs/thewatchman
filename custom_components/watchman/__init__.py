@@ -29,7 +29,6 @@ from .utils.logger import _LOGGER
 from .utils.report import async_report_to_file, async_report_to_notification
 
 from .utils.utils import (
-    async_get_report_path,
     get_entry,
     get_config,
 )
@@ -41,6 +40,7 @@ from .const import (
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DEFAULT_OPTIONS,
+    DEFAULT_REPORT_FILENAME,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_HEADER,
@@ -356,7 +356,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
 
         data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
             config_entry.options.get(
-                CONF_REPORT_PATH, await async_get_report_path(hass, None)
+                CONF_REPORT_PATH, hass.config.path(DEFAULT_REPORT_FILENAME)
             )
         )
 
