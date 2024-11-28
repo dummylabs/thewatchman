@@ -23,8 +23,8 @@ from .const import (
     HASS_DATA_PARSED_SERVICE_LIST,
 )
 from .utils.utils import (
-    check_entitites,
-    check_services,
+    renew_missing_entities_list,
+    renew_missing_actions_list,
     get_entity_state,
     get_entry,
 )
@@ -67,7 +67,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             # parse_config will be scheduled once HA is fully loaded
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch Watchman data."""
+        """Update Watchman sensors.
+
+        Update will trigger parsing of configuration files if entry.runtime_data.force_parsing is set
+        """
 
         if not parser_lock.locked():
             async with parser_lock:
@@ -83,8 +86,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                         )
                         entry.runtime_data.force_parsing = False
                     start_time = time.time()
-                    services_missing = check_services(self.hass)
-                    entities_missing = check_entitites(self.hass)
+                    services_missing = renew_missing_actions_list(self.hass)
+                    entities_missing = renew_missing_entities_list(self.hass)
                     self.hass.data[DOMAIN][HASS_DATA_CHECK_DURATION] = (
                         time.time() - start_time
                     )
