@@ -1,7 +1,6 @@
 """The Watchman integration."""
 
 from datetime import timedelta
-import asyncio
 from dataclasses import dataclass
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_point_in_utc_time
@@ -22,11 +21,9 @@ from homeassistant.components.homeassistant import (
     SERVICE_RELOAD_ALL,
 )
 
-from custom_components.watchman.services import WatchmanServicesSetup
-
+from .services import WatchmanServicesSetup
 from .coordinator import WatchmanCoordinator
 from .utils.logger import _LOGGER
-
 from .utils.utils import (
     get_entry,
     get_config,
@@ -66,7 +63,6 @@ from .const import (
 
 
 type WMConfigEntry = ConfigEntry[WMData]
-parser_lock = asyncio.Lock()
 
 
 @dataclass
@@ -85,7 +81,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     )
 
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title)
-    # parsing shouldn't be done if HA is not running yet
+    # parsing shouldn't occur if HA is not running yet
     config_entry.runtime_data = WMData(
         coordinator, force_parsing=False, parse_reason=None
     )
@@ -104,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
         raise ConfigEntryNotReady
 
     if not hass.is_running:
-        # first run, home assistant is loading
+        # home assistant is not yet loaded
         # parse_config will be scheduled once HA is fully loaded
         _LOGGER.info("Watchman started [%s]", VERSION)
     return True
