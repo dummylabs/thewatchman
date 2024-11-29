@@ -96,11 +96,15 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
     assert False, "Unknown key {}".format(key)
 
 
-async def async_is_valid_path(path):
-    """Provide path for the report."""
+async def async_is_valid_path(path) -> bool:
+    """Validate the report path."""
     folder, f_name = os.path.split(path)
     _LOGGER.debug(f"@@@[{folder}] [{f_name}] [{path}]")
-    return folder.strip() and f_name.strip() and await anyio.Path(folder).exists()
+    if is_valid := (
+        folder.strip() and f_name.strip() and await anyio.Path(folder).exists()
+    ):
+        is_valid = not await anyio.Path(path).is_dir()
+    return is_valid
 
 
 async def async_get_next_file(folder_tuples, ignored_files):

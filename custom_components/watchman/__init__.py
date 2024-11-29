@@ -3,11 +3,9 @@
 from datetime import timedelta
 import asyncio
 from dataclasses import dataclass
-import voluptuous as vol
-from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_point_in_utc_time
-from homeassistant.exceptions import HomeAssistantError
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -24,43 +22,34 @@ from homeassistant.components.homeassistant import (
     SERVICE_RELOAD_ALL,
 )
 
+from custom_components.watchman.services import WatchmanServicesSetup
+
 from .coordinator import WatchmanCoordinator
 from .utils.logger import _LOGGER
-from .utils.report import async_report_to_file, async_report_to_notification
 
 from .utils.utils import (
     get_entry,
     get_config,
 )
 
-from .utils.parser import parse_config
 
 from .const import (
-    CONF_ACTION_NAME,
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DEFAULT_OPTIONS,
     DEFAULT_REPORT_FILENAME,
     DOMAIN,
     DOMAIN_DATA,
-    DEFAULT_HEADER,
     CONF_IGNORED_FILES,
     CONF_HEADER,
     CONF_REPORT_PATH,
     CONF_IGNORED_ITEMS,
-    CONF_SERVICE_NAME,
-    CONF_SERVICE_DATA,
     CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_STATES,
-    CONF_CHUNK_SIZE,
-    CONF_CREATE_FILE,
-    CONF_SEND_NOTIFICATION,
-    CONF_PARSE_CONFIG,
     CONF_COLUMNS_WIDTH,
     CONF_STARTUP_DELAY,
     CONF_FRIENDLY_NAMES,
-    CONF_ALLOWED_SERVICE_PARAMS,
     CONF_SECTION_APPEARANCE_LOCATION,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
@@ -74,26 +63,6 @@ from .const import (
     VERSION,
 )
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Optional(CONF_REPORT_PATH): cv.string,
-                vol.Optional(CONF_IGNORED_FILES): cv.ensure_list,
-                vol.Optional(CONF_IGNORED_ITEMS): cv.ensure_list,
-                vol.Optional(CONF_HEADER, default=DEFAULT_HEADER): cv.string,
-                vol.Optional(CONF_SERVICE_DATA): vol.Schema({}, extra=vol.ALLOW_EXTRA),
-                vol.Optional(CONF_INCLUDED_FOLDERS): cv.ensure_list,
-                vol.Optional(CONF_CHECK_LOVELACE, default=False): cv.boolean,
-                vol.Optional(CONF_IGNORED_STATES): MONITORED_STATES,
-                vol.Optional(CONF_COLUMNS_WIDTH): cv.ensure_list,
-                vol.Optional(CONF_STARTUP_DELAY, default=0): cv.positive_int,
-                vol.Optional(CONF_FRIENDLY_NAMES, default=False): cv.boolean,
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
 
 type WMConfigEntry = ConfigEntry[WMData]
 parser_lock = asyncio.Lock()
@@ -108,23 +77,25 @@ class WMData:
     parse_reason: str | None
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: WMConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     """Set up this integration using UI."""
     _LOGGER.debug(
         f"::async_setup_entry:: Integration setup in progress. Home assistant path: {hass.config.path("")}"
     )
 
-    coordinator = WatchmanCoordinator(hass, _LOGGER, name=entry.title)
+    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title)
     # parsing shouldn't be done if HA is not running yet
-    entry.runtime_data = WMData(coordinator, force_parsing=False, parse_reason=None)
+    config_entry.runtime_data = WMData(
+        coordinator, force_parsing=False, parse_reason=None
+    )
 
-    hass.data[DOMAIN_DATA] = {"config_entry_id": entry.entry_id}
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
+    hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
     hass.data[DOMAIN][HASS_DATA_COORDINATOR] = coordinator
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
-    entry.async_on_unload(entry.add_update_listener(update_listener))
-    await add_services(hass)
+    config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+    WatchmanServicesSetup(hass, config_entry)
     await add_event_handlers(hass)
 
     await coordinator.async_config_entry_first_refresh()
@@ -169,62 +140,11 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
     return unload_ok
 
 
-async def add_services(hass: HomeAssistant):
-    """Add report service."""
-
-    async def async_handle_report(call):
-        """Handle the action call."""
-        path = get_config(hass, CONF_REPORT_PATH)
-        send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
-        create_file = call.data.get(CONF_CREATE_FILE, True)
-        action_data = call.data.get(CONF_SERVICE_DATA, None)
-        chunk_size = call.data.get(CONF_CHUNK_SIZE, 0)
-
-        # validate action params
-        for param in call.data:
-            if param not in CONF_ALLOWED_SERVICE_PARAMS:
-                raise HomeAssistantError(f"Unknown action parameter: `{param}`.")
-
-        action_name = call.data.get(
-            CONF_ACTION_NAME, call.data.get(CONF_SERVICE_NAME, None)
-        )
-
-        if not (action_name or create_file):
-            raise HomeAssistantError(
-                f"Either [{CONF_ACTION_NAME}] or [{CONF_CREATE_FILE}] should be specified."
-            )
-
-        if action_data and not action_name:
-            raise HomeAssistantError(
-                f"Missing [{CONF_ACTION_NAME}] parameter. The [{CONF_SERVICE_DATA}] parameter can only be used "
-                f"in conjunction with [{CONF_ACTION_NAME}] parameter."
-            )
-
-        if call.data.get(CONF_PARSE_CONFIG, False):
-            await parse_config(hass, reason="service call")
-            entry = get_entry(hass)
-            await entry.runtime_data.coordinator.async_refresh()
-
-        # call notification action even when send notification = False
-        if send_notification or action_name:
-            await async_report_to_notification(
-                hass, action_name, action_data, chunk_size
-            )
-
-        if create_file:
-            try:
-                await async_report_to_file(hass, path)
-            except OSError as exception:
-                raise HomeAssistantError(f"Unable to write report: {exception}")
-
-    hass.services.async_register(DOMAIN, "report", async_handle_report)
-
-
 async def add_event_handlers(hass: HomeAssistant):
     """Add event handlers."""
 
     async def async_schedule_refresh_states(hass, delay):
-        """Schedule refresh of the sensors state."""
+        """Schedule delayed refresh of the sensors state."""
         now = dt_util.utcnow()
         next_interval = now + timedelta(seconds=delay)
         async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
