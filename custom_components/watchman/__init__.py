@@ -57,6 +57,7 @@ from .const import (
     HASS_DATA_COORDINATOR,
     HASS_DATA_PARSED_ENTITY_LIST,
     HASS_DATA_PARSED_SERVICE_LIST,
+    REPORT_SERVICE_NAME,
     TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
     PLATFORMS,
@@ -120,8 +121,8 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
         if cancel_handle:
             cancel_handle()
 
-    if hass.services.has_service(DOMAIN, "report"):
-        hass.services.async_remove(DOMAIN, "report")
+    if hass.services.has_service(DOMAIN, REPORT_SERVICE_NAME):
+        hass.services.async_remove(DOMAIN, REPORT_SERVICE_NAME)
 
     unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
