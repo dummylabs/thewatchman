@@ -14,6 +14,7 @@ DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
 
 PACKAGE_NAME = "custom_components.watchman"
+REPORT_SERVICE_NAME = "report"
 
 HASS_DATA_PARSED_ENTITY_LIST = "entity_list"
 HASS_DATA_PARSED_SERVICE_LIST = "service_list"
