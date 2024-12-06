@@ -157,16 +157,16 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
 
 class OptionsFlowHandler(OptionsFlow):
     """Options flow used to change configuration (options) of existing instance of integration."""
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Handle UI options dialog."""
-        _LOGGER.debug("::OptionsFlowHandler.__init::")
-        self.config_entry = config_entry
+    # def __init__(self, config_entry: ConfigEntry) -> None:
+    #    """Handle UI options dialog."""
+    # _LOGGER.debug("::OptionsFlowHandler.__init::")
+    # self.config_entry = config_entry
 
     async def async_get_key_in_section(self, data, key, section=None):
         """Return value of a key in ConfigEntry.data."""
