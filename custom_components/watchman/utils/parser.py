@@ -143,11 +143,7 @@ async def parse(hass, folders, ignored_files, root_path=None):
 
 def add_entry(_list, entry, yaml_file, lineno):
     """Add entry to list of missing entities/services with line number information."""
-    if entry in _list:
-        if yaml_file in _list[entry]:
-            _list[entry].get(yaml_file, []).append(lineno)
-    else:
-        _list[entry] = {yaml_file: [lineno]}
+    _list.setdefault(entry, {}).setdefault(yaml_file, []).append(lineno)
 
 
 def get_included_folders(hass):
