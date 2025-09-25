@@ -46,6 +46,7 @@ CONF_SERVICE_DATA = "data"
 CONF_SERVICE_DATA2 = "service_data"
 CONF_INCLUDED_FOLDERS = "included_folders"
 CONF_CHECK_LOVELACE = "check_lovelace"
+CONF_EXCLUDE_DISABLED_AUTOMATION = "exclude_disabled_automation"
 CONF_IGNORED_STATES = "ignored_states"
 CONF_CHUNK_SIZE = "chunk_size"
 CONF_CREATE_FILE = "create_file"
@@ -108,6 +109,7 @@ DEFAULT_OPTIONS = {
     CONF_INCLUDED_FOLDERS: "/config",
     CONF_IGNORED_ITEMS: "",
     CONF_IGNORED_STATES: [],
+    CONF_EXCLUDE_DISABLED_AUTOMATION: False,
     CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*",
     CONF_CHECK_LOVELACE: False,
     CONF_STARTUP_DELAY: 0,

@@ -20,6 +20,7 @@
                     "included_folders": "Priečinky na sledovanie:",
                     "ignored_items": "Ignorované entity a akcie:",
                     "ignored_states": "Vylúčiť entity s nasledujúcimi stavmi z prehľadu:",
+                    "exclude_disabled_automation": "Vylúčiť entity použité iba v deaktivovaných automatizáciách:",
                     "ignored_files": "Ignorované súbory (oddelené čiarkami):",
                     "check_lovelace": "Analyzovať ovládané UI ovládacie panely",
                     "startup_delay": "Oneskorenie spustenia pre inicializáciu senzorov watchman"

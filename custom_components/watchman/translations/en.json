@@ -20,6 +20,7 @@
                     "included_folders": "Folders to watch:",
                     "ignored_items": "Ignored entities and actions:",
                     "ignored_states": "Exclude entities with the states below from the report:",
+                    "exclude_disabled_automation": "Exclude entities used only by disabled automations:",
                     "ignored_files": "Ignored files (comma-separated):",
                     "check_lovelace": "Parse UI controlled dashboards",
                     "startup_delay": "Startup delay for watchman sensors initialization"
