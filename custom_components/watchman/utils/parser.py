@@ -19,6 +19,7 @@ from ..const import (
     DEFAULT_HA_DOMAINS,
     DOMAIN,
     HASS_DATA_FILES_IGNORED,
+    HASS_DATA_ENTITY_TO_AUTOMATIONS,
     HASS_DATA_FILES_PARSED,
     HASS_DATA_PARSE_DURATION,
     HASS_DATA_PARSED_ENTITY_LIST,
@@ -38,13 +39,14 @@ async def parse_config(hass: HomeAssistant, reason=None):
         f"::parse_config:: called due to {reason} IGNORED_FILES={ignored_files}"
     )
 
-    parsed_entity_list, parsed_service_list, files_parsed, files_ignored = await parse(
+    parsed_entity_list, parsed_service_list, files_parsed, files_ignored, entity_to_automations = await parse(
         hass, included_folders, ignored_files, hass.config.config_dir
     )
     hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST] = parsed_entity_list
     hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST] = parsed_service_list
     hass.data[DOMAIN][HASS_DATA_FILES_PARSED] = files_parsed
     hass.data[DOMAIN][HASS_DATA_FILES_IGNORED] = files_ignored
+    hass.data[DOMAIN][HASS_DATA_ENTITY_TO_AUTOMATIONS] = entity_to_automations
     hass.data[DOMAIN][HASS_DATA_PARSE_DURATION] = time.time() - start_time
     _LOGGER.debug(
         f"{INDENT}Parsing took {hass.data[DOMAIN][HASS_DATA_PARSE_DURATION]:.2f}s."
@@ -73,6 +75,7 @@ async def parse(hass, folders, ignored_files, root_path=None):
     parsed_service_list = {}
     parsed_files = []
     effectively_ignored_files = []
+    entity_to_automations = {}
     async for yaml_file, ignored in async_get_next_file(folders, ignored_files):
         short_path = await async_get_short_path(yaml_file, root_path)
         if ignored:
@@ -81,11 +84,27 @@ async def parse(hass, folders, ignored_files, root_path=None):
 
         try:
             lineno = 1
+            automation_id = None
+            automation_entity_id = None
+            is_automation_file = os.path.basename(yaml_file).startswith("automation")
             async with await anyio.open_file(
                 yaml_file, mode="r", encoding="utf-8"
             ) as f:
                 async for line in f:
                     line = re.sub(comment_pattern, "", line)
+                    # Try to extract automation id or alias if present
+                    if is_automation_file:
+                        # Look for 'id:' or 'alias:' in automation yaml
+                        id_match = re.match(r"^\s*id:\s*([\w_-]+)", line)
+                        alias_match = re.match(r"^\s*alias:\s*(.+)", line)
+                        if id_match:
+                            automation_id = id_match.group(1)
+                        elif alias_match:
+                            automation_id = alias_match.group(1).strip()
+                        # Try to build the full automation entity_id (automation.<slug>)
+                        if automation_id:
+                            slug = automation_id.lower().replace(" ", "_").replace("-", "_")
+                            automation_entity_id = f"automation.{slug}"
                     for match in re.finditer(entity_pattern, line):
                         typ, val = match.group(1), match.group(2)
                         if (
@@ -94,6 +113,9 @@ async def parse(hass, folders, ignored_files, root_path=None):
                             and not val.endswith(".yaml")
                         ):
                             add_entry(parsed_entity_list, val, short_path, lineno)
+                            # If in automation file, map entity to automation entity_id
+                            if is_automation_file and automation_entity_id:
+                                entity_to_automations.setdefault(val, set()).add(automation_entity_id)
                     for match in re.finditer(service_pattern, line):
                         val = match.group(1)
                         add_entry(parsed_service_list, val, short_path, lineno)
@@ -138,6 +160,7 @@ async def parse(hass, folders, ignored_files, root_path=None):
         parsed_service_list,
         parsed_files_count,
         len(effectively_ignored_files),
+        entity_to_automations,
     )
 
 
