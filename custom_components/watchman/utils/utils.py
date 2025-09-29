@@ -26,6 +26,7 @@ from ..const import (
     CONF_HEADER,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
+    CONF_EXCLUDE_DISABLED_AUTOMATION,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
     HASS_DATA_PARSED_ENTITY_LIST,
@@ -83,7 +84,7 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
     if key in [CONF_INCLUDED_FOLDERS, CONF_IGNORED_ITEMS, CONF_IGNORED_FILES]:
         return to_lists(entry.data, key)
 
-    if key in [CONF_IGNORED_STATES, CONF_CHECK_LOVELACE, CONF_STARTUP_DELAY]:
+    if key in [CONF_IGNORED_STATES, CONF_EXCLUDE_DISABLED_AUTOMATION, CONF_CHECK_LOVELACE, CONF_STARTUP_DELAY]:
         return get_val(entry.data, key)
 
     if key in [CONF_HEADER, CONF_REPORT_PATH, CONF_COLUMNS_WIDTH, CONF_FRIENDLY_NAMES]:
@@ -176,7 +177,6 @@ def renew_missing_actions_list(hass):
             _LOGGER.debug(f"{INDENT}service {entry} added to the report")
     return services_missing
 
-
 def renew_missing_entities_list(hass):
     """Update list of missing entities when a service from a config file changed its state."""
     _LOGGER.debug("::check_entities:: Triaging list of found entities")
@@ -185,22 +185,59 @@ def renew_missing_entities_list(hass):
         "unavail" if s == "unavailable" else s
         for s in get_config(hass, CONF_IGNORED_STATES, [])
     ]
+
+    exclude_disabled_automations = get_config(hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False)
+    # Find automations that are disabled so that we can exclude entities used only by disabled automations
+    disabled_automations = []
+    if exclude_disabled_automations:
+        disabled_automations = [a for a in hass.states.async_all("automation") if not a.state or a.state == "off"]
+        _LOGGER.debug(f"{INDENT}Found {len(disabled_automations)} disabled automations")
+
     if DOMAIN not in hass.data or HASS_DATA_PARSED_ENTITY_LIST not in hass.data[DOMAIN]:
         _LOGGER.error(f"{INDENT}Entity list not found")
         raise Exception("Entity list not found")
     parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
     entities_missing = {}
     for entry, occurrences in parsed_entity_list.items():
+        # Skip if entry is an automation entity
+        if entry.startswith("automation."):
+            _LOGGER.debug(f"{INDENT}entry {entry} is an automation, skipping")
+            continue
         if is_action(hass, entry):  # this is a service, not entity
             _LOGGER.debug(f"{INDENT}entry {entry} is service, skipping")
             continue
+
         state, _ = get_entity_state(hass, entry)
         if state in ignored_states:
             _LOGGER.debug(
                 f"{INDENT}entry {entry} with state {state} skipped due to ignored_states"
             )
             continue
+
+        if disabled_automations:
+            # Find the automations that use this entry (from the initial yaml parsing)
+            entity_to_automations = hass.data[DOMAIN][HASS_DATA_ENTITY_TO_AUTOMATIONS]
+            used_by_automations = entity_to_automations.get(entry, set())
+
+            if not used_by_automations:
+               _LOGGER.debug(f"{INDENT}entry {entry} is not used by any automation, this is most likely a bug :(")
+               #continue
+            else:
+                #_LOGGER.debug(f"{INDENT}entry {entry} is used by {len(used_by_automations)} automations...")
+                # Check if all of these automations are disabled
+                all_disabled = True
+                for automation_id in used_by_automations:
+                    automation_state = hass.states.get(automation_id)
+                    if not automation_state or automation_state.state != "off":
+                        all_disabled = False
+                        break
+
+                # Ignore entity if used only by disabled automations
+                if all_disabled:
+                    _LOGGER.debug(f"{INDENT}entry {entry} is only used by disabled automations, skipping")
+                    continue
+
         if state in ["missing", "unknown", "unavail", "disabled"]:
             entities_missing[entry] = occurrences
-            _LOGGER.debug(f"{INDENT}entry {entry} added to the report")
+            _LOGGER.debug(f"{INDENT}entry {entry} added to the report (used by {used_by_automations})")
     return entities_missing

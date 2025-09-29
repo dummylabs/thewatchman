@@ -20,6 +20,7 @@
                     "included_folders": "Pastas para monitorar:",
                     "ignored_items": "Entidades e ações ignoradas:",
                     "ignored_states": "Excluir entidades com os estados abaixo do relatório:",
+                    "exclude_disabled_automation": "Excluir entidades usadas apenas por automações desativadas:",
                     "ignored_files": "Arquivos ignorados (separados por vírgula):",
                     "check_lovelace": "Analisar dashboards controlados pela UI",
                     "startup_delay": "Atraso de inicialização para a inicialização dos sensores do watchman"
