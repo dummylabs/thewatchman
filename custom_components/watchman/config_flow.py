@@ -2,41 +2,40 @@
 
 from types import MappingProxyType
 from typing import Any, Dict
+
+import anyio
+import voluptuous as vol
+from homeassistant import data_entry_flow
 from homeassistant.config_entries import (
     ConfigFlow,
-    OptionsFlow,
-    ConfigEntry,
     ConfigFlowResult,
+    OptionsFlow,
 )
-from homeassistant import data_entry_flow
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv, selector
-import voluptuous as vol
-import anyio
-from .utils.utils import async_is_valid_path, get_val
-
-from .utils.logger import _LOGGER
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import selector
 
 from .const import (
+    CONF_CHECK_LOVELACE,
+    CONF_COLUMNS_WIDTH,
+    CONF_FRIENDLY_NAMES,
+    CONF_HEADER,
+    CONF_IGNORED_FILES,
+    CONF_IGNORED_ITEMS,
+    CONF_IGNORED_STATES,
+    CONF_INCLUDED_FOLDERS,
+    CONF_REPORT_PATH,
+    CONF_SECTION_APPEARANCE_LOCATION,
+    CONF_STARTUP_DELAY,
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
+    DEFAULT_OPTIONS,
     DEFAULT_REPORT_FILENAME,
     DOMAIN,
-    CONF_IGNORED_FILES,
-    CONF_HEADER,
-    CONF_REPORT_PATH,
-    CONF_IGNORED_ITEMS,
-    CONF_INCLUDED_FOLDERS,
-    CONF_CHECK_LOVELACE,
-    CONF_IGNORED_STATES,
-    CONF_COLUMNS_WIDTH,
-    CONF_STARTUP_DELAY,
-    CONF_FRIENDLY_NAMES,
-    CONF_SECTION_APPEARANCE_LOCATION,
     MONITORED_STATES,
-    DEFAULT_OPTIONS,
 )
-
+from .utils.logger import _LOGGER
+from .utils.utils import async_is_valid_path, get_val
 
 INCLUDED_FOLDERS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 IGNORED_ITEMS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
@@ -162,11 +161,6 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
 class OptionsFlowHandler(OptionsFlow):
     """Options flow used to change configuration (options) of existing instance of integration."""
-
-    # def __init__(self, config_entry: ConfigEntry) -> None:
-    #    """Handle UI options dialog."""
-    # _LOGGER.debug("::OptionsFlowHandler.__init::")
-    # self.config_entry = config_entry
 
     async def async_get_key_in_section(self, data, key, section=None):
         """Return value of a key in ConfigEntry.data."""
