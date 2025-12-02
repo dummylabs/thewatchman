@@ -1,9 +1,20 @@
 # Getting Started
 
-Step 1: setup dependencies `scripts/setup`
-Step 2: run tests: `scripts/test`
+1. Install devcontainer cli
+`npm install -g @devcontainers/cli`
+
+2. Build and run dev devcontainer
+`devcontainer build --workspace-folder .
+devcontainer up --workspace-folder .`
+
+3. Run tests
+`devcontainer exec --workspace-folder . scripts/test`
+
+4. To change target HA version, modify requirements.txt and run:
+`devcontainer exec --workspace-folder . scripts/setup`
 
 # Useful commands
+Can be run with devcontainer exec.
 
 Command | Description
 ------- | -----------

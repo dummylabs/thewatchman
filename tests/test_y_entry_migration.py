@@ -1,9 +1,8 @@
 """Test setup process."""
 
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.helpers import entity_registry as er
-from . import from_list
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.watchman.const import (
     CONF_CHECK_LOVELACE,
@@ -11,6 +10,7 @@ from custom_components.watchman.const import (
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
     CONF_HEADER,
+    CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
     CONF_INCLUDED_FOLDERS,
@@ -21,10 +21,11 @@ from custom_components.watchman.const import (
     CONF_SERVICE_NAME,
     CONF_STARTUP_DELAY,
     DOMAIN,
-    CONF_IGNORED_FILES,
     SENSOR_MISSING_ACTIONS,
     SENSOR_MISSING_SERVICES,
 )
+
+from . import from_list
 
 # configuration for version 1
 
@@ -61,6 +62,8 @@ async def test_entry_migration_1to2(
         minor_version=1,
         options=old_config,
     )
+
+    mock_config_entry.add_to_hass(hass)
 
     entity_registry.async_get_or_create(
         "sensor",
