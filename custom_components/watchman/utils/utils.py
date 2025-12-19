@@ -151,6 +151,8 @@ def get_entity_state(hass, entry, friendly_names=False):
         state = str(entity_state.state).replace("unavailable", "unavail")
         if split_entity_id(entry)[0] == "input_button" and state == "unknown":
             state = "available"
+        if split_entity_id(entry)[0] == "button" and state == "unknown":
+            state = "available"
 
     return state, name
 
