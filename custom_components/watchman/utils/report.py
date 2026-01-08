@@ -173,17 +173,28 @@ def text_renderer(hass, entry_type):
         return f"Text render error: unknown entry type: {entry_type}"
 
 
+def wrap_lines(lines, width):
+    for line in lines:
+        for wrapped_line in wrap(line, width):
+            yield wrapped_line.ljust(width)
+
+
 def fill(data, width, extra=None):
     """Arrange data by table column width."""
+    lines = []
     if data and isinstance(data, dict):
-        key, val = next(iter(data.items()))
-        out = f"{key}:{','.join([str(v) for v in val])}"
-    else:
-        out = str(data) if not extra else f"{data} ('{extra}')"
+        lines = [
+            f"{filename}:" + ",".join(str(n) for n in linenums)
+            for filename, linenums in sorted(data.items())
+        ]
 
-    return (
-        "\n".join([out.ljust(width) for out in wrap(out, width)]) if width > 0 else out
-    )
+    else:
+        lines = [str(data) if not extra else f"{data} ('{extra}')"]
+
+    if width > 0:
+        lines = wrap_lines(lines, width)
+
+    return "\n".join(lines)
 
 
 def get_columns_width(user_width):
