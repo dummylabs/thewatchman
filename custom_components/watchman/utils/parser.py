@@ -95,8 +95,8 @@ async def parse(hass, folders, ignored_files, root_path=None):
                     # Try to extract automation id or alias if present
                     if is_automation_file:
                         # Look for 'id:' or 'alias:' in automation yaml
-                        id_match = re.match(r"^\s*id:\s*([\w_-]+)", line)
-                        alias_match = re.match(r"^\s*alias:\s*(.+)", line)
+                        id_match = re.match(r"id:\s*'?([\w-]+)'?", line)
+                        alias_match = re.match(r"alias:\s*(.+)", line)
                         if id_match:
                             automation_id = id_match.group(1)
                         elif alias_match:
