@@ -7,7 +7,7 @@ DOMAIN_DATA = "watchman_data"
 VERSION = "0.7.0-beta.1"
 
 CONFIG_ENTRY_VERSION = 2
-CONFIG_ENTRY_MINOR_VERSION = 1
+CONFIG_ENTRY_MINOR_VERSION = 2
 
 DEFAULT_REPORT_FILENAME = "watchman_report.txt"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
@@ -40,6 +40,7 @@ CONF_IGNORED_FILES = "ignored_files"
 CONF_HEADER = "report_header"
 CONF_REPORT_PATH = "report_path"
 CONF_IGNORED_ITEMS = "ignored_items"
+CONF_IGNORED_LABELS = "ignored_labels"
 CONF_SERVICE_NAME = "service"
 CONF_ACTION_NAME = "action"
 CONF_SERVICE_DATA = "data"
@@ -107,6 +108,7 @@ PLATFORMS = [Platform.SENSOR]
 DEFAULT_OPTIONS = {
     CONF_INCLUDED_FOLDERS: "/config",
     CONF_IGNORED_ITEMS: "",
+    CONF_IGNORED_LABELS: "",
     CONF_IGNORED_STATES: [],
     CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*",
     CONF_CHECK_LOVELACE: False,

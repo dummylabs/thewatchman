@@ -12,11 +12,13 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant, split_entity_id
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import label_registry as lr
 
 from .logger import _LOGGER, INDENT
 from ..const import (
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_FILES,
+    CONF_IGNORED_LABELS,
     CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
@@ -81,6 +83,9 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
     assert isinstance(entry, ConfigEntry)
 
     if key in [CONF_INCLUDED_FOLDERS, CONF_IGNORED_ITEMS, CONF_IGNORED_FILES]:
+        return to_lists(entry.data, key)
+
+    if key == CONF_IGNORED_LABELS:
         return to_lists(entry.data, key)
 
     if key in [CONF_IGNORED_STATES, CONF_CHECK_LOVELACE, CONF_STARTUP_DELAY]:
@@ -181,6 +186,27 @@ def renew_missing_entities_list(hass):
     """Update list of missing entities when a service from a config file changed its state."""
     _LOGGER.debug("::check_entities:: Triaging list of found entities")
 
+    entity_registry = er.async_get(hass)
+
+    ignored_label_ids: set[str] = set()
+    ignored_label_names = get_config(hass, CONF_IGNORED_LABELS, [])
+    if ignored_label_names:
+        label_registry = lr.async_get(hass)
+        if hasattr(label_registry, "labels"):
+            known_labels: dict[str, str] = {}
+            for label in label_registry.labels.values():
+                label_id = getattr(label, "label_id", getattr(label, "id", None))
+                if label_id:
+                    known_labels[label.name] = label_id
+            for label_name in ignored_label_names:
+                if label_name in known_labels:
+                    ignored_label_ids.add(known_labels[label_name])
+                else:
+                    _LOGGER.warning(
+                        "%s label configured for Watchman ignore list was not found in Home Assistant label registry",
+                        label_name,
+                    )
+
     ignored_states = [
         "unavail" if s == "unavailable" else s
         for s in get_config(hass, CONF_IGNORED_STATES, [])
@@ -195,6 +221,15 @@ def renew_missing_entities_list(hass):
             _LOGGER.debug(f"{INDENT}entry {entry} is service, skipping")
             continue
         state, _ = get_entity_state(hass, entry)
+        if ignored_label_ids:
+            regentry = entity_registry.async_get(entry)
+            if regentry and set(regentry.labels or []) & ignored_label_ids:
+                _LOGGER.debug(
+                    "%s skipped due to ignored label match %s",
+                    entry,
+                    set(regentry.labels or []) & ignored_label_ids,
+                )
+                continue
         if state in ignored_states:
             _LOGGER.debug(
                 f"{INDENT}entry {entry} with state {state} skipped due to ignored_states"

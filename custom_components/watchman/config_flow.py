@@ -22,6 +22,7 @@ from .const import (
     CONF_HEADER,
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
+    CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
@@ -39,6 +40,7 @@ from .utils.utils import async_is_valid_path, get_val
 
 INCLUDED_FOLDERS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 IGNORED_ITEMS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
+IGNORED_LABELS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 IGNORED_STATES_SCHEMA = vol.Schema(MONITORED_STATES)
 IGNORED_FILES_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
 COLUMNS_WIDTH_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.positive_int]))
@@ -53,6 +55,9 @@ def _get_data_schema() -> vol.Schema:
             ): select,
             vol.Optional(
                 CONF_IGNORED_ITEMS,
+            ): select,
+            vol.Optional(
+                CONF_IGNORED_LABELS,
             ): select,
             vol.Optional(
                 CONF_IGNORED_STATES,

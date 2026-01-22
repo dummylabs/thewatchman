@@ -11,6 +11,7 @@ from custom_components.watchman.const import (
     CONF_FRIENDLY_NAMES,
     CONF_HEADER,
     CONF_IGNORED_FILES,
+    CONF_IGNORED_LABELS,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
     CONF_INCLUDED_FOLDERS,
@@ -113,6 +114,8 @@ async def test_entry_migration_1to2(
     assert mock_config_entry.data[CONF_SECTION_APPEARANCE_LOCATION][
         CONF_COLUMNS_WIDTH
     ] == from_list(old_config[CONF_COLUMNS_WIDTH])
+
+    assert CONF_IGNORED_LABELS in mock_config_entry.data
 
     # === nofity_action section ===
     assert CONF_SECTION_NOTIFY_ACTION not in mock_config_entry.data
