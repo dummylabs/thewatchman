@@ -1,0 +1,18 @@
+# Parser Heuristics List
+
+1. **Underscore Suffix:** An entity ID ending with an underscore (`_`) is ignored as it is likely part of a variable name or another word.
+2. **Function Calls:** If an identifier is immediately followed by an opening parenthesis (`(`), it is treated as a function or method call and ignored.
+3. **Service Keys:** Service calls are identified if they appear under `service:` or `action:` keys in the YAML structure.
+4. **Comments:** YAML comments (lines starting with `#`) are ignored by the loader.
+5. **List vs Single:** The parser handles `entity_id` fields that contain either a single string or a list of strings (common in triggers, conditions, and targets).
+6. **String Concatenation:** Entity IDs that appear to be part of a string concatenation (detected by surrounding `+`, `~`, `%`, or `.format`) are ignored, assuming they are dynamic templates.
+7. **Wildcards:** Any entity ID followed immediately by a wildcard (`*`) is ignored (e.g., in glob patterns).
+8. **Ignored Keys:** The parser explicitly ignores content under specific keys: `url`, `example`, and `description`, to avoid false positives in documentation or metadata fields.
+9. **ESPHOME Context:** When parsing ESPHome configuration files (detected by path), entities and services are *only* extracted if they are values of `service`, `action`, or `entity_id` keys.
+10. **Automation Context:** The parser analyzes the parent hierarchy of an item to determine if it resides within an "automation" (has `trigger`+`action`) or "script" (has `sequence`).
+11. **Embedded Services:** Service calls embedded within string values are detected using a regex pattern (e.g., matching `service: domain.service` inside a template).
+12. **Custom Tags:** Custom YAML tags (like `!secret`, `!include`) are handled by a custom loader that treats them as strings or skips them to prevent parsing errors.
+13. **Valid Domains:** Extracted strings are only considered entities if they start with a valid Home Assistant domain (based on a comprehensive internal list).
+14. **File Type Detection:** The parser detects the file structure (Home Assistant YAML, JSON, or ESPHome YAML) to apply the correct parsing logic. Files with .json extension are ignored to prevent false positives (e.g., settings.json) as they are not Home Assistant configuration files
+15. **Bundled Ignores:** A predefined list of specific patterns (e.g., `timer.cancelled`, `date.*`, `event.*`) is used to filter out known system strings that look like entities but aren't.
+16. **States Prefix:** The parser automatically handles and strips the `states.` prefix (e.g., converting `states.light.living_room` to `light.living_room`) ensuring correct entity identification in templates.

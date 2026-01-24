@@ -1,6 +1,0 @@
-service: fake.service1
-service: fake.service2
-action: timer_.cancel
-# below is not an action
-action: one_more
-# action: hello.world action in comment

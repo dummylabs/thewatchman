@@ -1,0 +1,66 @@
+"""Test Watchman reaction to action/service state changes."""
+import pytest
+from custom_components.watchman.const import (
+    DOMAIN,
+    CONF_INCLUDED_FOLDERS,
+    CONF_IGNORED_STATES,
+    SENSOR_MISSING_ACTIONS,
+)
+from tests import async_init_integration
+
+@pytest.mark.asyncio
+async def test_action_state_change_tracking(hass, tmp_path):
+    """Test that Watchman updates missing services sensor when a tracked service is registered/removed."""
+    
+    # 1. Setup: Create a config file with a monitored service
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    config_file = config_dir / "test_actions.yaml"
+    
+    # Define usage of 'script.test_service'
+    config_file.write_text("automation:\n  - action:\n      - service: script.test_service", encoding="utf-8")
+
+    # Initialize integration pointing to our temp config
+    await async_init_integration(
+        hass,
+        add_params={
+            CONF_INCLUDED_FOLDERS: str(config_dir),
+            CONF_IGNORED_STATES: [],
+        },
+    )
+
+    # Allow initial scan to complete
+    await hass.async_block_till_done()
+
+    # 2. Verify Initial State
+    # The service 'script.test_service' is NOT registered yet, so it should be reported as missing.
+    # Note: New installations use watchman_missing_actions by default
+    
+    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ACTIONS}")
+    assert missing_sensor is not None
+    assert missing_sensor.state == "1", "Initial missing count should be 1 (service not registered)"
+    assert "script.test_service" in str(missing_sensor.attributes)
+
+    # 3. Trigger: Register the service
+    def mock_service_handler(call):
+        pass
+
+    hass.services.async_register("script", "test_service", mock_service_handler)
+    
+    # Allow event processing
+    await hass.async_block_till_done()
+
+    # 4. Verify Updated State
+    # Watchman should detect the service registration and update counter to 0
+    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ACTIONS}")
+    assert missing_sensor.state == "0", "Missing count should update to 0 after service is registered"
+
+    # 5. Trigger: Remove the service
+    hass.services.async_remove("script", "test_service")
+    await hass.async_block_till_done()
+
+    # 6. Verify Final State
+    # Watchman should detect service removal and increment counter back to 1
+    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ACTIONS}")
+    assert missing_sensor.state == "1", "Missing count should return to 1 after service is removed"
+    assert "script.test_service" in str(missing_sensor.attributes)

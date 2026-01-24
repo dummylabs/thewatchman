@@ -1,0 +1,34 @@
+# see parser rules in heuristics.md file
+# H:9 ESPHome Context
+# Files in a folder named 'esphome' have stricter parsing rules.
+# Only 'service', 'action', or 'entity_id' keys are processed.
+
+esphome:
+  name: living_room_device
+
+  on_boot:
+    priority: -10
+    # H:9 'then' is a standard ESPHome key, not 'action' or 'service'.
+    # But the *values* inside might be actions.
+    then:
+      - homeassistant.service:
+          service: light.turn_on # H:9 Allowed (key is 'service')
+          entity_id: light.living_room_esp # H:9 Allowed (key is 'entity_id')
+
+  sensor:
+    - platform: homeassistant
+      id: outside_temperature
+      entity_id: sensor.outside_temp # H:9 Allowed (key is 'entity_id')
+
+  text_sensor:
+    - platform: template
+      name: "Uptime"
+      lambda: |-
+        return id(uptime_sensor).state;
+        // H:9 'uptime_sensor' looks like an entity but is an internal ID.
+        // Should NOT be picked up because it's in 'lambda' key (not allowed list).
+
+  # False positive check
+  random_config:
+    some_key: light.fake_light
+    # H:9 Ignored. 'some_key' is not in allowed keys {'service', 'action', 'entity_id'} for ESPHome.

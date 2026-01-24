@@ -1,0 +1,56 @@
+# Dedicated file for report generation test
+# This file ensures stability of test_report_generation_snapshot
+
+# 1. Existing entities (states set in test)
+sensor:
+  - platform: template
+    sensors:
+      outside_temp:
+        value_template: "{{ states('sensor.outside_temp') }}"
+
+light:
+  - platform: template
+    lights:
+      living_room:
+        value_template: "{{ is_state('light.living_room', 'on') }}"
+        turn_on:
+          service: light.turn_on
+        turn_off:
+          service: light.turn_off
+
+# 2. Unavailable entity (state set to unavailable in test)
+binary_sensor:
+  - platform: template
+    sensors:
+      motion_sensor:
+        value_template: "{{ is_state('binary_sensor.motion_sensor', 'on') }}"
+
+# 3. Missing entity (no state set in test)
+switch:
+  - platform: template
+    switches:
+      missing_switch:
+        value_template: "{{ is_state('switch.missing_switch', 'on') }}"
+        turn_on:
+          service: switch.turn_on
+        turn_off:
+          service: switch.turn_off
+
+# 4. Existing Action (registered in test)
+automation:
+  - alias: "Test Notification"
+    trigger: []
+    action:
+      - service: notify.telegram
+        data:
+          message: "Test"
+
+# 6. Unknown Entity (state set to unknown in test)
+test_unknown:
+  entity_id: input_boolean.unknown_boolean
+
+# 7. Missing Action (not registered in test)
+script:
+  missing_action_script:
+    sequence:
+      - service: script.non_existent_action

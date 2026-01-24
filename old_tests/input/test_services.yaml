@@ -1,0 +1,25 @@
+#service: fake.service1
+#service: fake.service2
+#action: timer_.cancel
+#below is not an action
+#action: one_more
+# action: hello.world action in comment
+
+- alias: "Test Service: Fake 1"
+  id: test_service_fake1
+  trigger: [] # Пустой триггер, запускается вручную (Run Actions)
+  action:
+    - service: light.service1
+
+- alias: "Test Service: Fake 2"
+  id: test_service_fake2
+  trigger: []
+  action:
+    - service: light.service2
+
+- alias: "Test Action: Timer Cancel"
+  id: test_action_timer_cancel
+  trigger: []
+  action:
+    # Использование нового синтаксиса 'action' вместо 'service'
+    - action: timer.cancel

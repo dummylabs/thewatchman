@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "key": "lovelace_dash",
+  "data": {
+    "config": {
+      "views": [
+        {
+          "cards": [
+            {
+              "type": "glance",
+              "entities": [
+                "sensor.storage_sensor_1",
+                "sensor.storage_sensor_2"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

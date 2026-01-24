@@ -16,16 +16,7 @@ DEFAULT_CHUNK_SIZE = 3500
 PACKAGE_NAME = "custom_components.watchman"
 REPORT_SERVICE_NAME = "report"
 
-HASS_DATA_PARSED_ENTITY_LIST = "entity_list"
-HASS_DATA_PARSED_SERVICE_LIST = "service_list"
-HASS_DATA_FILES_PARSED = "files_parsed"
-HASS_DATA_FILES_IGNORED = "files_ignored"
-HASS_DATA_PARSE_DURATION = "parse_duration"
 HASS_DATA_CANCEL_HANDLERS = "cancel_handlers"
-HASS_DATA_COORDINATOR = "coordinator"
-HASS_DATA_MISSING_ENTITIES = "entities_missing"
-HASS_DATA_MISSING_SERVICES = "services_missing"
-HASS_DATA_CHECK_DURATION = "check_duration"
 
 COORD_DATA_MISSING_ENTITIES = "entities_missing"
 COORD_DATA_MISSING_SERVICES = "services_missing"
@@ -46,6 +37,7 @@ CONF_SERVICE_DATA = "data"
 CONF_SERVICE_DATA2 = "service_data"
 CONF_INCLUDED_FOLDERS = "included_folders"
 CONF_CHECK_LOVELACE = "check_lovelace"
+CONF_EXCLUDE_DISABLED_AUTOMATION = "exclude_disabled_automation"
 CONF_IGNORED_STATES = "ignored_states"
 CONF_CHUNK_SIZE = "chunk_size"
 CONF_CREATE_FILE = "create_file"
@@ -105,10 +97,11 @@ BUNDLED_IGNORED_ITEMS = [
 PLATFORMS = [Platform.SENSOR]
 
 DEFAULT_OPTIONS = {
-    CONF_INCLUDED_FOLDERS: "/config",
+    CONF_INCLUDED_FOLDERS: "",
     CONF_IGNORED_ITEMS: "",
     CONF_IGNORED_STATES: [],
-    CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*",
+    CONF_EXCLUDE_DISABLED_AUTOMATION: False,
+    CONF_IGNORED_FILES: "*.cache*, */custom_components/*, *.git*",
     CONF_CHECK_LOVELACE: False,
     CONF_STARTUP_DELAY: 0,
     CONF_SECTION_APPEARANCE_LOCATION: {
@@ -118,29 +111,3 @@ DEFAULT_OPTIONS = {
         CONF_FRIENDLY_NAMES: False,
     },
 }
-
-# additional domains to detect entities which are not included into
-# homeassistant.const.Platform enum
-DEFAULT_HA_DOMAINS = [
-    "group",
-    "input_boolean",
-    "input_select",
-    "input_text",
-    "script",
-    "alert",
-    "automation",
-    "counter",
-    "input_datetime",
-    "input_number",
-    "input_button",
-    "person",
-    "plant",
-    "proximity",
-    "sun",
-    "timer",
-    "zone",
-    "schedule",
-]
-
-# Watchman will ignore lines started from these words followed by :
-PARSER_STOP_WORDS = ["description", "example", "icon", "title"]

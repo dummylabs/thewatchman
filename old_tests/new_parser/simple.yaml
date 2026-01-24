@@ -1,0 +1,6 @@
+some_key: some_value
+nested:
+  item: 123
+list:
+  - a
+  - b

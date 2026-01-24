@@ -1,0 +1,20 @@
+# serializer version: 1
+# name: test_report_exclusion_integration
+  '''
+  -== Watchman Report ==- 
+  
+  -== Congratulations, all 1 actions from your config are available!
+  
+  -== Missing 1 entity(ies) from 2 found in your config:
+  +--------------------------------+----------+--------------------------------------------------------------+
+  | Entity ID                      | State    | Location                                                     |
+  +--------------------------------+----------+--------------------------------------------------------------+
+  | sensor.entity3                 | missing  | test_report_exclusion.yaml:16,24                             |
+  +--------------------------------+----------+--------------------------------------------------------------+
+  
+  -== Report created on 01 Jan 2026 12:00:00
+  -== Parsed 1 files in 1.23s., ignored 0 files 
+  -== Generated in: 0.12s. Validated in: 5.00s.
+  
+  '''
+# ---

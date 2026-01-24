@@ -1,81 +1,82 @@
 {
-    "config": {
-        "abort": {
-            "single_instance_allowed": "Apenas é permitida uma única instância do watchman"
-        },
-        "step": {}
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Apenas é permitida uma única instância do watchman"
     },
-    "options": {
-        "error": {
-            "invalid_included_folders": "included_folders deve ser uma lista de pastas de configuração separadas por vírgulas",
-            "invalid_columns_width": "A largura da coluna do relatório deve ser uma lista de 3 inteiros positivos",
-            "malformed_json": "Os dados da ação de notificação devem ser um dicionário JSON válido",
-            "unknown_service": "ação desconhecida: `{service}`",
-            "invalid_report_path": "O local do arquivo de relatório é inválido, o caminho não existe"
-        },
-        "step": {
-            "init": {
-                "title": "Configurações do Watchman",
-                "data": {
-                    "included_folders": "Pastas para monitorar:",
-                    "ignored_items": "Entidades e ações ignoradas:",
-                    "ignored_states": "Excluir entidades com os estados abaixo do relatório:",
-                    "ignored_files": "Arquivos ignorados (separados por vírgula):",
-                    "check_lovelace": "Analisar dashboards controlados pela UI",
-                    "startup_delay": "Atraso de inicialização para a inicialização dos sensores do watchman"
-                },
-                "data_description": {
-                    "included_folders": "Lista de pastas separadas por vírgulas onde o watchman deve procurar arquivos de configuração",
-                    "ignored_items": "Lista de entidades e ações separadas por vírgulas excluídas do rastreamento",
-                    "ignored_states": "Lista de estados separados por vírgulas excluídos do rastreamento",
-                    "ignored_files": "Lista de arquivos de configuração separados por vírgulas excluídos do rastreamento"
-                },
-                "sections": {
-                    "appearance_location_options": {
-                        "name": "Aparência e localização do relatório",
-                        "data": {
-                            "columns_width": "Lista de larguras das colunas do relatório, por exemplo, 30, 7, 60",
-                            "report_header": "Cabeçalho personalizado para o relatório",
-                            "report_path": "Local do arquivo de relatório, por exemplo, /config/report.txt",
-                            "friendly_names": "Adicionar nomes amigáveis das entidades ao relatório"
-                        }
-                    }
-                },
-                "description": "[Ajuda nas configurações](https://github.com/dummylabs/thewatchman#configuration)"
-            }
-        }
+    "step": {}
+  },
+  "options": {
+    "error": {
+      "invalid_included_folders": "included_folders deve ser uma lista de pastas de configuração separadas por vírgulas",
+      "invalid_columns_width": "A largura da coluna do relatório deve ser uma lista de 3 inteiros positivos",
+      "malformed_json": "Os dados da ação de notificação devem ser um dicionário JSON válido",
+      "unknown_service": "ação desconhecida: `{service}`",
+      "invalid_report_path": "O local do arquivo de relatório é inválido, o caminho não existe"
     },
-    "services": {
-        "report": {
-            "name": "Relatório",
-            "description": "Executar o relatório do Watchman",
-            "fields": {
-                "create_file": {
-                    "name": "Criar arquivo de relatório",
-                    "description": "Se o arquivo de relatório deve ser criado (geralmente True)"
-                },
-                "action": {
-                    "name": "Enviar relatório como notificação",
-                    "description": "Ação de notificação opcional para enviar o relatório (por exemplo, `persistent_notification.create`)"
-                },
-                "data": {
-                    "name": "Parâmetros de dados da ação de notificação",
-                    "description": "Parâmetros opcionais para a ação de notificação (por exemplo, `title: Relatório`)"
-                },
-                "parse_config": {
-                    "name": "Forçar a análise da configuração",
-                    "description": "Analisar os arquivos de configuração antes de gerar o relatório. Normalmente, isso é feito automaticamente pelo Watchman, então esta flag geralmente não é necessária."
-                },
-                "chunk_size": {
-                    "name": "Tamanho do bloco da mensagem de notificação",
-                    "description": "Tamanho máximo da mensagem em bytes. Alguns serviços de notificação limitam o tamanho máximo da mensagem. Se o tamanho do relatório exceder `chunk_size`, ele será enviado em várias notificações subsequentes. (opcional)"
-                }
-            },
-            "sections": {
-                "advanced_options": {
-                    "name": "Opções avançadas"
-                }
+    "step": {
+      "init": {
+        "title": "Configurações do Watchman",
+        "data": {
+          "included_folders": "Pastas para monitorar:",
+          "ignored_items": "Entidades e ações ignoradas:",
+          "ignored_states": "Excluir entidades com os estados abaixo do relatório:",
+          "exclude_disabled_automation": "Excluir entidades usadas apenas por automações desativadas",
+          "ignored_files": "Arquivos ignorados (separados por vírgula):",
+          "check_lovelace": "Analisar dashboards controlados pela UI",
+          "startup_delay": "Atraso de inicialização para a inicialização dos sensores do watchman"
+        },
+        "data_description": {
+          "included_folders": "Lista de pastas separadas por vírgulas onde o watchman deve procurar arquivos de configuração",
+          "ignored_items": "Lista de entidades e ações separadas por vírgulas excluídas do rastreamento",
+          "ignored_states": "Lista de estados separados por vírgulas excluídos do rastreamento",
+          "ignored_files": "Lista de arquivos de configuração separados por vírgulas excluídos do rastreamento"
+        },
+        "sections": {
+          "appearance_location_options": {
+            "name": "Aparência e localização do relatório",
+            "data": {
+              "columns_width": "Lista de larguras das colunas do relatório, por exemplo, 30, 7, 60",
+              "report_header": "Cabeçalho personalizado para o relatório",
+              "report_path": "Local do arquivo de relatório, por exemplo, /config/report.txt",
+              "friendly_names": "Adicionar nomes amigáveis das entidades ao relatório"
             }
-        }
+          }
+        },
+        "description": "[Ajuda nas configurações](https://github.com/dummylabs/thewatchman#configuration)"
+      }
     }
+  },
+  "services": {
+    "report": {
+      "name": "Relatório",
+      "description": "Executar o relatório do Watchman",
+      "fields": {
+        "create_file": {
+          "name": "Criar arquivo de relatório",
+          "description": "Se o arquivo de relatório deve ser criado (geralmente True)"
+        },
+        "action": {
+          "name": "Enviar relatório como notificação",
+          "description": "Ação de notificação opcional para enviar o relatório (por exemplo, `persistent_notification.create`)"
+        },
+        "data": {
+          "name": "Parâmetros de dados da ação de notificação",
+          "description": "Parâmetros opcionais para a ação de notificação (por exemplo, `title: Relatório`)"
+        },
+        "parse_config": {
+          "name": "Forçar a análise da configuração",
+          "description": "Analisar os arquivos de configuração antes de gerar o relatório. Normalmente, isso é feito automaticamente pelo Watchman, então esta flag geralmente não é necessária."
+        },
+        "chunk_size": {
+          "name": "Tamanho do bloco da mensagem de notificação",
+          "description": "Tamanho máximo da mensagem em bytes. Alguns serviços de notificação limitam o tamanho máximo da mensagem. Se o tamanho do relatório exceder `chunk_size`, ele será enviado em várias notificações subsequentes. (opcional)"
+        }
+      },
+      "sections": {
+        "advanced_options": {
+          "name": "Opções avançadas"
+        }
+      }
+    }
+  }
 }

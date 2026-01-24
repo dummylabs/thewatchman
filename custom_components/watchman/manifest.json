@@ -1,9 +1,7 @@
 {
   "domain": "watchman",
   "name": "Watchman",
-  "codeowners": [
-    "@dummylabs"
-  ],
+  "codeowners": ["@dummylabs"],
   "config_flow": true,
   "documentation": "https://github.com/dummylabs/thewatchman",
   "iot_class": "local_push",

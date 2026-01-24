@@ -3,35 +3,41 @@
 
 # https://www.home-assistant.io/integrations/homeassistant/
 homeassistant:
-  debug: true
+    debug: true
+
+frontend:
+http:
+
+automation: !include automations.yaml
+#script: !include scripts.yaml
 
 # https://www.home-assistant.io/integrations/logger/
 logger:
-  default: info
-  logs:
-    custom_components.watchman: debug
-  filters:
-    custom_components.watchman:
-      - "^:U.*" # check DebugLogger class from .utils for more info on filtering
-      - "^:T.*"
-      - "^:M.*"
-    custom_components.watchman.coordinator:
-      - "^:U.*"
-      - "^:T.*"
-      - "^:M.*"
-    custom_components.watchman.utils:
-      - "^:U.*"
-      #- "^:T.*"
-      - "^:M.*"
-    custom_components.watchman.sensor:
-      - "^:U.*"
-      - "^:T.*"
-      - "^:M.*"
-    custom_components.watchman.entity:
-      - "^:U.*"
-      - "^:T.*"
-      - "^:M.*"
-    custom_components.watchman.config_flow:
-      - "^:U.*"
-      - "^:T.*"
-      - "^:M.*"
+    default: info
+    logs:
+        custom_components.watchman: debug
+    filters:
+        custom_components.watchman:
+            - "^:U.*" # check DebugLogger class from .utils for more info on filtering
+            - "^:T.*"
+            - "^:M.*"
+        custom_components.watchman.coordinator:
+            - "^:U.*"
+            - "^:T.*"
+            - "^:M.*"
+        custom_components.watchman.utils:
+            - "^:U.*"
+            #- "^:T.*"
+            - "^:M.*"
+        custom_components.watchman.sensor:
+            - "^:U.*"
+            - "^:T.*"
+            - "^:M.*"
+        custom_components.watchman.entity:
+            - "^:U.*"
+            - "^:T.*"
+            - "^:M.*"
+        custom_components.watchman.config_flow:
+            - "^:U.*"
+            - "^:T.*"
+            - "^:M.*"

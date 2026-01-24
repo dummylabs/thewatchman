@@ -11,11 +11,9 @@ from custom_components.watchman.const import (
     DOMAIN,
     REPORT_SERVICE_NAME,
 )
-from custom_components.watchman.utils.parser import parse_config
 from .utils.report import async_report_to_file, async_report_to_notification
 from .utils.utils import get_config
 
-from custom_components.watchman.coordinator import WatchmanCoordinator
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -28,7 +26,7 @@ class WatchmanServicesSetup:
         """Initialise services."""
         self.hass = hass
         self.config_entry = config_entry
-        self.coordinator: WatchmanCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+        self.coordinator = config_entry.runtime_data.coordinator
 
         self.setup_services()
 
@@ -68,8 +66,8 @@ class WatchmanServicesSetup:
             )
 
         if call.data.get(CONF_PARSE_CONFIG, False):
-            await parse_config(self.hass, reason="service call")
-            await self.config_entry.runtime_data.coordinator.async_refresh()
+            await self.coordinator.async_parse_config(reason="service call")
+            await self.coordinator.async_refresh()
 
         # call notification action even when send notification = False
         if send_notification or action_name:

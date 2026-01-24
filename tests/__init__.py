@@ -24,7 +24,7 @@ async def async_init_integration(
 ) -> MockConfigEntry:
     """Set up integration in Home Assistant."""
     config = deepcopy(DEFAULT_OPTIONS)
-    config[CONF_INCLUDED_FOLDERS] = "/workspaces/thewatchman/tests/input"
+    config[CONF_INCLUDED_FOLDERS] = "/workspaces/thewatchman/tests/data"
     if add_params:
         config = config | add_params
     if config_entry is None:

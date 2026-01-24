@@ -23,10 +23,10 @@ async def test_add_service(hass):
     await async_init_integration(hass)
     assert len(hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]) == 3
     assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 3
-    hass.services.async_register("fake", "service1", dummy_service_handler)
+    hass.services.async_register("light", "service1", dummy_service_handler)
     await hass.async_block_till_done()
     assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 2
-    hass.services.async_remove("fake", "service1")
+    hass.services.async_remove("light", "service1")
     await hass.async_block_till_done()
     assert len(hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]) == 3
 

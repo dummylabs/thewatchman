@@ -24,10 +24,8 @@ from homeassistant.components.homeassistant import (
 from .services import WatchmanServicesSetup
 from .coordinator import WatchmanCoordinator
 from .utils.logger import _LOGGER
-from .utils.utils import (
-    get_entry,
-    get_config,
-)
+from .utils.utils import get_config
+from .hub import WatchmanHub
 
 
 from .const import (
@@ -50,10 +48,6 @@ from .const import (
     CONF_SECTION_APPEARANCE_LOCATION,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
-    HASS_DATA_CANCEL_HANDLERS,
-    HASS_DATA_COORDINATOR,
-    HASS_DATA_PARSED_ENTITY_LIST,
-    HASS_DATA_PARSED_SERVICE_LIST,
     REPORT_SERVICE_NAME,
     TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
@@ -70,6 +64,7 @@ class WMData:
     """Watchman runtime data."""
 
     coordinator: WatchmanCoordinator
+    hub: WatchmanHub
     force_parsing: bool
     parse_reason: str | None
 
@@ -80,20 +75,21 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
         f"::async_setup_entry:: Integration setup in progress. Home assistant path: {hass.config.path("")}"
     )
 
-    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title)
+    db_path = hass.config.path(".storage", "watchman.db")
+    hub = WatchmanHub(hass, db_path)
+    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title, hub=hub)
     # parsing shouldn't occur if HA is not running yet
     config_entry.runtime_data = WMData(
-        coordinator, force_parsing=False, parse_reason=None
+        coordinator, hub, force_parsing=False, parse_reason=None
     )
 
     hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
-    hass.data[DOMAIN][HASS_DATA_COORDINATOR] = coordinator
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
     WatchmanServicesSetup(hass, config_entry)
-    await add_event_handlers(hass)
+    await add_event_handlers(hass, config_entry)
 
     await coordinator.async_config_entry_first_refresh()
     if not coordinator.last_update_success:
@@ -113,9 +109,6 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disable=unused-argument
     """Handle integration unload."""
-    for cancel_handle in hass.data[DOMAIN].get(HASS_DATA_CANCEL_HANDLERS, []):
-        if cancel_handle:
-            cancel_handle()
 
     if hass.services.has_service(DOMAIN, REPORT_SERVICE_NAME):
         hass.services.async_remove(DOMAIN, REPORT_SERVICE_NAME)
@@ -137,7 +130,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
     return unload_ok
 
 
-async def add_event_handlers(hass: HomeAssistant):
+async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
     """Add event handlers."""
 
     async def async_schedule_refresh_states(hass, delay):
@@ -149,7 +142,6 @@ async def add_event_handlers(hass: HomeAssistant):
     async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
         """Refresh sensors state."""
         hass.data.get(DOMAIN_DATA)
-        entry = get_entry(hass)
         entry.runtime_data.force_parsing = True
         entry.runtime_data.parse_reason = "HA restart"
         await entry.runtime_data.coordinator.async_refresh()
@@ -159,7 +151,6 @@ async def add_event_handlers(hass: HomeAssistant):
         await async_schedule_refresh_states(hass, startup_delay)
 
     async def async_on_configuration_changed(event):
-        entry = get_entry(hass)
         event_type = event.event_type
         if event_type == EVENT_CALL_SERVICE:
             domain = event.data.get("domain", None)
@@ -180,9 +171,10 @@ async def add_event_handlers(hass: HomeAssistant):
 
     async def async_on_service_changed(event):
         service = f"{event.data['domain']}.{event.data['service']}"
-        if service in hass.data[DOMAIN].get(HASS_DATA_PARSED_SERVICE_LIST, []):
+        coordinator = entry.runtime_data.coordinator
+        parsed_services = await coordinator.async_get_parsed_services()
+        if service in parsed_services:
             _LOGGER.debug("Monitored service changed: %s", service)
-            coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
             await coordinator.async_refresh()
 
     async def async_on_state_changed(event):
@@ -192,41 +184,36 @@ async def add_event_handlers(hass: HomeAssistant):
             """Return missing state if entity not found."""
             return "missing" if not event.data[state_id] else event.data[state_id].state
 
-        if event.data["entity_id"] in hass.data[DOMAIN].get(
-            HASS_DATA_PARSED_ENTITY_LIST, []
-        ):
+        coordinator = entry.runtime_data.coordinator
+        parsed_entities = await coordinator.async_get_parsed_entities()
+        if event.data["entity_id"] in parsed_entities:
             ignored_states: list[str] = get_config(hass, CONF_IGNORED_STATES, [])
             old_state = state_or_missing("old_state")
             new_state = state_or_missing("new_state")
             checked_states = set(MONITORED_STATES) - set(ignored_states)
             if new_state in checked_states or old_state in checked_states:
                 _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
-                coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
                 await coordinator.async_refresh()
 
     # hass is not started yet, schedule config parsing once it loaded
     if not hass.is_running:
-        hass.bus.async_listen_once(
-            EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started
-        )
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
 
-    hdlr = []
-    hdlr.append(
+    entry.async_on_unload(
         # track service calls which update HA configuration
         hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
     )
-    hdlr.append(
+    entry.async_on_unload(
         hass.bus.async_listen(EVENT_AUTOMATION_RELOADED, async_on_configuration_changed)
     )
-    hdlr.append(
+    entry.async_on_unload(
         hass.bus.async_listen(EVENT_SCENE_RELOADED, async_on_configuration_changed)
     )
-    hdlr.append(
+    entry.async_on_unload(
         hass.bus.async_listen(EVENT_SERVICE_REGISTERED, async_on_service_changed)
     )
-    hdlr.append(hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed))
-    hdlr.append(hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed))
-    hass.data[DOMAIN][HASS_DATA_CANCEL_HANDLERS] = hdlr
+    entry.async_on_unload(hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed))
+    entry.async_on_unload(hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed))
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):

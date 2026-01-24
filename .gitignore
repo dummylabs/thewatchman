@@ -1,6 +1,8 @@
 .DS_Store
 .vscode
 sync_repo.sh
+deploy.sh
+watchman.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

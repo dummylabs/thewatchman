@@ -1,0 +1,141 @@
+# Test file for Home Assistant specific domains
+# This file contains one entity for each domain requested to verify parser detection.
+
+group:
+  my_group:
+    entities:
+      - group.living_room_lights
+
+input_boolean:
+  notify_home:
+    name: Notify when someone is home
+    initial: off
+    icon: mdi:car
+test_input_boolean:
+  entity_id: input_boolean.test_bool
+
+input_select:
+  who_cooks:
+    name: Who cooks today
+    options:
+      - Paulus
+      - Anne Therese
+    initial: Paulus
+    icon: mdi:panda
+test_input_select:
+  entity_id: input_select.test_select
+
+input_text:
+  values:
+    name: Values
+    initial: Some Text
+test_input_text:
+  entity_id: input_text.test_text
+
+script:
+  my_script:
+    sequence:
+      - service: script.test_script
+
+# Usage of script as an entity
+test_script_entity:
+  value_template: "{{ is_state('script.test_script', 'on') }}"
+
+alert:
+  garage_door:
+    name: Garage is open
+    entity_id: alert.garage_alert
+
+automation:
+  - alias: 'Test Automation'
+    trigger:
+      - platform: state
+        entity_id: automation.test_automation
+
+counter:
+  my_counter:
+    initial: 30
+    step: 1
+test_counter:
+  entity_id: counter.test_counter
+
+input_datetime:
+  both_date_and_time:
+    name: Input with both date and time
+    has_date: true
+    has_time: true
+test_input_datetime:
+  entity_id: input_datetime.test_datetime
+
+input_number:
+  slider:
+    name: Slider
+    initial: 30
+    min: -20
+    max: 35
+    step: 1
+test_input_number:
+  entity_id: input_number.test_number
+
+input_button:
+  press_me:
+    name: Press me
+    icon: mdi:arrow-up-bold-box-outline
+test_input_button:
+  entity_id: input_button.test_button
+
+person:
+  paulus:
+    name: Paulus
+    id: paulus
+    device_trackers:
+      - device_tracker.paulus
+test_person:
+  entity_id: person.test_person
+
+plant:
+  my_plant:
+    sensors:
+      moisture: sensor.my_plant_moisture
+    min_moisture: 20
+test_plant:
+  entity_id: plant.test_plant
+
+proximity:
+  home:
+    ignored_zones:
+      - work
+    devices:
+      - device_tracker.iphone
+    tolerance: 50
+test_proximity:
+  entity_id: proximity.test_prox
+
+sun:
+  - platform: sun
+test_sun:
+  entity_id: sun.sun
+
+timer:
+  laundry:
+    duration: '00:01:00'
+test_timer:
+  entity_id: timer.test_timer
+
+zone:
+  - name: School
+    latitude: 32.8773367
+    longitude: -117.2494053
+    radius: 250
+    icon: mdi:school
+test_zone:
+  entity_id: zone.test_zone
+
+schedule:
+  my_schedule:
+    name: "My Schedule"
+    monday:
+      - from: "09:00:00"
+        to: "10:00:00"
+test_schedule:
+  entity_id: schedule.test_schedule

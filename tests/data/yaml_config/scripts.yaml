@@ -1,0 +1,19 @@
+# see parser rules in heuristics.md file
+# H:10 Automation Context (Script variant)
+# Items with 'sequence' are identified as scripts.
+
+cleanup_routine:
+  alias: "Cleanup House"
+  sequence:
+    - service: vacuum.start # H:3 Service under sequence -> Script context
+      target:
+        entity_id: vacuum.robot_cleaner # Valid entity
+
+    - service: notify.mobile_app_phone # Valid service
+      data:
+        message: "Cleaning started"
+
+# H:10 Nested script logic
+nested_script:
+  sequence:
+    - service: script.cleanup_routine # Calling another script is a valid service call

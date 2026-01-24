@@ -1,81 +1,82 @@
 {
-    "config": {
-        "abort": {
-            "single_instance_allowed": "Povolený je len jeden prípad watchman"
-        },
-        "step": {}
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Povolený je len jeden prípad watchman"
     },
-    "options": {
-        "error": {
-            "invalid_included_folders": "included_folders by mal byť čiarkami oddelený zoznam konfiguračných priečinkov",
-            "invalid_columns_width": "Šírka stĺpca v prehľade by mala byť zoznamom 3 kladných celých čísel",
-            "malformed_json": "Údaje o notifikačnej akcii by mali byť platným slovníkom JSON",
-            "unknown_service": "neznáma akcia: `{service}`",
-            "invalid_report_path": "Umiestnenie súboru s prehľadom je neplatné, cesta neexistuje"
-        },
-        "step": {
-            "init": {
-                "title": "Watchman nastavenia",
-                "data": {
-                    "included_folders": "Priečinky na sledovanie:",
-                    "ignored_items": "Ignorované entity a akcie:",
-                    "ignored_states": "Vylúčiť entity s nasledujúcimi stavmi z prehľadu:",
-                    "ignored_files": "Ignorované súbory (oddelené čiarkami):",
-                    "check_lovelace": "Analyzovať ovládané UI ovládacie panely",
-                    "startup_delay": "Oneskorenie spustenia pre inicializáciu senzorov watchman"
-                },
-                "data_description": {
-                    "included_folders": "Čiarkami oddelený zoznam priečinkov, kde by mal watchman hľadať konfiguračné súbory",
-                    "ignored_items": "Čiarkami oddelený zoznam entít a akcií vylúčených zo sledovania",
-                    "ignored_states": "Čiarkami oddelený zoznam stavov vylúčených zo sledovania",
-                    "ignored_files": "Čiarkami oddelený zoznam konfiguračných súborov vylúčených zo sledovania"
-                },
-                "sections": {
-                    "appearance_location_options": {
-                        "name": "Vzhľad a umiestnenie prehľadu",
-                        "data": {
-                            "columns_width": "Zoznam šírok stĺpcov prehľadu, napr. 30, 7, 60",
-                            "report_header": "Vlastná hlavička prehľadu",
-                            "report_path": "Umiestnenie súboru s prehľadom, napr. /config/report.txt",
-                            "friendly_names": "Pridať priateľské mená entít do prehľadu"
-                        }
-                    }
-                },
-                "description": "[Pomoc s nastaveniami](https://github.com/dummylabs/thewatchman#configuration)"
-            }
-        }
+    "step": {}
+  },
+  "options": {
+    "error": {
+      "invalid_included_folders": "included_folders by mal byť čiarkami oddelený zoznam konfiguračných priečinkov",
+      "invalid_columns_width": "Šírka stĺpca v prehľade by mala byť zoznamom 3 kladných celých čísel",
+      "malformed_json": "Údaje o notifikačnej akcii by mali byť platným slovníkom JSON",
+      "unknown_service": "neznáma akcia: `{service}`",
+      "invalid_report_path": "Umiestnenie súboru s prehľadom je neplatné, cesta neexistuje"
     },
-    "services": {
-        "report": {
-            "name": "Prehľad",
-            "description": "Spustiť prehľad Watchman",
-            "fields": {
-                "create_file": {
-                    "name": "Vytvoriť súbor s prehľadom",
-                    "description": "Či by mal byť vytvorený súbor s prehľadom (zvyčajne True)"
-                },
-                "action": {
-                    "name": "Poslať prehľad ako notifikáciu",
-                    "description": "Voliteľná notifikačná akcia na odoslanie prehľadu (napr. `persistent_notification.create`)"
-                },
-                "data": {
-                    "name": "Parametre údajov notifikačnej akcie",
-                    "description": "Voliteľné parametre pre notifikačnú akciu (napr. `title: Prehľad`)"
-                },
-                "parse_config": {
-                    "name": "Vynútená analýza konfigurácie",
-                    "description": "Analyzovať konfiguračné súbory pred generovaním prehľadu. Zvyčajne to vykonáva automaticky Watchman, takže táto príznak nie je zvyčajne potrebná."
-                },
-                "chunk_size": {
-                    "name": "Veľkosť časti notifikačnej správy",
-                    "description": "Maximálna veľkosť správy v bajtoch. Niektoré notifikačné služby limitujú maximálnu veľkosť správy. Ak veľkosť prehľadu presahuje `chunk_size`, bude poslaný vo viacerých následných notifikáciách. (voliteľné)"
-                }
-            },
-            "sections": {
-                "advanced_options": {
-                    "name": "Pokročilé možnosti"
-                }
+    "step": {
+      "init": {
+        "title": "Watchman nastavenia",
+        "data": {
+          "included_folders": "Priečinky na sledovanie:",
+          "ignored_items": "Ignorované entity a akcie:",
+          "ignored_states": "Vylúčiť entity s nasledujúcimi stavmi z prehľadu:",
+          "exclude_disabled_automation": "Vylúčiť entity použité iba v deaktivovaných automatizáciách",
+          "ignored_files": "Ignorované súbory (oddelené čiarkami):",
+          "check_lovelace": "Analyzovať ovládané UI ovládacie panely",
+          "startup_delay": "Oneskorenie spustenia pre inicializáciu senzorov watchman"
+        },
+        "data_description": {
+          "included_folders": "Čiarkami oddelený zoznam priečinkov, kde by mal watchman hľadať konfiguračné súbory",
+          "ignored_items": "Čiarkami oddelený zoznam entít a akcií vylúčených zo sledovania",
+          "ignored_states": "Čiarkami oddelený zoznam stavov vylúčených zo sledovania",
+          "ignored_files": "Čiarkami oddelený zoznam konfiguračných súborov vylúčených zo sledovania"
+        },
+        "sections": {
+          "appearance_location_options": {
+            "name": "Vzhľad a umiestnenie prehľadu",
+            "data": {
+              "columns_width": "Zoznam šírok stĺpcov prehľadu, napr. 30, 7, 60",
+              "report_header": "Vlastná hlavička prehľadu",
+              "report_path": "Umiestnenie súboru s prehľadom, napr. /config/report.txt",
+              "friendly_names": "Pridať priateľské mená entít do prehľadu"
             }
-        }
+          }
+        },
+        "description": "[Pomoc s nastaveniami](https://github.com/dummylabs/thewatchman#configuration)"
+      }
     }
+  },
+  "services": {
+    "report": {
+      "name": "Prehľad",
+      "description": "Spustiť prehľad Watchman",
+      "fields": {
+        "create_file": {
+          "name": "Vytvoriť súbor s prehľadom",
+          "description": "Či by mal byť vytvorený súbor s prehľadom (zvyčajne True)"
+        },
+        "action": {
+          "name": "Poslať prehľad ako notifikáciu",
+          "description": "Voliteľná notifikačná akcia na odoslanie prehľadu (napr. `persistent_notification.create`)"
+        },
+        "data": {
+          "name": "Parametre údajov notifikačnej akcie",
+          "description": "Voliteľné parametre pre notifikačnú akciu (napr. `title: Prehľad`)"
+        },
+        "parse_config": {
+          "name": "Vynútená analýza konfigurácie",
+          "description": "Analyzovať konfiguračné súbory pred generovaním prehľadu. Zvyčajne to vykonáva automaticky Watchman, takže táto príznak nie je zvyčajne potrebná."
+        },
+        "chunk_size": {
+          "name": "Veľkosť časti notifikačnej správy",
+          "description": "Maximálna veľkosť správy v bajtoch. Niektoré notifikačné služby limitujú maximálnu veľkosť správy. Ak veľkosť prehľadu presahuje `chunk_size`, bude poslaný vo viacerých následných notifikáciách. (voliteľné)"
+        }
+      },
+      "sections": {
+        "advanced_options": {
+          "name": "Pokročilé možnosti"
+        }
+      }
+    }
+  }
 }

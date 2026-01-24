@@ -1,0 +1,15 @@
+# see parser rules in heuristics.md file
+# H:12 Custom Tags
+# Custom tags like !secret or !include should be handled without crashing.
+# If they resolve to a string, that string might be parsed.
+
+# !secret tag
+api_password: !secret http_password # H:12 Tag handled, value is string "http_password" (not an entity)
+
+# !include tag
+includes: !include other_file.yaml # H:12 Tag handled
+
+# Tag with valid entity inside string
+tagged_entity: !secret "sensor.secret_sensor"
+# H:12 If loader converts this to string "sensor.secret_sensor", parser might pick it up.
+# Watchman custom loader preserves line info.

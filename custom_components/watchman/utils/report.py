@@ -1,4 +1,4 @@
-"""Reporting function of Watchman."""
+"Reporting function of Watchman."
 
 from datetime import datetime
 from typing import Any
@@ -17,15 +17,6 @@ from ..const import (
     DOMAIN,
     DEFAULT_HEADER,
     CONF_HEADER,
-    HASS_DATA_CHECK_DURATION,
-    HASS_DATA_COORDINATOR,
-    HASS_DATA_FILES_IGNORED,
-    HASS_DATA_FILES_PARSED,
-    HASS_DATA_MISSING_ENTITIES,
-    HASS_DATA_MISSING_SERVICES,
-    HASS_DATA_PARSE_DURATION,
-    HASS_DATA_PARSED_ENTITY_LIST,
-    HASS_DATA_PARSED_SERVICE_LIST,
     REPORT_ENTRY_TYPE_ENTITY,
     REPORT_ENTRY_TYPE_SERVICE,
 )
@@ -38,33 +29,60 @@ async def parsing_stats(hass, start_time):
         return pytz.timezone(hass.config.time_zone)
 
     timezone = await hass.async_add_executor_job(get_timezone, hass)
+    coordinator = get_entry(hass).runtime_data.coordinator
+    parse_duration = await coordinator.async_get_last_parse_duration()
     return (
         datetime.now(timezone).strftime("%d %b %Y %H:%M:%S"),
-        hass.data[DOMAIN][HASS_DATA_PARSE_DURATION],
-        hass.data[DOMAIN][HASS_DATA_CHECK_DURATION],
+        parse_duration,
+        coordinator.last_check_duration,
         time.time() - start_time,
     )
 
 
-async def report(hass, render, chunk_size):
-    """Generate Watchman report either as a table or as a list."""
-    if DOMAIN not in hass.data:
-        raise HomeAssistantError("No data for report, refresh required.")
+async def report(
+    hass,
+    render=None,
+    chunk_size=None,
+    parse_config=None,
+):
+    """Generate a report of missing entities and services."""
+    from ..coordinator import renew_missing_items_list
 
+    from ..const import CONF_EXCLUDE_DISABLED_AUTOMATION
+    
     start_time = time.time()
+    entry = get_entry(hass)
+    coordinator = entry.runtime_data.coordinator
+
+    if parse_config:
+        await coordinator.async_parse_config(reason="watchman.report service call")
+
+    service_list = await coordinator.async_get_parsed_services()
+    
+    exclude_disabled_automations = get_config(
+        hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
+    )
+    
+    missing_services = renew_missing_items_list(
+        hass, service_list, exclude_disabled_automations, "action"
+    )
+    entity_list = await coordinator.async_get_parsed_entities()
+    
+    missing_entities = renew_missing_items_list(
+        hass, entity_list, exclude_disabled_automations, "entity"
+    )
+
     header = get_config(hass, CONF_HEADER, DEFAULT_HEADER)
-    services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
-    service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
-    entities_missing = hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]
-    entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
-    files_parsed = hass.data[DOMAIN][HASS_DATA_FILES_PARSED]
-    files_ignored = hass.data[DOMAIN][HASS_DATA_FILES_IGNORED]
+    info = await coordinator.hub.async_get_last_parse_info()
+    files_parsed = info.get("processed_files_count", 0)
+    files_ignored = info.get("ignored_files_count", 0)
 
     rep = f"{header} \n"
-    if services_missing:
-        rep += f"\n-== Missing {len(services_missing)} action(s) from "
+    if missing_services:
+        rep += f"\n-== Missing {len(missing_services)} action(s) from "
         rep += f"{len(service_list)} found in your config:\n"
-        rep += render(hass, REPORT_ENTRY_TYPE_SERVICE)
+        if render:
+            rep += render(hass, REPORT_ENTRY_TYPE_SERVICE, missing_services, service_list)
         rep += "\n"
     elif len(service_list) > 0:
         rep += f"\n-== Congratulations, all {len(service_list)} actions from "
@@ -72,10 +90,11 @@ async def report(hass, render, chunk_size):
     else:
         rep += "\n-== No actions found in configuration files!\n"
 
-    if entities_missing:
-        rep += f"\n-== Missing {len(entities_missing)} entity(ies) from "
+    if missing_entities:
+        rep += f"\n-== Missing {len(missing_entities)} entity(ies) from "
         rep += f"{len(entity_list)} found in your config:\n"
-        rep += render(hass, REPORT_ENTRY_TYPE_ENTITY)
+        if render:
+            rep += render(hass, REPORT_ENTRY_TYPE_ENTITY, missing_entities, entity_list)
         rep += "\n"
 
     elif len(entity_list) > 0:
@@ -99,6 +118,7 @@ async def report(hass, render, chunk_size):
     rep += f"-== Generated in: {render_duration:.2f}s. Validated in: {check_duration:.2f}s."
     report_chunks = []
     chunk = ""
+    chunk_size = chunk_size or 0
     for line in iter(rep.splitlines()):
         chunk += f"{line}\n"
         if chunk_size > 0 and len(chunk) > chunk_size:
@@ -109,37 +129,33 @@ async def report(hass, render, chunk_size):
     return report_chunks
 
 
-def table_renderer(hass, entry_type):
+def table_renderer(hass, entry_type, missing_items, parsed_list):
     """Render ASCII tables in the report."""
     table = PrettyTable()
     columns_width = get_config(hass, CONF_COLUMNS_WIDTH, None)
     columns_width = get_columns_width(columns_width)
     if entry_type == REPORT_ENTRY_TYPE_SERVICE:
-        services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
-        service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
         table.field_names = ["Action ID", "State", "Location"]
-        for service in services_missing:
+        for service in missing_items:
             row = [
                 fill(service, columns_width[0]),
                 fill("missing", columns_width[1]),
-                fill(service_list[service], columns_width[2]),
+                fill(parsed_list[service]["locations"], columns_width[2]),
             ]
             table.add_row(row)
         table.align = "l"
         return table.get_string()
     elif entry_type == REPORT_ENTRY_TYPE_ENTITY:
-        entities_missing = hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]
-        parsed_entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
         friendly_names = get_config(hass, CONF_FRIENDLY_NAMES, False)
         header = ["Entity ID", "State", "Location"]
         table.field_names = header
-        for entity in entities_missing:
+        for entity in missing_items:
             state, name = get_entity_state(hass, entity, friendly_names)
             table.add_row(
                 [
                     fill(entity, columns_width[0], name),
                     fill(state, columns_width[1]),
-                    fill(parsed_entity_list[entity], columns_width[2]),
+                    fill(parsed_list[entity]["locations"], columns_width[2]),
                 ]
             )
 
@@ -150,23 +166,19 @@ def table_renderer(hass, entry_type):
         return f"Table render error: unknown entry type: {entry_type}"
 
 
-def text_renderer(hass, entry_type):
+def text_renderer(hass, entry_type, missing_items, parsed_list):
     """Render plain lists in the report."""
     result = ""
     if entry_type == REPORT_ENTRY_TYPE_SERVICE:
-        services_missing = hass.data[DOMAIN][HASS_DATA_MISSING_SERVICES]
-        service_list = hass.data[DOMAIN][HASS_DATA_PARSED_SERVICE_LIST]
-        for service in services_missing:
-            result += f"{service} in {fill(service_list[service], 0)}\n"
+        for service in missing_items:
+            result += f"{service} in {fill(parsed_list[service]['locations'], 0)}\n"
         return result
     elif entry_type == REPORT_ENTRY_TYPE_ENTITY:
-        entities_missing = hass.data[DOMAIN][HASS_DATA_MISSING_ENTITIES]
-        entity_list = hass.data[DOMAIN][HASS_DATA_PARSED_ENTITY_LIST]
         friendly_names = get_config(hass, CONF_FRIENDLY_NAMES, False)
-        for entity in entities_missing:
+        for entity in missing_items:
             state, name = get_entity_state(hass, entity, friendly_names)
             entity_col = entity if not name else f"{entity} ('{name}')"
-            result += f"{entity_col} [{state}] in: {fill(entity_list[entity], 0)}\n"
+            result += f"{entity_col} [{state}] in: {fill(parsed_list[entity]['locations'], 0)}\n"
 
         return result
     else:
@@ -204,7 +216,6 @@ def get_columns_width(user_width):
 async def async_report_to_file(hass, path):
     """Save report to a file."""
     report_chunks = await report(hass, table_renderer, chunk_size=0)
-    await get_entry(hass).runtime_data.coordinator.async_refresh()
 
     def write(path):
         with open(path, "w", encoding="utf-8") as report_file:
@@ -238,8 +249,6 @@ async def async_report_to_notification(
 
     _LOGGER.debug(f"SERVICE_DATA {data}")
 
-    coordinator = hass.data[DOMAIN][HASS_DATA_COORDINATOR]
-    await coordinator.async_refresh()
     report_chunks = await report(hass, text_renderer, chunk_size)
     for msg_chunk in report_chunks:
         data["message"] = msg_chunk

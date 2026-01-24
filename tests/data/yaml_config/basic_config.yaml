@@ -1,0 +1,24 @@
+# see parser rules in heuristics.md file
+# H:13 Valid Domains
+# Only strings starting with valid HA domains (e.g., light, sensor, switch) are extracted.
+# "invalid_domain.test" should be ignored.
+switch:
+  - platform: template
+    switches:
+      skylight:
+        value_template: "{{ is_state('sensor.skylight', 'on') }}" # H:13 sensor.skylight (Valid)
+        turn_on:
+          service: switch.turn_on # H:3 Service Key (Valid)
+          target:
+            entity_id: switch.skylight # H:13 switch.skylight (Valid)
+        turn_off:
+          service: switch.turn_off
+          target:
+            entity_id: switch.skylight
+
+# H:4 Comments
+# This line contains a valid looking entity: light.kitchen_ignored
+# It should be completely ignored by the parser.
+
+unknown_domain:
+  - entity_id: invalid_domain.test # H:13 invalid_domain is not in _ALL_DOMAINS list
