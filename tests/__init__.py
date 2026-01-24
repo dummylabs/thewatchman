@@ -9,6 +9,7 @@ from custom_components.watchman.const import (
     DOMAIN,
     CONF_INCLUDED_FOLDERS,
     DEFAULT_OPTIONS,
+    CONFIG_ENTRY_MINOR_VERSION,
 )
 
 
@@ -33,6 +34,7 @@ async def async_init_integration(
             title="WM",
             unique_id="unique_id",
             version=2,
+            minor_version=CONFIG_ENTRY_MINOR_VERSION,
             data=config,
         )
     config_entry.add_to_hass(hass)

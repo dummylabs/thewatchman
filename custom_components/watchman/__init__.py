@@ -39,6 +39,7 @@ from .const import (
     CONF_HEADER,
     CONF_REPORT_PATH,
     CONF_IGNORED_ITEMS,
+    CONF_IGNORED_LABELS,
     CONF_INCLUDED_FOLDERS,
     CONF_CHECK_LOVELACE,
     CONF_IGNORED_STATES,
@@ -218,7 +219,7 @@ async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
     """Migrate ConfigEntry persistent data to a new version."""
-    if config_entry.version > 1:
+    if config_entry.version > CONFIG_ENTRY_VERSION:
         # This means the user has downgraded from a future version
         _LOGGER.error(
             "Unable to migratre Watchman entry from version %d.%d. If integration version was downgraded, use backup to restore its data.",
@@ -226,7 +227,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
             config_entry.minor_version,
         )
         return False
-    else:
+    if config_entry.version == 1:
         # migrate from ConfigEntry.options to ConfigEntry.data
         _LOGGER.info(
             "Start Watchman configuration entry migration to version 2. Source data: %s",
@@ -292,3 +293,29 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
             version=CONFIG_ENTRY_VERSION,
         )
         return True
+    if config_entry.version == CONFIG_ENTRY_VERSION and (
+        config_entry.minor_version < CONFIG_ENTRY_MINOR_VERSION
+    ):
+        _LOGGER.info(
+            "Start Watchman configuration entry migration to minor version %d. Source data: %s",
+            CONFIG_ENTRY_MINOR_VERSION,
+            config_entry.data,
+        )
+        data = {**config_entry.data}
+        if CONF_IGNORED_LABELS not in data:
+            data[CONF_IGNORED_LABELS] = DEFAULT_OPTIONS[CONF_IGNORED_LABELS]
+
+        hass.config_entries.async_update_entry(
+            config_entry,
+            data=data,
+            options={**config_entry.options},
+            minor_version=CONFIG_ENTRY_MINOR_VERSION,
+            version=CONFIG_ENTRY_VERSION,
+        )
+        _LOGGER.info(
+            "Successfully migrated Watchman configuration entry to version %d.%d",
+            config_entry.version,
+            CONFIG_ENTRY_MINOR_VERSION,
+        )
+        return True
+    return True

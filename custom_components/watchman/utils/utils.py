@@ -19,6 +19,7 @@ from ..const import (
     CONF_HEADER,
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
+    CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
@@ -76,7 +77,12 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
 
     assert isinstance(entry, ConfigEntry)
 
-    if key in [CONF_INCLUDED_FOLDERS, CONF_IGNORED_ITEMS, CONF_IGNORED_FILES]:
+    if key in [
+        CONF_INCLUDED_FOLDERS,
+        CONF_IGNORED_ITEMS,
+        CONF_IGNORED_FILES,
+        CONF_IGNORED_LABELS,
+    ]:
         return to_lists(entry.data, key)
 
     if key in [

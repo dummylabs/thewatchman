@@ -13,6 +13,7 @@ from .const import (
     COORD_DATA_SERVICE_ATTRS,
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
+    CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
 )
@@ -97,6 +98,8 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, it
 
     disabled_automations = _get_disabled_automations(hass, exclude_disabled_automations)
     automation_map = _get_automation_map(hass)
+    ent_reg = er.async_get(hass)
+    ignored_labels = set(get_config(hass, CONF_IGNORED_LABELS, []))
 
     for entry, data in parsed_list.items():
         occurrences = data["locations"]
@@ -108,6 +111,19 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, it
             if is_action(hass, entry):
                 _LOGGER.debug(f"{INDENT}⚪ {entry} is a HA action, skipped ({occurrences})")
                 continue
+
+            # Check ignored labels
+            if ignored_labels:
+                reg_entry = ent_reg.async_get(entry)
+                if (
+                    reg_entry
+                    and hasattr(reg_entry, "labels")
+                    and set(reg_entry.labels) & ignored_labels
+                ):
+                    _LOGGER.debug(
+                        f"{INDENT}⚪ {entry} has ignored label(s), skipped ({occurrences})"
+                    )
+                    continue
 
             state, _ = get_entity_state(hass, entry)
             if state in ignored_states:
