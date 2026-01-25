@@ -13,7 +13,6 @@ from .const import (
     COORD_DATA_SERVICE_ATTRS,
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
-    CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
 )
@@ -75,15 +74,8 @@ def _resolve_automations(hass, raw_automations, automation_map):
         automations.add(p_id)
     return automations
 
-def _all_parents_disabled(automations, disabled_automations):
-    all_parents_disabled = True
-    for parent_id in automations:
-        if parent_id not in disabled_automations:
-            all_parents_disabled = False
-    return all_parents_disabled
 
-
-def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, item_type):
+def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ignored_labels, item_type):
     """Refresh list of missing items (entities or actions)."""
     missing_items = {}
     is_entity = item_type == "entity"
@@ -91,15 +83,22 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, it
 
     _LOGGER.debug(f"## Triaging list of found {type_label}s. exclude_disabled_automations={exclude_disabled_automations}")
 
-    ignored_states = [
-        "unavail" if s == "unavailable" else s
-        for s in get_config(hass, CONF_IGNORED_STATES, [])
-    ]
+    ignored_states = []
+    if is_entity:
+        ignored_states = [
+            "unavail" if s == "unavailable" else s
+            for s in get_config(hass, CONF_IGNORED_STATES, [])
+        ]
+    elif "missing" in get_config(hass, CONF_IGNORED_STATES, []):
+        # Specific check for actions if 'missing' is ignored
+        _LOGGER.debug(
+            f"{INDENT}MISSING state set as ignored in config, so final list of reported actions is empty."
+        )
+        return missing_items
 
     disabled_automations = _get_disabled_automations(hass, exclude_disabled_automations)
     automation_map = _get_automation_map(hass)
     ent_reg = er.async_get(hass)
-    ignored_labels = set(get_config(hass, CONF_IGNORED_LABELS, []))
 
     for entry, data in parsed_list.items():
         occurrences = data["locations"]
@@ -139,19 +138,40 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, it
             should_report = not is_action(hass, entry)
 
         if should_report:
-            if exclude_disabled_automations:
-                if _all_parents_disabled(automations, disabled_automations):
+            # Shared exclusion logic
+            if exclude_disabled_automations and automations:
+                all_parents_disabled = True
+                for parent_id in automations:
+                    if parent_id not in disabled_automations:
+                        all_parents_disabled = False
+                        break
+
+                if all_parents_disabled:
                     _LOGGER.debug(
                         f"{INDENT}⚪ {type_label} {entry} is only used by disabled automations {automations}, skipped ({occurrences})"
                     )
+                    continue
                 else:
                     _LOGGER.debug(
                         f"{INDENT}🔴 {type_label} {entry} is used both by enabled and disabled automations {automations}, added to the report ({occurrences})"
                     )
-                    missing_items[entry] = occurrences
-            else:
-                missing_items[entry] = occurrences
-                _LOGGER.debug(f"{INDENT}🔴 {type_label} {entry} added to the report ({occurrences})")
+
+            missing_items[entry] = occurrences
+
+            # Entity-specific warning logic
+            missing_auto_warning = ""
+            if is_entity and automations:
+                auto_id = list(automations)[0]
+                auto_state = hass.states.get(auto_id)
+                missing_auto_warning = (
+                    "" if auto_state else "❌: automation not found"
+                )
+
+            log_msg = f"{INDENT}🔴 {type_label} {entry} added to the report"
+            if is_entity:
+                log_msg += f" {missing_auto_warning}"
+            log_msg += f" ({occurrences})"
+            _LOGGER.debug(log_msg)
 
     return missing_items
 
@@ -171,6 +191,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.hub = hub
         self.last_check_duration = 0.0
+        self.ignored_labels = set()
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
             COORD_DATA_MISSING_SERVICES: 0,
@@ -211,16 +232,25 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         )
 
         await self.hub.async_parse(included_folders, ignored_files, ignored_items)
+
         info = await self.hub.async_get_last_parse_info()
-        _LOGGER.debug(f"{INDENT}Parsing finished in: {info.get("duration", 0.0)}")
+
+        # We don't log parse duration here anymore as it is handled by the parser/hub
+        _LOGGER.debug(f"{INDENT}Parsing finished in: {info.get('duration', 0.0)}")
 
     async def async_get_last_parse_duration(self):
         """Return duration of the last parsing."""
         info = await self.hub.async_get_last_parse_info()
         return info.get("duration", 0.0)
 
+    def update_ignored_labels(self, labels: list[str]) -> None:
+        """Update ignored labels list and refresh data."""
+        self.ignored_labels = set(labels)
+        self.hass.async_create_task(self.async_refresh())
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Update Watchman sensors.
+
         Update will trigger parsing of configuration files if entry.runtime_data.force_parsing is set
         """
 
@@ -248,10 +278,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     )
 
                     services_missing = renew_missing_items_list(
-                        self.hass, parsed_service_list, exclude_disabled_automations, "action"
+                        self.hass, parsed_service_list, exclude_disabled_automations, self.ignored_labels, "action"
                     )
                     entities_missing = renew_missing_items_list(
-                        self.hass, parsed_entity_list, exclude_disabled_automations, "entity"
+                        self.hass, parsed_entity_list, exclude_disabled_automations, self.ignored_labels, "entity"
                     )
 
                     self.last_check_duration = (
@@ -259,6 +289,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     )
 
                     # build entity attributes map for missing_entities sensor
+                    # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
                     entity_attrs = []
                     for entity in entities_missing:
                         state, name = get_entity_state(
@@ -274,6 +305,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                         )
 
                     # build service attributes map for missing_services sensor
+                    # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
                     service_attrs = []
                     for service in services_missing:
                         service_attrs.append(

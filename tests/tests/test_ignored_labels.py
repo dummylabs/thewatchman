@@ -5,7 +5,6 @@ from unittest.mock import MagicMock
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import label_registry as lr
 from custom_components.watchman.const import (
-    CONF_IGNORED_LABELS,
     COORD_DATA_MISSING_ENTITIES,
     COORD_DATA_ENTITY_ATTRS,
     DOMAIN,
@@ -51,17 +50,32 @@ async def test_ignored_labels(hass, tmp_path, new_test_data_dir):
     hass.states.async_set("sensor.test3_unavail", "unavailable")
     hass.states.async_set("sensor.test4_avail", "42")
 
-    # Initialize Integration with ignored label
+    # Initialize Integration
     config_entry = await async_init_integration(
         hass, add_params={
-            CONF_IGNORED_LABELS: "ignore_watchman",
             CONF_INCLUDED_FOLDERS: str(config_dir)
         }
     )
     
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    
+    info = await coordinator.hub.async_get_last_parse_info()
+    assert info.get("processed_files_count") > 0, f"Parsed 0 files! Path: {config_dir}, Info: {info}"
 
-    # Verify Results
+    # Verify Initial Results (all 3 missing)
+    assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 3
+    
+    text_entity_id = "text.watchman_ignored_labels"
+
+    # Set ignored labels via text entity
+    await hass.services.async_call(
+        "text", "set_value",
+        {"entity_id": text_entity_id, "value": "ignore_watchman"},
+        blocking=True
+    )
+    await hass.async_block_till_done()
+    
+    # Verify Results (2 missing, 1 ignored)
     assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 2
     
     # Verify specific entities in the report

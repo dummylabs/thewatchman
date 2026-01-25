@@ -52,6 +52,10 @@ def get_val(
 def to_lists(options, key, section=None):
     """Transform configuration value to the list of strings."""
     val = get_val(options, key, section)
+    if isinstance(val, list):
+        return val
+    if not val:
+        return []
     return [x.strip() for x in val.split(",") if x.strip()]
 
 

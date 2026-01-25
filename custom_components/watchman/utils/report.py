@@ -14,7 +14,6 @@ from ..const import (
     CONF_ACTION_NAME,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
-    DOMAIN,
     DEFAULT_HEADER,
     CONF_HEADER,
     REPORT_ENTRY_TYPE_ENTITY,
@@ -49,7 +48,7 @@ async def report(
     from ..coordinator import renew_missing_items_list
 
     from ..const import CONF_EXCLUDE_DISABLED_AUTOMATION
-    
+
     start_time = time.time()
     entry = get_entry(hass)
     coordinator = entry.runtime_data.coordinator
@@ -58,18 +57,18 @@ async def report(
         await coordinator.async_parse_config(reason="watchman.report service call")
 
     service_list = await coordinator.async_get_parsed_services()
-    
+
     exclude_disabled_automations = get_config(
         hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
     )
-    
+
     missing_services = renew_missing_items_list(
-        hass, service_list, exclude_disabled_automations, "action"
+        hass, service_list, exclude_disabled_automations, coordinator.ignored_labels, "action"
     )
     entity_list = await coordinator.async_get_parsed_entities()
-    
+
     missing_entities = renew_missing_items_list(
-        hass, entity_list, exclude_disabled_automations, "entity"
+        hass, entity_list, exclude_disabled_automations, coordinator.ignored_labels, "entity"
     )
 
     header = get_config(hass, CONF_HEADER, DEFAULT_HEADER)

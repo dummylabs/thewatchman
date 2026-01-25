@@ -95,7 +95,7 @@ BUNDLED_IGNORED_ITEMS = [
 ]
 
 # Platforms
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.TEXT]
 
 DEFAULT_OPTIONS = {
     CONF_INCLUDED_FOLDERS: "",
