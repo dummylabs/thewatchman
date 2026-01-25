@@ -20,6 +20,7 @@
                     "included_folders": "Dossiers à surveiller :",
                     "ignored_items": "Entités et actions ignorées :",
                     "ignored_states": "Exclure du rapport les entités avec les états ci-dessous :",
+                    "exclude_disabled_automation": "Exclure les entités utilisées uniquement par des automatisations désactivées",
                     "ignored_files": "Fichiers ignorés (séparés par des virgules):",
                     "check_lovelace": "Analyser les tableaux de bord contrôlés par l'interface utilisateur",
                     "startup_delay": "Délai de démarrage pour l'initialisation des capteurs Watchman"
