@@ -4,7 +4,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "watchman"
 DOMAIN_DATA = "watchman_data"
-VERSION = "0.8.0"
+VERSION = "0.8.1"
 
 CONFIG_ENTRY_VERSION = 2
 CONFIG_ENTRY_MINOR_VERSION = 2
@@ -94,7 +94,7 @@ BUNDLED_IGNORED_ITEMS = [
 ]
 
 # Platforms
-PLATFORMS = [Platform.SENSOR, Platform.TEXT]
+PLATFORMS = [Platform.SENSOR, Platform.TEXT, Platform.BUTTON]
 
 DEFAULT_OPTIONS = {
     CONF_INCLUDED_FOLDERS: "",
