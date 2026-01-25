@@ -40,7 +40,6 @@ Option | Description | Example
 ⚙️ Exclude entity states | Select which states will be excluded from the report | Checkboxes in UI
 ⚙️ Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `*/blueprints/*, */custom_components/*, */esphome/*`
 ⚙️ Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/actions may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
-⚙️ Parse UI controlled dsahboards | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | UI flag
 ⚙️ Exclude entities used by disabled automations | If enabled, entities referenced only by disabled automations will be excluded from the report. | UI flag
 ⚙️ Report location | Report location and filename. | `/config/watchman_report.txt`
 ⚙️ Custom header for the report | Custom header for watchman report. | `-== Watchman Report ==-`

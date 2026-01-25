@@ -37,7 +37,6 @@ CONF_ACTION_NAME = "action"
 CONF_SERVICE_DATA = "data"
 CONF_SERVICE_DATA2 = "service_data"
 CONF_INCLUDED_FOLDERS = "included_folders"
-CONF_CHECK_LOVELACE = "check_lovelace"
 CONF_EXCLUDE_DISABLED_AUTOMATION = "exclude_disabled_automation"
 CONF_IGNORED_STATES = "ignored_states"
 CONF_CHUNK_SIZE = "chunk_size"
@@ -104,7 +103,6 @@ DEFAULT_OPTIONS = {
     CONF_IGNORED_STATES: [],
     CONF_EXCLUDE_DISABLED_AUTOMATION: False,
     CONF_IGNORED_FILES: "*.cache*, */custom_components/*, *.git*",
-    CONF_CHECK_LOVELACE: False,
     CONF_STARTUP_DELAY: 0,
     CONF_SECTION_APPEARANCE_LOCATION: {
         CONF_HEADER: "-== Watchman Report ==-",

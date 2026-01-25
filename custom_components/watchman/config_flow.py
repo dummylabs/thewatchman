@@ -16,7 +16,6 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_CHECK_LOVELACE,
     CONF_COLUMNS_WIDTH,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
     CONF_FRIENDLY_NAMES,
@@ -64,9 +63,6 @@ def _get_data_schema() -> vol.Schema:
             vol.Required(
                 CONF_STARTUP_DELAY,
             ): cv.positive_int,
-            vol.Optional(
-                CONF_CHECK_LOVELACE,
-            ): cv.boolean,
             vol.Optional(
                 CONF_EXCLUDE_DISABLED_AUTOMATION,
             ): cv.boolean,

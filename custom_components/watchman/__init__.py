@@ -41,7 +41,6 @@ from .const import (
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_LABELS,
     CONF_INCLUDED_FOLDERS,
-    CONF_CHECK_LOVELACE,
     CONF_IGNORED_STATES,
     CONF_COLUMNS_WIDTH,
     CONF_STARTUP_DELAY,
@@ -242,7 +241,6 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         )
 
         data[CONF_IGNORED_STATES] = config_entry.options.get(CONF_IGNORED_STATES, [])
-        data[CONF_CHECK_LOVELACE] = config_entry.options.get(CONF_CHECK_LOVELACE, False)
 
         if CONF_IGNORED_ITEMS in config_entry.options:
             data[CONF_IGNORED_ITEMS] = ",".join(

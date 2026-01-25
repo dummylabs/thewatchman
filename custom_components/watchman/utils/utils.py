@@ -12,7 +12,6 @@ from homeassistant.core import HomeAssistant, split_entity_id
 from homeassistant.helpers import entity_registry as er
 
 from ..const import (
-    CONF_CHECK_LOVELACE,
     CONF_COLUMNS_WIDTH,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
     CONF_FRIENDLY_NAMES,
@@ -92,7 +91,6 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
     if key in [
         CONF_IGNORED_STATES,
         CONF_EXCLUDE_DISABLED_AUTOMATION,
-        CONF_CHECK_LOVELACE,
         CONF_STARTUP_DELAY,
     ]:
         return get_val(entry.data, key)
