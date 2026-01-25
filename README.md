@@ -119,5 +119,21 @@ Please note that the ASCII table format is only used when report is saved to a f
 ```
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/action state and generate text version of the report.
 
+## Youtube Reviews
+### Everything Smart Home channel
+[![Watch the video](https://img.youtube.com/vi/XKD5vBZLKgE/0.jpg)](https://www.youtube.com/watch?v=XKD5vBZLKgE)
+
+### mostlychris channel
+[![Watch the video](https://img.youtube.com/vi/E489fTZHywI/0.jpg)](https://www.youtube.com/watch?v=E489fTZHywI)
+
+### Smart Home Australia channel
+[![Watch the video](https://img.youtube.com/vi/J41HYbtBsbQ/0.jpg)](https://www.youtube.com/watch?v=J41HYbtBsbQ)
+
+### Smart Home Makers channel
+[![Watch the video](https://img.youtube.com/vi/iHQYs-YA2uo/0.jpg)](https://www.youtube.com/watch?v=iHQYs-YA2uo)
+
+### Sascha Brockel channel
+[![Watch the video](https://img.youtube.com/vi/qYHMoTlheuA/0.jpg)](https://www.youtube.com/watch?v=qYHMoTlheuA)
+
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
 [forum]: https://community.home-assistant.io/t/watchman-keeps-track-of-missing-entities-and-services-in-your-config-files/390391
