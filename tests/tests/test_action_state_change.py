@@ -1,5 +1,8 @@
-"""Test Watchman reaction to action/service state changes."""
+"""Test Watchman reaction to action state changes."""
 import pytest
+from datetime import timedelta
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from custom_components.watchman.const import (
     DOMAIN,
     CONF_INCLUDED_FOLDERS,
@@ -11,12 +14,12 @@ from tests import async_init_integration
 @pytest.mark.asyncio
 async def test_action_state_change_tracking(hass, tmp_path):
     """Test that Watchman updates missing services sensor when a tracked service is registered/removed."""
-    
+
     # 1. Setup: Create a config file with a monitored service
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     config_file = config_dir / "test_actions.yaml"
-    
+
     # Define usage of 'script.test_service'
     config_file.write_text("automation:\n  - action:\n      - service: script.test_service", encoding="utf-8")
 
@@ -35,7 +38,7 @@ async def test_action_state_change_tracking(hass, tmp_path):
     # 2. Verify Initial State
     # The service 'script.test_service' is NOT registered yet, so it should be reported as missing.
     # Note: New installations use watchman_missing_actions by default
-    
+
     missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ACTIONS}")
     assert missing_sensor is not None
     assert missing_sensor.state == "1", "Initial missing count should be 1 (service not registered)"
@@ -46,8 +49,9 @@ async def test_action_state_change_tracking(hass, tmp_path):
         pass
 
     hass.services.async_register("script", "test_service", mock_service_handler)
-    
-    # Allow event processing
+
+    # Allow event processing and debounced refresh (10s default cooldown)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
 
     # 4. Verify Updated State
@@ -57,6 +61,9 @@ async def test_action_state_change_tracking(hass, tmp_path):
 
     # 5. Trigger: Remove the service
     hass.services.async_remove("script", "test_service")
+    
+    # Allow event processing and debounced refresh
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
 
     # 6. Verify Final State

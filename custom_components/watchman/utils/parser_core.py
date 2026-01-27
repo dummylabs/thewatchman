@@ -1,7 +1,6 @@
 import os
 import sys
 import glob
-import json
 import sqlite3
 import datetime
 import time
@@ -11,6 +10,8 @@ import re
 import yaml
 import contextlib
 from typing import List, Tuple, Dict, Any
+from .logger import _LOGGER
+from ..const import DB_TIMEOUT
 
 # file extensions supported by parser
 # .json is not parsed as they typically contains unrelevant false positive entries
@@ -326,6 +327,7 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                     })
 
             # 2. Special Check for Service/Action Keys
+            # FIXME - process actions key accordingly
             is_action_key = isinstance(key, str) and key.lower() in ["service", "action"]
 
             # Recurse
@@ -412,7 +414,7 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             })
 
 
-def _parse_content(content: str, file_type: str, logger: logging.Logger = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> List[Dict]:
+def _parse_content(content: str, file_type: str, filepath: str = None, logger: logging.Logger = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> List[Dict]:
     """
     Parses YAML/JSON content and extracts entities.
     """
@@ -424,11 +426,11 @@ def _parse_content(content: str, file_type: str, logger: logging.Logger = None, 
         data = yaml.load(content, Loader=_LineLoader)
     except yaml.YAMLError as e:
         if logger:
-            logger.error(f"Error parsing content: {e}")
+            logger.error(f"Error parsing content in {filepath or 'unknown'}: {e}")
         return []
     except Exception as e:
         if logger:
-             logger.error(f"Critical error parsing content: {e}")
+             logger.error(f"Critical error parsing content in {filepath or 'unknown'}: {e}")
         return []
 
     results = []
@@ -447,11 +449,18 @@ class WatchmanParser:
     @contextlib.contextmanager
     def _db_session(self):
         """Context manager for database connections."""
-        conn = self._init_db(self.db_path)
         try:
-            yield conn
-        finally:
-            conn.close()
+            conn = self._init_db(self.db_path)
+            try:
+                yield conn
+            finally:
+                conn.close()
+        except sqlite3.DatabaseError as e:
+            _LOGGER.error(f"Database corrupted, deleting {self.db_path}: {e}")
+            if os.path.exists(self.db_path):
+                os.remove(self.db_path)
+            # Re-raise to abort current operation. Next operation will recreate DB.
+            raise
 
     def _init_db(self, db_path: str) -> sqlite3.Connection:
         # Ensure directory exists
@@ -459,12 +468,12 @@ class WatchmanParser:
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
 
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path, timeout=DB_TIMEOUT)
         c = conn.cursor()
 
         c.execute("PRAGMA foreign_keys = ON;")
         c.execute("PRAGMA journal_mode = WAL;")
-        c.execute("PRAGMA synchronous = NORMAL;")
+        c.execute("PRAGMA synchronous = OFF;")
 
         c.execute('''CREATE TABLE IF NOT EXISTS processed_files (
                         file_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -488,6 +497,9 @@ class WatchmanParser:
                         parent_alias TEXT,
                                         FOREIGN KEY(file_id) REFERENCES processed_files(file_id) ON DELETE CASCADE
                                     )''')
+
+        c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_file_id ON found_items(file_id);")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_item_type ON found_items(item_type);")
 
         # Schema migration for existing DB
         try:
@@ -519,6 +531,8 @@ class WatchmanParser:
         except sqlite3.OperationalError:
             pass
 
+        c.execute("INSERT OR IGNORE INTO scan_config (id) VALUES (1)")
+
         conn.commit()
         return conn
 
@@ -528,48 +542,58 @@ class WatchmanParser:
         Returns:
             Tuple[List[str], int]: (list of files to scan, count of ignored files)
         """
-        found_files = set()
-        cwd = os.getcwd()
-
-        for pattern in folders:
-            # Handle relative paths for folders if they are not absolute
-            if not os.path.isabs(pattern):
-                 pass
-
-            if os.path.isdir(pattern):
-                for root, _, files in os.walk(pattern):
-                    for file in files:
-                        filepath = os.path.join(root, file)
-                        if os.path.exists(filepath):
-                            abs_path = os.path.abspath(filepath)
-                            found_files.add(abs_path)
-            else:
-                search_pattern = pattern
-
-                for filepath in glob.glob(search_pattern, recursive=True):
-                    if os.path.isfile(filepath):
-                        abs_path = os.path.abspath(filepath)
-                        found_files.add(abs_path)
-
         final_files = []
         ignored_count = 0
-        for filepath in found_files:
-            rel_path = os.path.relpath(filepath, cwd)
+        cwd = os.getcwd()
+
+        def process_file(filepath):
+            nonlocal ignored_count
+            # 1. Cheap check: Extension
+            _, ext = os.path.splitext(filepath)
+            if ext.lower() not in _YAML_FILE_EXTS + _JSON_FILE_EXTS:
+                return
+
+            # 2. Expensive check: Ignored patterns
+            # We need abs_path for correct ignore matching if patterns are absolute or relative
+            # But we can try to match relative path first if pattern is relative
+
+            # To match previous logic, we check both abs and rel paths
+            abs_path = os.path.abspath(filepath)
+            rel_path = os.path.relpath(abs_path, cwd)
+
             is_ignored = False
             for ignore_pat in ignored_files:
-                if fnmatch.fnmatch(filepath, ignore_pat) or fnmatch.fnmatch(rel_path, ignore_pat):
+                if fnmatch.fnmatch(abs_path, ignore_pat) or fnmatch.fnmatch(rel_path, ignore_pat):
                     is_ignored = True
                     break
 
-            if not is_ignored:
-                basename = os.path.basename(filepath)
-                _, ext = os.path.splitext(basename)
-                if ext.lower() in _YAML_FILE_EXTS + _JSON_FILE_EXTS:
-                    final_files.append(filepath)
-            else:
+            if is_ignored:
                 ignored_count += 1
+            else:
+                final_files.append(abs_path)
 
-        return sorted(final_files), ignored_count
+        for pattern in folders:
+            # Optimize recursive scan
+            if pattern.endswith("/**") or pattern.endswith(os.sep + "**"):
+                base_dir = pattern[:-3] # Remove /**
+                if os.path.isdir(base_dir):
+                    for root, _, files in os.walk(base_dir):
+                        for file in files:
+                            process_file(os.path.join(root, file))
+                    continue
+
+            # Standard logic for other patterns
+            if os.path.isdir(pattern):
+                for root, _, files in os.walk(pattern):
+                    for file in files:
+                        process_file(os.path.join(root, file))
+            else:
+                # Fallback to glob for non-recursive or specific patterns
+                for filepath in glob.glob(pattern, recursive=True):
+                    if os.path.isfile(filepath):
+                        process_file(filepath)
+
+        return sorted(list(set(final_files))), ignored_count
 
     def _parse_file(self, filepath: str, file_type: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> Tuple[int, List[dict]]:
         if file_type == 'unknown':
@@ -579,140 +603,149 @@ class WatchmanParser:
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            # Setup basic logger
-            logger = logging.getLogger("parser_core")
-            # We don't add handlers here to avoid interfering with HA logging or CLI logging config
-
             # Call the engine
-            items = _parse_content(content, file_type, logger, entity_pattern)
+            items = _parse_content(content, file_type, filepath, _LOGGER, entity_pattern)
 
             return len(items), items
 
         except Exception as e:
-            # We might want to log this properly
-            print(f"Critical error processing {filepath}: {e}", file=sys.stderr)
+            _LOGGER.error(f"Critical error processing {filepath}: {e}")
             return 0, []
 
-    def scan(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None) -> None:
+    def scan(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> None:
         """
         Orchestrates the scanning process.
+        If force = True, unmodified files will be scanned again
         """
         start_time = time.monotonic()
-        with self._db_session() as conn:
-            cursor = conn.cursor()
+        try:
+            with self._db_session() as conn:
+                cursor = conn.cursor()
 
-            # Build Entity Pattern
-            entity_pattern = _ENTITY_PATTERN
-            if custom_domains:
-                entity_pattern = re.compile(
-                    r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?((" + "|".join(custom_domains) + r")\.[a-z0-9_]+)",
-                    re.IGNORECASE
-                )
+                # Build Entity Pattern
+                entity_pattern = _ENTITY_PATTERN
+                if custom_domains:
+                    entity_pattern = re.compile(
+                        r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?((" + "|".join(custom_domains) + r")\.[a-z0-9_]+)",
+                        re.IGNORECASE
+                    )
 
-            # --- Configuration Change Detection ---
-            cursor.execute("SELECT included_folders, ignored_files FROM scan_config WHERE id = 1")
-            stored_config = cursor.fetchone()
+                files_to_scan, ignored_count = self._get_files(included_folders, ignored_files)
+                _LOGGER.debug(f"Scan started for {len(files_to_scan)} files")
 
-            current_included_json = json.dumps(sorted(included_folders))
-            current_ignored_json = json.dumps(sorted(ignored_files))
+                # Fetch all processed files into memory cache to avoid per-file SQL queries
+                fetch_time = time.monotonic()
+                cursor.execute("SELECT path, scan_date, file_id FROM processed_files")
+                processed_cache = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+                _LOGGER.debug(f"Fetch from DB: {(time.monotonic() - fetch_time):.3f} sec")
 
-            if stored_config:
-                stored_included_json, stored_ignored_json = stored_config
-                if current_included_json != stored_included_json or current_ignored_json != stored_ignored_json:
-                    force = True
-            else:
-                force = True # First run, always force
 
-            if stored_config:
-                cursor.execute("UPDATE scan_config SET included_folders = ?, ignored_files = ? WHERE id = 1",
-                               (current_included_json, current_ignored_json))
-            else:
-                cursor.execute("INSERT INTO scan_config (id, included_folders, ignored_files) VALUES (1, ?, ?)",
-                               (current_included_json, current_ignored_json))
-            conn.commit()
-            # --- End Configuration Change Detection ---
+                actual_file_ids = []
+                skipped_count = 0
 
-            files_to_scan, ignored_count = self._get_files(included_folders, ignored_files)
+                for filepath in files_to_scan:
+                    # Determine path to store in DB
+                    path_for_db = filepath
+                    if base_path:
+                        try:
+                            path_for_db = os.path.relpath(filepath, base_path)
+                        except ValueError:
+                            pass # Keep absolute if relpath fails
 
-            actual_file_ids = []
-
-            for filepath in files_to_scan:
-                mtime = os.path.getmtime(filepath)
-                scan_date = datetime.datetime.now().isoformat()
-
-                file_id = None
-
-                cursor.execute("SELECT scan_date, file_id FROM processed_files WHERE path = ?", (filepath,))
-                row = cursor.fetchone()
-
-                should_scan = False
-
-                if row:
-                    last_scan_str, file_id = row
                     try:
-                        last_scan_dt = datetime.datetime.fromisoformat(last_scan_str)
-                        file_mtime_dt = datetime.datetime.fromtimestamp(mtime)
-                        if force or file_mtime_dt > last_scan_dt:
+                        mtime = os.path.getmtime(filepath)
+                    except OSError as e:
+                        if os.path.islink(filepath):
+                            _LOGGER.warning(f"Skipping broken symlink: {filepath}")
+                        else:
+                            _LOGGER.error(f"Error accessing file {filepath}: {e}")
+                        continue
+
+                    scan_date = datetime.datetime.now().isoformat()
+
+                    file_id = None
+                    row = processed_cache.get(path_for_db)
+
+                    should_scan = False
+
+                    if row:
+                        last_scan_str, file_id = row
+                        try:
+                            last_scan_dt = datetime.datetime.fromisoformat(last_scan_str)
+                            file_mtime_dt = datetime.datetime.fromtimestamp(mtime)
+                            if force or file_mtime_dt > last_scan_dt:
+                                should_scan = True
+                        except ValueError:
                             should_scan = True
-                    except ValueError:
+
+                        actual_file_ids.append(file_id)
+                    else:
                         should_scan = True
 
-                    actual_file_ids.append(file_id)
-                else:
-                    should_scan = True
+                    if should_scan:
+                        _LOGGER.debug(f"Parse new or modified file {filepath}")
+                        ftype = _detect_file_type(filepath)
+                        count, items = self._parse_file(filepath, ftype, entity_pattern)
 
-                if should_scan:
-                    ftype = _detect_file_type(filepath)
-                    count, items = self._parse_file(filepath, ftype, entity_pattern)
+                        if file_id:
+                            cursor.execute("UPDATE processed_files SET scan_date=?, entity_count=?, file_type=? WHERE file_id=?",
+                                        (scan_date, count, ftype, file_id))
+                            cursor.execute("DELETE FROM found_items WHERE file_id=?", (file_id,))
+                        else:
+                            cursor.execute("INSERT INTO processed_files (scan_date, path, entity_count, file_type) VALUES (?, ?, ?, ?)",
+                                        (scan_date, path_for_db, count, ftype))
+                            file_id = cursor.lastrowid
 
-                    if file_id:
-                        cursor.execute("UPDATE processed_files SET scan_date=?, entity_count=?, file_type=? WHERE file_id=?",
-                                       (scan_date, count, ftype, file_id))
-                        cursor.execute("DELETE FROM found_items WHERE file_id=?", (file_id,))
+                        if file_id not in actual_file_ids:
+                            actual_file_ids.append(file_id)
+
+                        for item in items:
+                            # Filter out bundled ignored items
+                            is_ignored = False
+                            for pattern in _BUNDLED_IGNORED_ITEMS:
+                                if fnmatch.fnmatch(item['entity_id'], pattern):
+                                    is_ignored = True
+                                    break
+
+                            if is_ignored:
+                                continue
+
+                            cursor.execute('''INSERT INTO found_items
+                                            (file_id, line, entity_id, item_type, is_key, key_name, is_automation_context, parent_type, parent_id, parent_alias)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                                        (file_id, item['line'], item['entity_id'], item['item_type'], item['is_key'], item['key_name'],
+                                            item['is_automation_context'], item['parent_type'], item['parent_id'], item['parent_alias']))
+
+                        conn.commit()
                     else:
-                        cursor.execute("INSERT INTO processed_files (scan_date, path, entity_count, file_type) VALUES (?, ?, ?, ?)",
-                                       (scan_date, filepath, count, ftype))
-                        file_id = cursor.lastrowid
+                        skipped_count += 1
 
-                    if file_id not in actual_file_ids:
-                         actual_file_ids.append(file_id)
+                if skipped_count:
+                    _LOGGER.debug(f"Skipped {skipped_count} files (already parsed and unmodified)")
 
-                    for item in items:
-                        # Filter out bundled ignored items
-                        is_ignored = False
-                        for pattern in _BUNDLED_IGNORED_ITEMS:
-                            if fnmatch.fnmatch(item['entity_id'], pattern):
-                                is_ignored = True
-                                break
-
-                        if is_ignored:
-                            continue
-
-                        cursor.execute('''INSERT INTO found_items
-                                          (file_id, line, entity_id, item_type, is_key, key_name, is_automation_context, parent_type, parent_id, parent_alias)
-                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                                       (file_id, item['line'], item['entity_id'], item['item_type'], item['is_key'], item['key_name'],
-                                        item['is_automation_context'], item['parent_type'], item['parent_id'], item['parent_alias']))
-
+                # --- Cleanup stale files ---
+                if actual_file_ids:
+                    placeholders = ','.join('?' * len(actual_file_ids))
+                    cursor.execute(f"DELETE FROM processed_files WHERE file_id NOT IN ({placeholders})", actual_file_ids)
+                    conn.commit()
+                else:
+                    cursor.execute("DELETE FROM processed_files")
                     conn.commit()
 
-            # --- Cleanup stale files ---
-            if actual_file_ids:
-                placeholders = ','.join('?' * len(actual_file_ids))
-                cursor.execute(f"DELETE FROM processed_files WHERE file_id NOT IN ({placeholders})", actual_file_ids)
+                # Update last parse stats
+                duration = time.monotonic() - start_time
+                _LOGGER.debug(f"Scan finished in {duration:.3f} sec")
+                # Use datetime.datetime.now(datetime.timezone.utc) to ensure UTC timestamp if possible or local if required by HA conventions.
+                # But previous code used datetime.datetime.now().isoformat()
+                current_timestamp = datetime.datetime.now().isoformat()
+                cursor.execute("UPDATE scan_config SET last_parse_duration = ?, last_parse_timestamp = ?, ignored_files_count = ? WHERE id = 1",
+                            (duration, current_timestamp, ignored_count))
                 conn.commit()
-            else:
-                cursor.execute("DELETE FROM processed_files")
-                conn.commit()
-
-            # Update last parse stats
-            duration = time.monotonic() - start_time
-            # Use datetime.datetime.now(datetime.timezone.utc) to ensure UTC timestamp if possible or local if required by HA conventions.
-            # But previous code used datetime.datetime.now().isoformat()
-            current_timestamp = datetime.datetime.now().isoformat()
-            cursor.execute("UPDATE scan_config SET last_parse_duration = ?, last_parse_timestamp = ?, ignored_files_count = ? WHERE id = 1",
-                           (duration, current_timestamp, ignored_count))
-            conn.commit()
+        except sqlite3.OperationalError as e:
+            if "locked" in str(e):
+                _LOGGER.error(f"Database locked, aborting scan: {e}")
+                return
+            raise
 
     def get_last_parse_info(self) -> Dict[str, Any]:
         """Return the duration, timestamp, ignored files count and processed files count of the last successful scan."""
@@ -720,10 +753,10 @@ class WatchmanParser:
             cursor = conn.cursor()
             cursor.execute("SELECT last_parse_duration, last_parse_timestamp, ignored_files_count FROM scan_config WHERE id = 1")
             row = cursor.fetchone()
-            
+
             cursor.execute("SELECT COUNT(*) FROM processed_files")
             processed_files_count = cursor.fetchone()[0]
-            
+
             if row:
                 return {
                     "duration": row[0],
@@ -738,8 +771,8 @@ class WatchmanParser:
         with self._db_session() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT file_id, path, file_type, entity_count, scan_date 
-                FROM processed_files 
+                SELECT file_id, path, file_type, entity_count, scan_date
+                FROM processed_files
                 ORDER BY path
             """)
             return cursor.fetchall()
@@ -747,10 +780,10 @@ class WatchmanParser:
     def get_found_items(self, item_type: str = None) -> List[Tuple]:
         """
         Fetch found items from the database.
-        
+
         Args:
             item_type: 'entity', 'service', or 'all' (default).
-        
+
         Returns:
             List of tuples: (entity_id, path, line, item_type, parent_type, parent_alias, parent_id)
         """
@@ -763,7 +796,7 @@ class WatchmanParser:
         if item_type and item_type != 'all':
             query += " WHERE fi.item_type = ?"
             params = (item_type,)
-        
+
         query += " ORDER BY pf.path, fi.line"
 
         with self._db_session() as conn:
@@ -785,7 +818,7 @@ class WatchmanParser:
                 LIMIT 1
             """, (entity_id,))
             row = cursor.fetchone()
-            
+
             if row:
                 return {
                     "is_automation_context": bool(row[0]),
@@ -795,9 +828,14 @@ class WatchmanParser:
                 }
             return None
 
-    def parse(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None) -> Tuple[List[str], List[str], int, int, Dict]:
+    def parse(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> Tuple[List[str], List[str], int, int, Dict]:
         """
-        Drop-in replacement for the legacy parse function format.
+        Params:
+            included_folders: where to scan
+            ignored_files: file paths which should be ignored during scan
+            force (bool): if false, files witch unchanged modification time will be not be parsed
+            custom_domains: additional domains provided by customer integrations which should not be ignored by WM, e.g. xiaomi_miio.*
+            base_path: root path to make file paths relative in the database
 
         Returns:
             parsed_entity_list (list): Unique entity_ids (item_type='entity').
@@ -806,35 +844,38 @@ class WatchmanParser:
             ignored_files_count (int): Always 0 (stub).
             entity_to_automations (dict): Empty dictionary (stub).
         """
-        # Run the scan
-        self.scan(included_folders, ignored_files, force, custom_domains)
+        self.scan(included_folders, ignored_files, force, custom_domains, base_path)
 
-        with self._db_session() as conn:
-            cursor = conn.cursor()
-            # parsed_entity_list
-            cursor.execute("SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'entity'")
-            parsed_entity_list = [row[0] for row in cursor.fetchall()]
+        try:
+            with self._db_session() as conn:
+                cursor = conn.cursor()
+                # parsed_entity_list
+                cursor.execute("SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'entity'")
+                parsed_entity_list = [row[0] for row in cursor.fetchall()]
 
-            # parsed_service_list
-            cursor.execute("SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'service'")
-            parsed_service_list = [row[0] for row in cursor.fetchall()]
+                # parsed_service_list
+                cursor.execute("SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'service'")
+                parsed_service_list = [row[0] for row in cursor.fetchall()]
 
-            # parsed_files_count
-            cursor.execute("SELECT COUNT(*) FROM processed_files")
-            parsed_files_count = cursor.fetchone()[0]
+                # parsed_files_count
+                cursor.execute("SELECT COUNT(*) FROM processed_files")
+                parsed_files_count = cursor.fetchone()[0]
 
-            # ignored_files_count
-            cursor.execute("SELECT ignored_files_count FROM scan_config WHERE id = 1")
-            row = cursor.fetchone()
-            ignored_files_count = row[0] if row else 0
+                # ignored_files_count
+                cursor.execute("SELECT ignored_files_count FROM scan_config WHERE id = 1")
+                row = cursor.fetchone()
+                ignored_files_count = row[0] if row else 0
 
-        # entity_to_automations (stub)
-        entity_to_automations = {}
+            # entity_to_automations (stub)
+            entity_to_automations = {}
 
-        return (
-            parsed_entity_list,
-            parsed_service_list,
-            parsed_files_count,
-            ignored_files_count,
-            entity_to_automations
-        )
+            return (
+                parsed_entity_list,
+                parsed_service_list,
+                parsed_files_count,
+                ignored_files_count,
+                entity_to_automations
+            )
+        except sqlite3.OperationalError:
+            _LOGGER.error("Database locked during result fetching in parse(), returning empty results.")
+            return ([], [], 0, 0, {})

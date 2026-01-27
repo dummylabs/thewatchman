@@ -70,6 +70,7 @@ def main():
     parser.add_argument("--db-path", default="watchman.db", help="Path to SQLite database")
     parser.add_argument("--no-files", action='store_true', help="Hide the list of processed files")
     parser.add_argument("--no-items", action='store_true', help="Hide the list of found items")
+    parser.add_argument("--debug", action='store_true', help="Enable debug logging to debug.log")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -80,13 +81,26 @@ def main():
     included_folders = args.included_folders
     ignored_files = args.ignore or []
 
-    # Configure logging for CLI to show up in stderr (WatchmanParser uses 'parser_core' logger)
-    logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
+    # Configure logging
+    log_level = logging.DEBUG if args.debug else logging.ERROR
+    handlers = [logging.StreamHandler(sys.stderr)]
+    
+    if args.debug:
+        handlers.append(logging.FileHandler("debug.log", mode='w'))
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s.%(msecs)03d %(levelname)s [%(filename)s:%(lineno)d]: %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=handlers,
+        force=True  # Ensure we override any existing config
+    )
 
     client = WatchmanParser(args.db_path)
 
+    logging.info(f"Calling client.scan with: included_folders={included_folders}, ignored_files={ignored_files}, force={args.force}, base_path={os.getcwd()}")
     # We call scan directly. Logic for configuration change detection is inside WatchmanParser.scan
-    client.scan(included_folders, ignored_files, args.force)
+    client.scan(included_folders, ignored_files, args.force, base_path=os.getcwd())
 
     # Output results matching original format
     if not args.no_files:

@@ -3,6 +3,7 @@ from typing import Any
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers import entity_registry as er
+import logging
 
 from .utils.report import fill
 from .const import (
@@ -199,6 +200,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_SERVICE_ATTRS: "",
             COORD_DATA_ENTITY_ATTRS: "",
         }
+        self.parser_rescan_requested = False
+        self.parser_rescan_reason = None
 
     async def async_get_parsed_entities(self):
         """Return a dictionary of parsed entities and their locations."""
@@ -214,11 +217,24 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         if self.hass.is_running:
             # integration reloaded or options changed via UI
             _LOGGER.debug(f"{INDENT} hass up and running, try to parse config")
-            await self.async_parse_config(reason="changes in watchman configuration")
+            #await self.async_parse_config(reason="changes in watchman configuration")
+            self.request_parser_rescan(reason="coordinator::async_setup")
         else:
             _LOGGER.debug(f"{INDENT} hass is still loading, do nothing yet")
             # first run, home assistant still loading
             # parse_config will be scheduled once HA is fully loaded
+            #
+    def request_parser_rescan(self, reason=None):
+        """
+        Used by watchman event handlers to force rescan of configuration files when they
+        might be changed by user
+        """
+        self.parser_rescan_requested = True
+        self.parser_rescan_reason = reason
+
+    def _cancel_parser_rescan(self):
+        self.parser_rescan_requested = False
+        self.parser_rescan_reason = None
 
     async def async_parse_config(self, reason=None):
         """Parse home assistant configuration files."""
@@ -227,16 +243,15 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
         ignored_items = get_config(self.hass, CONF_IGNORED_ITEMS, [])
 
-        _LOGGER.debug(
-            f"::parse_config:: called due to {reason} IGNORED_FILES={ignored_files}"
-        )
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug(f"{INDENT}::parse_config:: called due to {reason}")
+            _LOGGER.debug(f"{INDENT}IGNORED_FILES={ignored_files}")
 
         await self.hub.async_parse(included_folders, ignored_files, ignored_items)
 
-        info = await self.hub.async_get_last_parse_info()
-
-        # We don't log parse duration here anymore as it is handled by the parser/hub
-        _LOGGER.debug(f"{INDENT}Parsing finished in: {info.get('duration', 0.0)}")
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            info = await self.hub.async_get_last_parse_info()
+            _LOGGER.debug(f"{INDENT}Parsing results: {info}")
 
     async def async_get_last_parse_duration(self):
         """Return duration of the last parsing."""
@@ -246,27 +261,23 @@ class WatchmanCoordinator(DataUpdateCoordinator):
     def update_ignored_labels(self, labels: list[str]) -> None:
         """Update ignored labels list and refresh data."""
         self.ignored_labels = set(labels)
-        self.hass.async_create_task(self.async_refresh())
+        self.hass.async_create_task(self.async_request_refresh())
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update Watchman sensors.
 
-        Update will trigger parsing of configuration files if entry.runtime_data.force_parsing is set
+        Update will trigger parsing of configuration files if rescan was requested beforehand (with request_parser_rescan)
         """
 
         if not parser_lock.locked():
+            _LOGGER.debug("_async_update_data: update sensor data with actual state of entities and actions")
             async with parser_lock:
-                entry = get_entry(self.hass)
-                _LOGGER.debug(
-                    f"::coordinator._async_update_data:: force_parsing {entry.runtime_data.force_parsing}, parse_reason: {entry.runtime_data.parse_reason}"
-                )
-
                 if self.hass.is_running:
-                    if entry.runtime_data.force_parsing:
+                    if self.parser_rescan_requested:
                         await self.async_parse_config(
-                            reason=entry.runtime_data.parse_reason
+                            reason=self.parser_rescan_reason
                         )
-                        entry.runtime_data.force_parsing = False
+                        self._cancel_parser_rescan()
 
                     start_time = time.time()
 
@@ -323,8 +334,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                         COORD_DATA_ENTITY_ATTRS: entity_attrs,
                     }
                     _LOGGER.debug(
-                        f"Watchman sensors updated, actions: {self.data[COORD_DATA_MISSING_SERVICES]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"
+                        f"Sensors updated, actions: {self.data[COORD_DATA_MISSING_SERVICES]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"
                     )
 
                     return self.data
+        _LOGGER.debug("_async_update_data is already in progress, skipping")
         return {}

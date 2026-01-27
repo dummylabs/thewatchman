@@ -4,6 +4,9 @@ import os
 from unittest.mock import MagicMock
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import label_registry as lr
+from datetime import timedelta
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from custom_components.watchman.const import (
     COORD_DATA_MISSING_ENTITIES,
     COORD_DATA_ENTITY_ATTRS,
@@ -73,6 +76,9 @@ async def test_ignored_labels(hass, tmp_path, new_test_data_dir):
         {"entity_id": text_entity_id, "value": "ignore_watchman"},
         blocking=True
     )
+    
+    # Allow event processing and debounced refresh (10s default cooldown)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
     
     # Verify Results (2 missing, 1 ignored)

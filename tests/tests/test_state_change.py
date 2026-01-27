@@ -1,5 +1,8 @@
 """Test Watchman reaction to entity state changes."""
 import pytest
+from datetime import timedelta
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from custom_components.watchman.const import (
     DOMAIN,
     CONF_INCLUDED_FOLDERS,
@@ -46,7 +49,8 @@ async def test_entity_state_change_tracking(hass, tmp_path):
     # 3. Trigger: Change state to unavailable
     hass.states.async_set("sensor.test_monitored_sensor", "unavailable")
     
-    # Allow event processing
+    # Allow event processing and debounced refresh (10s default cooldown)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
 
     # 4. Verify Updated State
@@ -60,6 +64,7 @@ async def test_entity_state_change_tracking(hass, tmp_path):
 
     # 5. Recovery: Change state back to on
     hass.states.async_set("sensor.test_monitored_sensor", "on")
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
     
     missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ENTITIES}")
@@ -68,6 +73,7 @@ async def test_entity_state_change_tracking(hass, tmp_path):
     # 6. Removal: Remove the state entirely
     # Watchman should treat a missing state as 'missing' and increment the counter
     hass.states.async_remove("sensor.test_monitored_sensor")
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
 
     missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ENTITIES}")

@@ -24,7 +24,7 @@ from homeassistant.components.homeassistant import (
 from .services import WatchmanServicesSetup
 from .coordinator import WatchmanCoordinator
 from .utils.logger import _LOGGER
-from .utils.utils import get_config
+from .utils.utils import get_config, get_entry
 from .hub import WatchmanHub
 
 
@@ -65,23 +65,36 @@ class WMData:
 
     coordinator: WatchmanCoordinator
     hub: WatchmanHub
-    force_parsing: bool
-    parse_reason: str | None
-
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     """Set up this integration using UI."""
-    _LOGGER.debug(
-        f"::async_setup_entry:: Integration setup in progress. Home assistant path: {hass.config.path("")}"
-    )
+
+    async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
+        """
+        update watchman sensors anf start listening to HA events when Home Assistant started
+        """
+        async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
+            """Refresh sensors state."""
+            hass.data.get(DOMAIN_DATA)
+            config_entry.runtime_data.coordinator.request_parser_rescan("HA restart")
+            await config_entry.runtime_data.coordinator.async_request_refresh()
+
+        async def async_schedule_refresh_states(delay):
+            """Schedule delayed refresh of the sensors state."""
+            now = dt_util.utcnow()
+            next_interval = now + timedelta(seconds=delay)
+            async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
+
+        startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
+        await async_schedule_refresh_states(startup_delay)
+        await add_event_handlers(hass, config_entry)
+        _LOGGER.debug("Subscribed to HA events to keep actual state of sensors.")
 
     db_path = hass.config.path(".storage", "watchman.db")
     hub = WatchmanHub(hass, db_path)
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title, hub=hub)
     # parsing shouldn't occur if HA is not running yet
-    config_entry.runtime_data = WMData(
-        coordinator, hub, force_parsing=False, parse_reason=None
-    )
+    config_entry.runtime_data = WMData(coordinator, hub)
 
     hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
@@ -89,7 +102,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
     WatchmanServicesSetup(hass, config_entry)
-    await add_event_handlers(hass, config_entry)
+
+
+    if hass.is_running:
+        # HA is already up and running (e.g. integration was installed)
+        await async_on_home_assistant_started(None)
+    else:
+        # integration started during HA startup, wait until it is fully loaded
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
 
     await coordinator.async_config_entry_first_refresh()
     if not coordinator.last_update_success:
@@ -130,26 +150,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
     return unload_ok
 
 
+
+
 async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
     """Add event handlers."""
-
-    async def async_schedule_refresh_states(hass, delay):
-        """Schedule delayed refresh of the sensors state."""
-        now = dt_util.utcnow()
-        next_interval = now + timedelta(seconds=delay)
-        async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
-
-    async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
-        """Refresh sensors state."""
-        hass.data.get(DOMAIN_DATA)
-        entry.runtime_data.force_parsing = True
-        entry.runtime_data.parse_reason = "HA restart"
-        await entry.runtime_data.coordinator.async_refresh()
-
-    async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
-        startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
-        await async_schedule_refresh_states(hass, startup_delay)
-
     async def async_on_configuration_changed(event):
         event_type = event.event_type
         if event_type == EVENT_CALL_SERVICE:
@@ -160,14 +164,12 @@ async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
                 SERVICE_RELOAD,
                 SERVICE_RELOAD_ALL,
             ]:
-                entry.runtime_data.force_parsing = True
-                entry.runtime_data.parse_reason = f"{domain}.{service} call"
-                await entry.runtime_data.coordinator.async_refresh()
+                entry.runtime_data.coordinator.request_parser_rescan(f"{domain}.{service} call")
+                await entry.runtime_data.coordinator.async_request_refresh()
 
         elif event_type in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
-            entry.runtime_data.force_parsing = True
-            entry.runtime_data.parse_reason = f"event: {event_type}"
-            await entry.runtime_data.coordinator.async_refresh()
+            entry.runtime_data.coordinator.request_parser_rescan(f"event: {event_type}")
+            await entry.runtime_data.coordinator.async_request_refresh()
 
     async def async_on_service_changed(event):
         service = f"{event.data['domain']}.{event.data['service']}"
@@ -175,7 +177,7 @@ async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
         parsed_services = await coordinator.async_get_parsed_services()
         if service in parsed_services:
             _LOGGER.debug("Monitored service changed: %s", service)
-            await coordinator.async_refresh()
+            await coordinator.async_request_refresh()
 
     async def async_on_state_changed(event):
         """Refresh monitored entities on state change."""
@@ -193,11 +195,11 @@ async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
             checked_states = set(MONITORED_STATES) - set(ignored_states)
             if new_state in checked_states or old_state in checked_states:
                 _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
-                await coordinator.async_refresh()
+                await coordinator.async_request_refresh()
 
     # hass is not started yet, schedule config parsing once it loaded
-    if not hass.is_running:
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+    #if not hass.is_running:
+    #    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
 
     entry.async_on_unload(
         # track service calls which update HA configuration

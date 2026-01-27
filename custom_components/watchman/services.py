@@ -66,8 +66,9 @@ class WatchmanServicesSetup:
             )
 
         if call.data.get(CONF_PARSE_CONFIG, False):
-            await self.coordinator.async_parse_config(reason="service call")
-            await self.coordinator.async_refresh()
+            #await self.coordinator.async_parse_config(reason="service call")
+            self.coordinator.request_parser_rescan(reason="service call")
+            await self.coordinator.async_request_refresh()
 
         # call notification action even when send notification = False
         if send_notification or action_name:
