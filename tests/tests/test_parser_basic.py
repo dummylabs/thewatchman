@@ -1,6 +1,7 @@
 """Tests for basic parser functionality."""
 import os
 import pytest
+import asyncio
 from custom_components.watchman.utils.parser_core import WatchmanParser
 
 @pytest.fixture
@@ -19,7 +20,7 @@ def test_basic_yaml_parsing(parser_client, new_test_data_dir):
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "basic_config.yaml")
 
     # Parse the file
-    entities, services, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # Check Entities
     assert "sensor.skylight" in entities, "Should detect entity in template"
@@ -41,7 +42,7 @@ def test_json_files_ignored(parser_client, new_test_data_dir):
     json_file = os.path.join(new_test_data_dir, "json_config", "dashboard.json")
 
     # We pass the file path, but the scanner internal filter should reject it based on extension
-    entities, services, files_parsed, _, _ = parser_client.parse([json_file], [])
+    entities, services, files_parsed, _, _ = asyncio.run(parser_client.async_parse([json_file], []))
 
     assert files_parsed == 0, "Should verify no files were processed"
     assert "sensor.dashboard_sensor" not in entities, "Should not parse entities from ignored .json file"
@@ -53,7 +54,7 @@ def test_extensionless_json_parsing(parser_client, new_test_data_dir):
 
     storage_file = os.path.join(new_test_data_dir, "json_config", ".storage", "lovelace_dash")
 
-    entities, _, _, _, _ = parser_client.parse([storage_file], [])
+    entities, _, _, _, _ = asyncio.run(parser_client.async_parse([storage_file], []))
 
     assert "sensor.storage_sensor_1" in entities
     assert "sensor.storage_sensor_2" in entities
@@ -64,7 +65,7 @@ def test_invalid_file_extension(parser_client, new_test_data_dir):
 
     txt_file = os.path.join(new_test_data_dir, "yaml_config", "invalid_file.txt")
 
-    entities, services, _, _, _ = parser_client.parse([txt_file], [])
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([txt_file], []))
 
     assert "sensor.invalid_file_test" not in entities
     assert "light.invalid_file_test" not in services

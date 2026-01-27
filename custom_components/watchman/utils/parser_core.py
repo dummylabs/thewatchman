@@ -1,5 +1,4 @@
 import os
-import sys
 import glob
 import sqlite3
 import datetime
@@ -9,7 +8,8 @@ import logging
 import re
 import yaml
 import contextlib
-from typing import List, Tuple, Dict, Any
+import asyncio
+from typing import List, Tuple, Dict, Any, Callable, Awaitable
 from .logger import _LOGGER
 from ..const import DB_TIMEOUT
 
@@ -77,6 +77,10 @@ _ENTITY_PATTERN = re.compile(
 
 # YAML keys which values should be ignored
 _IGNORED_KEYS = {'url', 'example', 'description'}
+
+# Directories to skip during recursive scan
+_IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome'}
+
 
 # Regex patterns to identify actions (services) definitions
 _SERVICE_PATTERN = re.compile(
@@ -439,12 +443,105 @@ def _parse_content(content: str, file_type: str, filepath: str = None, logger: l
 
     return results
 
+def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> Tuple[int, List[dict], str]:
+    """
+    Process a single file synchronously.
+    This function is intended to be run in an executor.
+    """
+    file_type = _detect_file_type(filepath)
+
+    if file_type == 'unknown':
+        return 0, [], 'unknown'
+
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Call the engine
+        items = _parse_content(content, file_type, filepath, _LOGGER, entity_pattern)
+
+        return len(items), items, file_type
+
+    except Exception as e:
+        _LOGGER.error(f"Critical error processing {filepath}: {e}")
+        return 0, [], file_type
+
+
+def get_files_sync(folders: List[str], ignored_files: List[str]) -> Tuple[List[str], int]:
+    """
+    Collects files based on whitelist folders and filters by blacklist patterns.
+    Returns:
+        Tuple[List[str], int]: (list of files to scan, count of ignored files)
+    """
+    final_files = []
+    ignored_count = 0
+    cwd = os.getcwd()
+
+    def process_file(filepath):
+        nonlocal ignored_count
+        # 1. Cheap check: Extension
+        _, ext = os.path.splitext(filepath)
+        if ext.lower() not in _YAML_FILE_EXTS + _JSON_FILE_EXTS:
+            return
+
+        # 2. Expensive check: Ignored patterns
+        # We need abs_path for correct ignore matching if patterns are absolute or relative
+        # But we can try to match relative path first if pattern is relative
+
+        # To match previous logic, we check both abs and rel paths
+        abs_path = os.path.abspath(filepath)
+        rel_path = os.path.relpath(abs_path, cwd)
+
+        is_ignored = False
+        for ignore_pat in ignored_files:
+            if fnmatch.fnmatch(abs_path, ignore_pat) or fnmatch.fnmatch(rel_path, ignore_pat):
+                is_ignored = True
+                break
+
+        if is_ignored:
+            ignored_count += 1
+        else:
+            final_files.append(abs_path)
+
+    for pattern in folders:
+        # Optimize recursive scan
+        if pattern.endswith("/**") or pattern.endswith(os.sep + "**"):
+            base_dir = pattern[:-3] # Remove /**
+            if os.path.isdir(base_dir):
+                for root, dirs, files in os.walk(base_dir):
+                    # Prune ignored directories in-place
+                    dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS]
+                    for file in files:
+                        process_file(os.path.join(root, file))
+                continue
+
+        # Standard logic for other patterns
+        if os.path.isdir(pattern):
+            for root, dirs, files in os.walk(pattern):
+                # Prune ignored directories in-place
+                dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS]
+                for file in files:
+                    process_file(os.path.join(root, file))
+        else:
+            # Fallback to glob for non-recursive or specific patterns
+            for filepath in glob.glob(pattern, recursive=True):
+                if os.path.isfile(filepath):
+                    process_file(filepath)
+
+    return sorted(list(set(final_files))), ignored_count
+
+async def default_async_executor(func: Callable, *args: Any) -> Any:
+    """Default executor that runs the synchronous function in a thread."""
+    return await asyncio.to_thread(func, *args)
+
 
 # --- WatchmanParser ---
 
 class WatchmanParser:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, executor: Callable[[Callable, Any], Awaitable[Any]] = None):
         self.db_path = db_path
+        # default_async_executor is used by parser CLI
+        self.executor = executor or default_async_executor
 
     @contextlib.contextmanager
     def _db_session(self):
@@ -536,217 +633,174 @@ class WatchmanParser:
         conn.commit()
         return conn
 
-    def _get_files(self, folders: List[str], ignored_files: List[str]) -> Tuple[List[str], int]:
-        """
-        Collects files based on whitelist folders and filters by blacklist patterns.
-        Returns:
-            Tuple[List[str], int]: (list of files to scan, count of ignored files)
-        """
-        final_files = []
-        ignored_count = 0
-        cwd = os.getcwd()
-
-        def process_file(filepath):
-            nonlocal ignored_count
-            # 1. Cheap check: Extension
-            _, ext = os.path.splitext(filepath)
-            if ext.lower() not in _YAML_FILE_EXTS + _JSON_FILE_EXTS:
-                return
-
-            # 2. Expensive check: Ignored patterns
-            # We need abs_path for correct ignore matching if patterns are absolute or relative
-            # But we can try to match relative path first if pattern is relative
-
-            # To match previous logic, we check both abs and rel paths
-            abs_path = os.path.abspath(filepath)
-            rel_path = os.path.relpath(abs_path, cwd)
-
-            is_ignored = False
-            for ignore_pat in ignored_files:
-                if fnmatch.fnmatch(abs_path, ignore_pat) or fnmatch.fnmatch(rel_path, ignore_pat):
-                    is_ignored = True
-                    break
-
-            if is_ignored:
-                ignored_count += 1
-            else:
-                final_files.append(abs_path)
-
-        for pattern in folders:
-            # Optimize recursive scan
-            if pattern.endswith("/**") or pattern.endswith(os.sep + "**"):
-                base_dir = pattern[:-3] # Remove /**
-                if os.path.isdir(base_dir):
-                    for root, _, files in os.walk(base_dir):
-                        for file in files:
-                            process_file(os.path.join(root, file))
-                    continue
-
-            # Standard logic for other patterns
-            if os.path.isdir(pattern):
-                for root, _, files in os.walk(pattern):
-                    for file in files:
-                        process_file(os.path.join(root, file))
-            else:
-                # Fallback to glob for non-recursive or specific patterns
-                for filepath in glob.glob(pattern, recursive=True):
-                    if os.path.isfile(filepath):
-                        process_file(filepath)
-
-        return sorted(list(set(final_files))), ignored_count
-
-    def _parse_file(self, filepath: str, file_type: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> Tuple[int, List[dict]]:
-        if file_type == 'unknown':
-            return 0, []
-
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-
-            # Call the engine
-            items = _parse_content(content, file_type, filepath, _LOGGER, entity_pattern)
-
-            return len(items), items
-
-        except Exception as e:
-            _LOGGER.error(f"Critical error processing {filepath}: {e}")
-            return 0, []
-
-    def scan(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> None:
+    async def async_scan(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> None:
         """
         Orchestrates the scanning process.
         If force = True, unmodified files will be scanned again
         """
         start_time = time.monotonic()
         try:
+            # --- Phase 0: Setup & Discovery ---
+            # Build Entity Pattern
+            entity_pattern = _ENTITY_PATTERN
+            if custom_domains:
+                entity_pattern = re.compile(
+                    r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?((" + "|".join(custom_domains) + r")\.[a-z0-9_]+)",
+                    re.IGNORECASE
+                )
+
+            # Offload get_files_sync to executor as it uses os.walk which is blocking
+            traverse_time = time.monotonic()
+            files_to_scan, ignored_count = await self.executor(get_files_sync, included_folders, ignored_files)
+            _LOGGER.debug(f"Found {len(files_to_scan)} files, os.walk took {(time.monotonic() - traverse_time):.3f} sec")
+
+            # Fetch all previously processed files metadata into memory cache
+            # We open and close the DB session here to release the lock during the long parsing phase
+            fetch_time = time.monotonic()
+            processed_cache = {}
+            with self._db_session() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT path, scan_date, file_id FROM processed_files")
+                processed_cache = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+            _LOGGER.debug(f"Fetch from DB: {(time.monotonic() - fetch_time):.3f} sec")
+
+            # --- Phase 1: Planning ---
+            # collect tasks to execute them in parallel
+            tasks = []
+            task_metadata = []
+            actual_file_ids = []
+            skipped_count = 0
+
+            for filepath in files_to_scan:
+                # Determine path to store in DB
+                path_for_db = filepath
+                if base_path:
+                    try:
+                        path_for_db = os.path.relpath(filepath, base_path)
+                    except ValueError:
+                        pass # Keep absolute if relpath fails
+
+                try:
+                    mtime = os.path.getmtime(filepath)
+                except OSError as e:
+                    if os.path.islink(filepath):
+                        _LOGGER.warning(f"Skipping broken symlink: {filepath}")
+                    else:
+                        _LOGGER.error(f"Error accessing file {filepath}: {e}")
+                    continue
+
+                scan_date = datetime.datetime.now().isoformat()
+
+                file_id = None
+                row = processed_cache.get(path_for_db)
+
+                should_scan = False
+
+                if row:
+                    last_scan_str, file_id = row
+                    try:
+                        last_scan_dt = datetime.datetime.fromisoformat(last_scan_str)
+                        file_mtime_dt = datetime.datetime.fromtimestamp(mtime)
+                        if force or file_mtime_dt > last_scan_dt:
+                            should_scan = True
+                    except ValueError:
+                        should_scan = True
+                else:
+                    should_scan = True
+
+                if should_scan:
+                    _LOGGER.debug(f"Scheduling file for parse: {filepath}")
+
+                    # Create task but do not await it yet
+                    # We do NOT pass file_type here, as detection is now inside process_file_sync
+                    task = self.executor(process_file_sync, filepath, entity_pattern)
+                    tasks.append(task)
+
+                    task_metadata.append({
+                        "path_for_db": path_for_db,
+                        "scan_date": scan_date,
+                        "file_id": file_id
+                    })
+                else:
+                    skipped_count += 1
+                    actual_file_ids.append(file_id)
+
+            if skipped_count:
+                _LOGGER.debug(f"Skipped {skipped_count} files (already parsed and unmodified)")
+
+            # --- Phase 2: Execution (Parallel) ---
+            results = []
+            if tasks:
+                # Run all parsing tasks concurrently
+                results = await asyncio.gather(*tasks)
+
+            # --- Phase 3: Persistence ---
+            # Open a new DB session for writing
             with self._db_session() as conn:
                 cursor = conn.cursor()
 
-                # Build Entity Pattern
-                entity_pattern = _ENTITY_PATTERN
-                if custom_domains:
-                    entity_pattern = re.compile(
-                        r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?((" + "|".join(custom_domains) + r")\.[a-z0-9_]+)",
-                        re.IGNORECASE
-                    )
+                for i, (count, items, detected_ftype) in enumerate(results):
+                    meta = task_metadata[i]
+                    file_id = meta["file_id"]
+                    path_for_db = meta["path_for_db"]
+                    scan_date = meta["scan_date"]
+                    ftype = detected_ftype
 
-                files_to_scan, ignored_count = self._get_files(included_folders, ignored_files)
-                _LOGGER.debug(f"Scan started for {len(files_to_scan)} files")
-
-                # Fetch all processed files into memory cache to avoid per-file SQL queries
-                fetch_time = time.monotonic()
-                cursor.execute("SELECT path, scan_date, file_id FROM processed_files")
-                processed_cache = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
-                _LOGGER.debug(f"Fetch from DB: {(time.monotonic() - fetch_time):.3f} sec")
+                    if file_id:
+                        cursor.execute("UPDATE processed_files SET scan_date=?, entity_count=?, file_type=? WHERE file_id=?",
+                                    (scan_date, count, ftype, file_id))
+                        cursor.execute("DELETE FROM found_items WHERE file_id=?", (file_id,))
+                    else:
 
 
-                actual_file_ids = []
-                skipped_count = 0
+                        cursor.execute("INSERT INTO processed_files (scan_date, path, entity_count, file_type) VALUES (?, ?, ?, ?)",
+                                    (scan_date, path_for_db, count, ftype))
+                        file_id = cursor.lastrowid
 
-                for filepath in files_to_scan:
-                    # Determine path to store in DB
-                    path_for_db = filepath
-                    if base_path:
-                        try:
-                            path_for_db = os.path.relpath(filepath, base_path)
-                        except ValueError:
-                            pass # Keep absolute if relpath fails
-
-                    try:
-                        mtime = os.path.getmtime(filepath)
-                    except OSError as e:
-                        if os.path.islink(filepath):
-                            _LOGGER.warning(f"Skipping broken symlink: {filepath}")
-                        else:
-                            _LOGGER.error(f"Error accessing file {filepath}: {e}")
-                        continue
-
-                    scan_date = datetime.datetime.now().isoformat()
-
-                    file_id = None
-                    row = processed_cache.get(path_for_db)
-
-                    should_scan = False
-
-                    if row:
-                        last_scan_str, file_id = row
-                        try:
-                            last_scan_dt = datetime.datetime.fromisoformat(last_scan_str)
-                            file_mtime_dt = datetime.datetime.fromtimestamp(mtime)
-                            if force or file_mtime_dt > last_scan_dt:
-                                should_scan = True
-                        except ValueError:
-                            should_scan = True
-
+                    if file_id not in actual_file_ids:
                         actual_file_ids.append(file_id)
-                    else:
-                        should_scan = True
 
-                    if should_scan:
-                        _LOGGER.debug(f"Parse new or modified file {filepath}")
-                        ftype = _detect_file_type(filepath)
-                        count, items = self._parse_file(filepath, ftype, entity_pattern)
+                    # Bulk insert items for this file
+                    # We can use executemany for better performance if we structured data, but loop is fine for now
+                    for item in items:
+                        # Filter out bundled ignored items
+                        is_ignored = False
+                        for pattern in _BUNDLED_IGNORED_ITEMS:
+                            if fnmatch.fnmatch(item['entity_id'], pattern):
+                                is_ignored = True
+                                break
 
-                        if file_id:
-                            cursor.execute("UPDATE processed_files SET scan_date=?, entity_count=?, file_type=? WHERE file_id=?",
-                                        (scan_date, count, ftype, file_id))
-                            cursor.execute("DELETE FROM found_items WHERE file_id=?", (file_id,))
-                        else:
-                            cursor.execute("INSERT INTO processed_files (scan_date, path, entity_count, file_type) VALUES (?, ?, ?, ?)",
-                                        (scan_date, path_for_db, count, ftype))
-                            file_id = cursor.lastrowid
+                        if is_ignored:
+                            continue
 
-                        if file_id not in actual_file_ids:
-                            actual_file_ids.append(file_id)
-
-                        for item in items:
-                            # Filter out bundled ignored items
-                            is_ignored = False
-                            for pattern in _BUNDLED_IGNORED_ITEMS:
-                                if fnmatch.fnmatch(item['entity_id'], pattern):
-                                    is_ignored = True
-                                    break
-
-                            if is_ignored:
-                                continue
-
-                            cursor.execute('''INSERT INTO found_items
-                                            (file_id, line, entity_id, item_type, is_key, key_name, is_automation_context, parent_type, parent_id, parent_alias)
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                                        (file_id, item['line'], item['entity_id'], item['item_type'], item['is_key'], item['key_name'],
-                                            item['is_automation_context'], item['parent_type'], item['parent_id'], item['parent_alias']))
-
-                        conn.commit()
-                    else:
-                        skipped_count += 1
-
-                if skipped_count:
-                    _LOGGER.debug(f"Skipped {skipped_count} files (already parsed and unmodified)")
+                        cursor.execute('''INSERT INTO found_items
+                                        (file_id, line, entity_id, item_type, is_key, key_name, is_automation_context, parent_type, parent_id, parent_alias)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                                    (file_id, item['line'], item['entity_id'], item['item_type'], item['is_key'], item['key_name'],
+                                        item['is_automation_context'], item['parent_type'], item['parent_id'], item['parent_alias']))
 
                 # --- Cleanup stale files ---
                 if actual_file_ids:
                     placeholders = ','.join('?' * len(actual_file_ids))
                     cursor.execute(f"DELETE FROM processed_files WHERE file_id NOT IN ({placeholders})", actual_file_ids)
-                    conn.commit()
                 else:
                     cursor.execute("DELETE FROM processed_files")
-                    conn.commit()
 
                 # Update last parse stats
                 duration = time.monotonic() - start_time
                 _LOGGER.debug(f"Scan finished in {duration:.3f} sec")
-                # Use datetime.datetime.now(datetime.timezone.utc) to ensure UTC timestamp if possible or local if required by HA conventions.
-                # But previous code used datetime.datetime.now().isoformat()
                 current_timestamp = datetime.datetime.now().isoformat()
                 cursor.execute("UPDATE scan_config SET last_parse_duration = ?, last_parse_timestamp = ?, ignored_files_count = ? WHERE id = 1",
                             (duration, current_timestamp, ignored_count))
+
+                # Single commit at the end
                 conn.commit()
+
         except sqlite3.OperationalError as e:
             if "locked" in str(e):
                 _LOGGER.error(f"Database locked, aborting scan: {e}")
                 return
             raise
-
     def get_last_parse_info(self) -> Dict[str, Any]:
         """Return the duration, timestamp, ignored files count and processed files count of the last successful scan."""
         with self._db_session() as conn:
@@ -828,7 +882,7 @@ class WatchmanParser:
                 }
             return None
 
-    def parse(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> Tuple[List[str], List[str], int, int, Dict]:
+    async def async_parse(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> Tuple[List[str], List[str], int, int, Dict]:
         """
         Params:
             included_folders: where to scan
@@ -844,7 +898,7 @@ class WatchmanParser:
             ignored_files_count (int): Always 0 (stub).
             entity_to_automations (dict): Empty dictionary (stub).
         """
-        self.scan(included_folders, ignored_files, force, custom_domains, base_path)
+        await self.async_scan(included_folders, ignored_files, force, custom_domains, base_path)
 
         try:
             with self._db_session() as conn:

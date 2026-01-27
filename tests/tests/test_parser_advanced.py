@@ -1,6 +1,7 @@
 """Tests for advanced parser heuristics."""
 import os
 import pytest
+import asyncio
 from custom_components.watchman.utils.parser_core import WatchmanParser
 
 @pytest.fixture
@@ -16,7 +17,7 @@ def test_ignored_patterns(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "patterns_ignored.yaml")
 
-    entities, _, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, _, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # H:1 Underscore Suffix
     assert "sensor.temp_var_" not in entities
@@ -47,7 +48,7 @@ def test_ignored_keys(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "keys_ignored.yaml")
 
-    entities, services, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     assert "light.example_entity" not in entities
     assert "sensor.test" not in entities
@@ -60,7 +61,7 @@ def test_custom_tags(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "custom_tags.yaml")
 
-    entities, _, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, _, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # !secret http_password resolves to string "http_password", not an entity.
     # !secret "sensor.secret_sensor" resolves to string "sensor.secret_sensor".
@@ -74,7 +75,7 @@ def test_templates_and_prefixes(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "templates.yaml")
 
-    entities, services, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # H:11 Embedded Services
     assert "light.turn_on" in services
