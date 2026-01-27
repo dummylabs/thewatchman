@@ -1,6 +1,7 @@
 """Tests for ESPHome configuration parsing."""
 import os
 import pytest
+import asyncio
 from custom_components.watchman.utils.parser_core import WatchmanParser
 
 @pytest.fixture
@@ -16,7 +17,7 @@ def test_esphome_context(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "esphome", "device.yaml")
 
-    entities, services, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # Allowed: keys are 'service', 'action', 'entity_id'
     assert "light.turn_on" in services

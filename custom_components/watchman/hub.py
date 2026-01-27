@@ -2,7 +2,7 @@
 import os
 import fnmatch
 import sqlite3
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Callable
 
 from homeassistant.core import HomeAssistant
 from .utils.parser_core import WatchmanParser, get_domains
@@ -15,7 +15,12 @@ class WatchmanHub:
     def __init__(self, hass: HomeAssistant, db_path: str):
         self.hass = hass
         self.db_path = db_path
-        self._parser = WatchmanParser(db_path)
+
+        # inject Home Assistant's executor to run process config files asynchronously
+        async def ha_executor(func: Callable, *args: Any):
+            return await self.hass.async_add_executor_job(func, *args)
+
+        self._parser = WatchmanParser(db_path, executor=ha_executor)
         self.cached_items = {}
 
     async def async_get_parsed_entities(self) -> Dict[str, Any]:
@@ -41,7 +46,7 @@ class WatchmanHub:
         try:
             if item_type not in self.cached_items:
                 self.cached_items[item_type] = self._parser.get_found_items(item_type)
-            
+
             raw_items = self.cached_items[item_type]
         except sqlite3.OperationalError as e:
             _LOGGER.warning(f"Database busy during read, returning cached/empty data: {e}")
@@ -84,30 +89,7 @@ class WatchmanHub:
         """Asynchronous wrapper for the parse method."""
         custom_domains = get_domains(self.hass)
 
-        await self.hass.async_add_executor_job(
-            self._run_parse_sync,
-            included_folders,
-            ignored_files,
-            custom_domains,
-            force
-        )
-        self.cached_items = {}
-
-
-
-    def _run_parse_sync(
-        self,
-        included_folders: List[Tuple[str, str]],
-        ignored_files: List[str],
-        custom_domains: List[str],
-        force: bool
-    ) -> None:
-        """Run synchronous parsing logic in executor."""
-        client = self._parser
-
         # Adapt included_folders (list of tuples [(path, glob)]) to list of strings for WatchmanParser
-        # FIXME: this must be moved to parser.scan()
-        # FIXME: ignored items are literally ignored :)
         folder_globs = []
         for path, pattern in included_folders:
             if pattern:
@@ -119,8 +101,15 @@ class WatchmanHub:
             else:
                 folder_globs.append(path)
 
-        # we do NOT close the parser here because it's a long-lived object in the hub
-        client.parse(folder_globs, ignored_files, force, custom_domains, base_path=self.hass.config.config_dir)
+        await self._parser.async_parse(
+            folder_globs,
+            ignored_files,
+            force,
+            custom_domains,
+            base_path=self.hass.config.config_dir
+        )
+
+        self.cached_items = {}
 
     async def async_get_last_parse_info(self) -> Dict[str, Any]:
         """Return the duration and timestamp of the last successful scan."""

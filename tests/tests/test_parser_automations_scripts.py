@@ -1,6 +1,7 @@
 """Tests for automation and script parsing contexts."""
 import os
 import pytest
+import asyncio
 from custom_components.watchman.utils.parser_core import WatchmanParser
 
 @pytest.fixture
@@ -18,7 +19,7 @@ def test_automations_parsing(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "automations.yaml")
 
-    entities, services, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # Check Entities
     assert "binary_sensor.motion_sensor" in entities
@@ -43,7 +44,7 @@ def test_scripts_parsing(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "scripts.yaml")
 
-    entities, services, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     assert "vacuum.robot_cleaner" in entities
     assert "vacuum.start" in services
@@ -62,7 +63,7 @@ def test_package_mixed_contexts(parser_client, new_test_data_dir):
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "package_example.yaml")
 
-    _, _, _, _, _ = parser_client.parse([yaml_file], [])
+    _, _, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # 1. Automation Context
     context1 = parser_client.get_automation_context('input_boolean.package_trigger')

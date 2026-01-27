@@ -1,6 +1,7 @@
 """Tests for Home Assistant specific domains parsing."""
 import os
 import pytest
+import asyncio
 from custom_components.watchman.utils.parser_core import WatchmanParser
 
 @pytest.fixture
@@ -16,7 +17,7 @@ def test_ha_domains_parsing(parser_client, new_test_data_dir):
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "ha_domains.yaml")
 
     # Parse the file
-    entities, _, _, _, _ = parser_client.parse([yaml_file], [])
+    entities, _, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
 
     # List of domains to check
     domains_to_check = [
