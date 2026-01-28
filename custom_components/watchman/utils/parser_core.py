@@ -553,11 +553,32 @@ class WatchmanParser:
             finally:
                 conn.close()
         except sqlite3.DatabaseError as e:
-            _LOGGER.error(f"Database corrupted, deleting {self.db_path}: {e}")
-            if os.path.exists(self.db_path):
-                os.remove(self.db_path)
-            # Re-raise to abort current operation. Next operation will recreate DB.
+            _LOGGER.error(f"Database error in {self.db_path}: {e}")
             raise
+
+    def check_and_fix_db(self):
+        """Check if database is valid, delete and recreate if corrupted."""
+        try:
+            with self._db_session() as conn:
+                conn.execute("SELECT 1")
+        except sqlite3.DatabaseError as e:
+            msg = str(e).lower()
+            if "locked" in msg or "busy" in msg:
+                _LOGGER.warning(f"Database locked during check, skipping repair: {e}")
+                return
+            
+            _LOGGER.error(f"Database corrupted ({e}), deleting {self.db_path}")
+            if os.path.exists(self.db_path):
+                try:
+                    os.remove(self.db_path)
+                except OSError as remove_err:
+                    _LOGGER.error(f"Failed to remove corrupted DB: {remove_err}")
+            
+            # Re-init (will create new file)
+            try:
+                self._init_db(self.db_path).close()
+            except Exception as init_err:
+                _LOGGER.error(f"Failed to recreate DB: {init_err}")
 
     def _init_db(self, db_path: str) -> sqlite3.Connection:
         # Ensure directory exists

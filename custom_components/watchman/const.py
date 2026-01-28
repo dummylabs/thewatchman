@@ -21,7 +21,7 @@ REPORT_SERVICE_NAME = "report"
 HASS_DATA_CANCEL_HANDLERS = "cancel_handlers"
 
 COORD_DATA_MISSING_ENTITIES = "entities_missing"
-COORD_DATA_MISSING_SERVICES = "services_missing"
+COORD_DATA_MISSING_ACTIONS = "services_missing"
 COORD_DATA_LAST_UPDATE = "last_update"
 COORD_DATA_SERVICE_ATTRS = "service_attrs"
 COORD_DATA_ENTITY_ATTRS = "entity_attrs"
@@ -67,9 +67,13 @@ EVENT_SCENE_RELOADED = "scene_reloaded"
 
 SENSOR_LAST_UPDATE = "watchman_last_updated"
 SENSOR_MISSING_ENTITIES = "watchman_missing_entities"
-SENSOR_MISSING_SERVICES = "watchman_missing_services"
 SENSOR_MISSING_ACTIONS = "watchman_missing_actions"
+SENSOR_STATUS = "watchman_status"
 MONITORED_STATES = ["unavailable", "unknown", "missing", "disabled"]
+
+STATE_WAITING_HA = "waiting_for_ha"
+STATE_PARSING = "parsing"
+STATE_IDLE = "idle"
 
 TRACKED_EVENT_DOMAINS = [
     "homeassistant",

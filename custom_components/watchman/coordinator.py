@@ -10,12 +10,15 @@ from .const import (
     COORD_DATA_ENTITY_ATTRS,
     COORD_DATA_LAST_UPDATE,
     COORD_DATA_MISSING_ENTITIES,
-    COORD_DATA_MISSING_SERVICES,
+    COORD_DATA_MISSING_ACTIONS,
     COORD_DATA_SERVICE_ATTRS,
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
+    STATE_WAITING_HA,
+    STATE_PARSING,
+    STATE_IDLE,
 )
 from .utils.utils import (
     get_entity_state,
@@ -193,15 +196,26 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self.hub = hub
         self.last_check_duration = 0.0
         self.ignored_labels = set()
+        self._status = STATE_WAITING_HA
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
-            COORD_DATA_MISSING_SERVICES: 0,
+            COORD_DATA_MISSING_ACTIONS: 0,
             COORD_DATA_LAST_UPDATE: dt_util.now(),
             COORD_DATA_SERVICE_ATTRS: "",
             COORD_DATA_ENTITY_ATTRS: "",
         }
         self.parser_rescan_requested = False
         self.parser_rescan_reason = None
+
+    @property
+    def status(self):
+        """Return the current status of the integration."""
+        return self._status
+
+    def update_status(self, new_status):
+        """Update the status and notify listeners."""
+        self._status = new_status
+        self.async_update_listeners()
 
     async def async_get_parsed_entities(self):
         """Return a dictionary of parsed entities and their locations."""
@@ -272,71 +286,75 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         if not parser_lock.locked():
             _LOGGER.debug("_async_update_data: update sensor data with actual state of entities and actions")
             async with parser_lock:
-                if self.hass.is_running:
-                    if self.parser_rescan_requested:
-                        await self.async_parse_config(
-                            reason=self.parser_rescan_reason
-                        )
-                        self._cancel_parser_rescan()
+                self.update_status(STATE_PARSING)
+                try:
+                    if self.hass.is_running:
+                        if self.parser_rescan_requested:
+                            await self.async_parse_config(
+                                reason=self.parser_rescan_reason
+                            )
+                            self._cancel_parser_rescan()
 
-                    start_time = time.time()
+                        start_time = time.time()
 
-                    parsed_service_list = await self.async_get_parsed_services()
-                    parsed_entity_list = await self.async_get_parsed_entities()
+                        parsed_service_list = await self.async_get_parsed_services()
+                        parsed_entity_list = await self.async_get_parsed_entities()
 
-                    exclude_disabled_automations = get_config(
-                        self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
-                    )
-
-                    services_missing = renew_missing_items_list(
-                        self.hass, parsed_service_list, exclude_disabled_automations, self.ignored_labels, "action"
-                    )
-                    entities_missing = renew_missing_items_list(
-                        self.hass, parsed_entity_list, exclude_disabled_automations, self.ignored_labels, "entity"
-                    )
-
-                    self.last_check_duration = (
-                        time.time() - start_time
-                    )
-
-                    # build entity attributes map for missing_entities sensor
-                    # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
-                    entity_attrs = []
-                    for entity in entities_missing:
-                        state, name = get_entity_state(
-                            self.hass, entity, friendly_names=True
-                        )
-                        entity_attrs.append(
-                            {
-                                "id": entity,
-                                "state": state,
-                                "friendly_name": name or "",
-                                "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
-                            }
+                        exclude_disabled_automations = get_config(
+                            self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
                         )
 
-                    # build service attributes map for missing_services sensor
-                    # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
-                    service_attrs = []
-                    for service in services_missing:
-                        service_attrs.append(
-                            {
-                                "id": service,
-                                "occurrences": fill(parsed_service_list[service]["locations"], 0),
-                            }
+                        services_missing = renew_missing_items_list(
+                            self.hass, parsed_service_list, exclude_disabled_automations, self.ignored_labels, "action"
+                        )
+                        entities_missing = renew_missing_items_list(
+                            self.hass, parsed_entity_list, exclude_disabled_automations, self.ignored_labels, "entity"
                         )
 
-                    self.data = {
-                        COORD_DATA_MISSING_ENTITIES: len(entities_missing),
-                        COORD_DATA_MISSING_SERVICES: len(services_missing),
-                        COORD_DATA_LAST_UPDATE: dt_util.now(),
-                        COORD_DATA_SERVICE_ATTRS: service_attrs,
-                        COORD_DATA_ENTITY_ATTRS: entity_attrs,
-                    }
-                    _LOGGER.debug(
-                        f"Sensors updated, actions: {self.data[COORD_DATA_MISSING_SERVICES]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"
-                    )
+                        self.last_check_duration = (
+                            time.time() - start_time
+                        )
 
-                    return self.data
+                        # build entity attributes map for missing_entities sensor
+                        # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
+                        entity_attrs = []
+                        for entity in entities_missing:
+                            state, name = get_entity_state(
+                                self.hass, entity, friendly_names=True
+                            )
+                            entity_attrs.append(
+                                {
+                                    "id": entity,
+                                    "state": state,
+                                    "friendly_name": name or "",
+                                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                                }
+                            )
+
+                        # build service attributes map for missing_services sensor
+                        # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
+                        service_attrs = []
+                        for service in services_missing:
+                            service_attrs.append(
+                                {
+                                    "id": service,
+                                    "occurrences": fill(parsed_service_list[service]["locations"], 0),
+                                }
+                            )
+
+                        self.data = {
+                            COORD_DATA_MISSING_ENTITIES: len(entities_missing),
+                            COORD_DATA_MISSING_ACTIONS: len(services_missing),
+                            COORD_DATA_LAST_UPDATE: dt_util.now(),
+                            COORD_DATA_SERVICE_ATTRS: service_attrs,
+                            COORD_DATA_ENTITY_ATTRS: entity_attrs,
+                        }
+                        _LOGGER.debug(
+                            f"Sensors updated, actions: {self.data[COORD_DATA_MISSING_ACTIONS]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"
+                        )
+
+                        return self.data
+                finally:
+                    self.update_status(STATE_IDLE)
         _LOGGER.debug("_async_update_data is already in progress, skipping")
         return {}
