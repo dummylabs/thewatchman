@@ -35,6 +35,18 @@ jobs:
                   # Replace PACKAGE_NAME
                   sed -i 's/^PACKAGE_NAME = .*/PACKAGE_NAME = "custom_components.watchman_dev"/' custom_components/watchman/const.py
 
+                  # Replace SENSOR_LAST_UPDATE
+                  sed -i 's/^SENSOR_LAST_UPDATE = .*/SENSOR_LAST_UPDATE = "watchman_dev_last_updated"/' custom_components/watchman/const.py
+
+                  # Replace SENSOR_MISSING_ENTITIES
+                  sed -i 's/^SENSOR_MISSING_ENTITIES = .*/SENSOR_MISSING_ENTITIES = "watchman_dev_missing_entities"/' custom_components/watchman/const.py
+
+                  # Replace SENSOR_MISSING_SERVICES
+                  sed -i 's/^SENSOR_MISSING_SERVICES = .*/SENSOR_MISSING_SERVICES = "watchman_dev_missing_services"/' custom_components/watchman/const.py
+
+                  # Replace SENSOR_MISSING_ACTIONS
+                  sed -i 's/^SENSOR_MISSING_ACTIONS = .*/SENSOR_MISSING_ACTIONS = "watchman_dev_missing_actions"/' custom_components/watchman/const.py
+
                   # --- 3. Rename the folder ---
                   mv custom_components/watchman custom_components/watchman_dev
 
