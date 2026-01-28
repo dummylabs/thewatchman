@@ -18,7 +18,8 @@ from ..const import DB_TIMEOUT
 _YAML_FILE_EXTS = {'.yaml', '.yml'}
 _JSON_FILE_EXTS = {'.config_entries'}
 
-_STORAGE_WHITELIST = {'lovelace', 'lovelace_dashboards', 'lovelace_resources', 'core.config_entries'}
+_STORAGE_WHITELIST = {'lovelace', 'lovelace_dashboards', 'lovelace_resources'}
+_MAX_FILE_SIZE = 500 * 1024  # 500 KB
 
 _PLATFORMS = [
     "ai_task", "air_quality", "alarm_control_panel", "assist_satellite", "binary_sensor", "button",
@@ -451,6 +452,11 @@ def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTER
         return 0, [], 'unknown'
 
     try:
+        file_size = os.path.getsize(filepath)
+        if file_size > _MAX_FILE_SIZE:
+            _LOGGER.error(f"File {filepath} is too large ({file_size} bytes), skipping. Max size: {_MAX_FILE_SIZE} bytes.")
+            return 0, [], file_type
+
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
 
