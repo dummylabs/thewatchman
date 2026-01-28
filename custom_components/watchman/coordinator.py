@@ -24,7 +24,6 @@ from .utils.utils import (
     get_entity_state,
     get_entry,
     get_config,
-    get_included_folders,
     is_action,
 )
 from .utils.logger import _LOGGER, INDENT
@@ -253,15 +252,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
     async def async_parse_config(self, reason=None):
         """Parse home assistant configuration files."""
 
-        included_folders = get_included_folders(self.hass)
         ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
-        ignored_items = get_config(self.hass, CONF_IGNORED_ITEMS, [])
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
             _LOGGER.debug(f"{INDENT}::parse_config:: called due to {reason}")
             _LOGGER.debug(f"{INDENT}IGNORED_FILES={ignored_files}")
 
-        await self.hub.async_parse(included_folders, ignored_files, ignored_items)
+        await self.hub.async_parse(ignored_files)
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
             info = await self.hub.async_get_last_parse_info()

@@ -28,6 +28,16 @@ async def async_init_integration(
     config[CONF_INCLUDED_FOLDERS] = "/workspaces/thewatchman/tests/data"
     if add_params:
         config = config | add_params
+    
+    # Support tests that rely on changing the scan root via included_folders
+    if CONF_INCLUDED_FOLDERS in config:
+        path = config[CONF_INCLUDED_FOLDERS]
+        if isinstance(path, list):
+            path = path[0]
+        # Only set if it looks like a valid path (not empty)
+        if path:
+             hass.config.config_dir = str(path)
+
     if config_entry is None:
         config_entry = MockConfigEntry(
             domain=DOMAIN,

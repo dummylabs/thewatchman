@@ -55,17 +55,12 @@ async def test_custom_domain_injection(new_test_data_dir, tmp_path):
     # 2. Setup Config File Input
     # We only scan the specific file
     yaml_dir = os.path.join(new_test_data_dir, "yaml_config")
-    yaml_file = os.path.join(yaml_dir, "custom_domain.yaml")
-    # async_parse expects folders list of tuples (path, pattern)
-    # We point to the file specifically
-    folders = [(yaml_dir, "custom_domain.yaml")]
     ignored_files = []
 
     # 3. Execute
     # Run parsing
     await hub.async_parse(
-        [(yaml_dir, "custom_domain.yaml")], 
-        []
+        ignored_files
     )
     
     # We need to get parsed items from the hub to check services

@@ -15,9 +15,10 @@ def test_ha_domains_parsing(parser_client, new_test_data_dir):
     """Test parsing of Home Assistant specific domains."""
     
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "ha_domains.yaml")
+    yaml_dir = os.path.dirname(yaml_file)
 
-    # Parse the file
-    entities, _, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
+    # Parse the directory
+    entities, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     # List of domains to check
     domains_to_check = [

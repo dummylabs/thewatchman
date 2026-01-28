@@ -241,12 +241,6 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         )
         data = DEFAULT_OPTIONS
 
-        data[CONF_INCLUDED_FOLDERS] = (
-            hass.config.path()
-            if CONF_INCLUDED_FOLDERS not in config_entry.options
-            else ",".join(str(x) for x in config_entry.options[CONF_INCLUDED_FOLDERS])
-        )
-
         data[CONF_IGNORED_STATES] = config_entry.options.get(CONF_IGNORED_STATES, [])
 
         if CONF_IGNORED_ITEMS in config_entry.options:

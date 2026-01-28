@@ -85,27 +85,14 @@ class WatchmanHub:
 
     async def async_parse(
         self,
-        included_folders: List[Tuple[str, str]],
         ignored_files: List[str],
         force: bool = False
     ) -> None:
         """Asynchronous wrapper for the parse method."""
         custom_domains = get_domains(self.hass)
 
-        # Adapt included_folders (list of tuples [(path, glob)]) to list of strings for WatchmanParser
-        folder_globs = []
-        for path, pattern in included_folders:
-            if pattern:
-                if os.path.isabs(path):
-                    full_glob = os.path.join(path, pattern)
-                    folder_globs.append(full_glob)
-                else:
-                    folder_globs.append(os.path.join(self.hass.config.config_dir, path, pattern))
-            else:
-                folder_globs.append(path)
-
         await self._parser.async_parse(
-            folder_globs,
+            self.hass.config.config_dir,
             ignored_files,
             force,
             custom_domains,

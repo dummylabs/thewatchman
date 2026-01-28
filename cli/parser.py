@@ -63,7 +63,7 @@ def print_table(headers, data, max_width=None):
 def main():
     parser = argparse.ArgumentParser(description="Watchman Prototype Parser (CLI)")
     # list of paths divided by space
-    parser.add_argument("included_folders", nargs='+', help="List of folders/files to include (glob supported)")
+    parser.add_argument("path", nargs='?', default=os.getcwd(), help="Root path to scan (default: current dir)")
     # -ignore "*.log" --ignore "*.tmp"
     parser.add_argument("--ignore", action='append', help="Glob patterns to ignore")
     parser.add_argument("--force", action='store_true', help="Force rescan of all files")
@@ -72,13 +72,16 @@ def main():
     parser.add_argument("--no-items", action='store_true', help="Hide the list of found items")
     parser.add_argument("--debug", action='store_true', help="Enable debug logging to debug.log")
 
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
+    if len(sys.argv) == 1 and sys.stdin.isatty():
+        # Only print help if no args and interactive, but here we have defaults so maybe not? 
+        # The original code exited if len(sys.argv) == 1. 
+        # If I have a default arg, len(sys.argv) is 1 if I run without args.
+        # But 'path' is optional. So running `python parser.py` should work and scan cwd.
+        pass
 
     args = parser.parse_args()
 
-    included_folders = args.included_folders
+    root_path = args.path
     ignored_files = args.ignore or []
 
     # Configure logging
@@ -98,10 +101,10 @@ def main():
 
     client = WatchmanParser(args.db_path)
 
-    logging.info(f"Calling client.scan with: included_folders={included_folders}, ignored_files={ignored_files}, force={args.force}, base_path={os.getcwd()}")
+    logging.info(f"Calling client.scan with: root_path={root_path}, ignored_files={ignored_files}, force={args.force}, base_path={root_path}")
     # We call scan directly. Logic for configuration change detection is inside WatchmanParser.scan
     import asyncio
-    asyncio.run(client.async_scan(included_folders, ignored_files, args.force, base_path=os.getcwd()))
+    asyncio.run(client.async_scan(root_path, ignored_files, args.force, base_path=root_path))
 
     # Output results matching original format
     if not args.no_files:

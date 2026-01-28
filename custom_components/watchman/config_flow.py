@@ -48,9 +48,6 @@ def _get_data_schema() -> vol.Schema:
     select = selector.TextSelector(selector.TextSelectorConfig(multiline=True))
     return vol.Schema(
         {
-            vol.Required(
-                CONF_INCLUDED_FOLDERS,
-            ): select,
             vol.Optional(
                 CONF_IGNORED_ITEMS,
             ): select,
@@ -96,19 +93,6 @@ async def _async_validate_input(
     errors: Dict[str, str] = {}
     placeholders: Dict[str, str] = {}
 
-    # check user supplied folders
-    if CONF_INCLUDED_FOLDERS in user_input:
-        included_folders_list = [
-            x.strip() for x in user_input[CONF_INCLUDED_FOLDERS].split(",") if x.strip()
-        ]
-        for path in included_folders_list:
-            if not await anyio.Path(path.strip()).exists():
-                errors |= {
-                    CONF_INCLUDED_FOLDERS: "{} is not a valid path ".format(path)
-                }
-                placeholders["path"] = path
-                break
-
     columns_width = get_val(
         user_input, CONF_COLUMNS_WIDTH, CONF_SECTION_APPEARANCE_LOCATION
     )
@@ -148,7 +132,6 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         options[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
             self.hass.config.path(DEFAULT_REPORT_FILENAME)
         )
-        options[CONF_INCLUDED_FOLDERS] = self.hass.config.path()
         options[CONF_IGNORED_FILES] = DEFAULT_OPTIONS[CONF_IGNORED_FILES]
         return self.async_create_entry(title="Watchman", data=options)
 

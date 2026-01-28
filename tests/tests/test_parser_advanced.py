@@ -11,13 +11,20 @@ def parser_client(tmp_path):
     client = WatchmanParser(str(db_path))
     yield client
 
-def test_ignored_patterns(parser_client, new_test_data_dir):
+import shutil
+
+def test_ignored_patterns(parser_client, new_test_data_dir, tmp_path):
     """Test ignoring of variables, function calls, concatenation, and wildcards."""
     # H:1, H:2, H:6, H:7, H:15
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "patterns_ignored.yaml")
-
-    entities, _, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
+    source_file = os.path.join(new_test_data_dir, "yaml_config", "patterns_ignored.yaml")
+    dest_dir = tmp_path / "config"
+    dest_dir.mkdir()
+    dest_file = dest_dir / "patterns_ignored.yaml"
+    shutil.copy(source_file, dest_file)
+    
+    # Scan the temp directory which contains ONLY the file we want to test
+    entities, _, _, _, _ = asyncio.run(parser_client.async_parse(str(dest_dir), []))
 
     # H:1 Underscore Suffix
     assert "sensor.temp_var_" not in entities
@@ -47,8 +54,9 @@ def test_ignored_keys(parser_client, new_test_data_dir):
     # H:8 Ignored Keys (url, example, description)
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "keys_ignored.yaml")
+    yaml_dir = os.path.dirname(yaml_file)
 
-    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     assert "light.example_entity" not in entities
     assert "sensor.test" not in entities
@@ -60,8 +68,9 @@ def test_custom_tags(parser_client, new_test_data_dir):
     # H:12 Custom Tags
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "custom_tags.yaml")
+    yaml_dir = os.path.dirname(yaml_file)
 
-    entities, _, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
+    entities, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     # !secret http_password resolves to string "http_password", not an entity.
     # !secret "sensor.secret_sensor" resolves to string "sensor.secret_sensor".
@@ -74,8 +83,9 @@ def test_templates_and_prefixes(parser_client, new_test_data_dir):
     # H:16 States Prefix
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "templates.yaml")
+    yaml_dir = os.path.dirname(yaml_file)
 
-    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     # H:11 Embedded Services
     assert "light.turn_on" in services

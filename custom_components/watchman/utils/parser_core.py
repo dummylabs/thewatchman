@@ -15,8 +15,10 @@ from ..const import DB_TIMEOUT
 
 # file extensions supported by parser
 # .json is not parsed as they typically contains unrelevant false positive entries
-_YAML_FILE_EXTS = ['.yaml', '.yml']
-_JSON_FILE_EXTS = ['', '.config_entries']
+_YAML_FILE_EXTS = {'.yaml', '.yml'}
+_JSON_FILE_EXTS = {'.config_entries'}
+
+_STORAGE_WHITELIST = {'lovelace', 'lovelace_dashboards', 'lovelace_resources', 'core.config_entries'}
 
 _PLATFORMS = [
     "ai_task", "air_quality", "alarm_control_panel", "assist_satellite", "binary_sensor", "button",
@@ -79,7 +81,7 @@ _ENTITY_PATTERN = re.compile(
 _IGNORED_KEYS = {'url', 'example', 'description'}
 
 # Directories to skip during recursive scan
-_IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome'}
+_IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome', '.storage', 'tmp', "blueprints"}
 
 
 # Regex patterns to identify actions (services) definitions
@@ -156,6 +158,10 @@ yaml.add_multi_constructor('!', _default_ctor, Loader=_LineLoader)
 # Core Logic Functions
 
 def _detect_file_type(filepath: str) -> str:
+    filename = os.path.basename(filepath)
+    if filename in _STORAGE_WHITELIST:
+        return 'json'
+
     # Check for ESPHome path segment
     norm_path = os.path.normpath(filepath)
     path_parts = norm_path.split(os.sep)
@@ -170,17 +176,8 @@ def _detect_file_type(filepath: str) -> str:
     if ext in _YAML_FILE_EXTS:
         return 'yaml'
 
-    # Check content for JSON signature if extension is missing or not standard
     if ext in _JSON_FILE_EXTS:
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                # Read first non-whitespace character
-                content = f.read(1024)
-                stripped = content.strip()
-                if stripped.startswith('{') or stripped.startswith('['):
-                    return 'json'
-        except Exception:
-            pass
+        return 'json'
 
     return 'unknown'
 
@@ -467,7 +464,7 @@ def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTER
         return 0, [], file_type
 
 
-def get_files_sync(folders: List[str], ignored_files: List[str]) -> Tuple[List[str], int]:
+def get_files_sync(root_path: str, ignored_files: List[str]) -> Tuple[List[str], int]:
     """
     Collects files based on whitelist folders and filters by blacklist patterns.
     Returns:
@@ -481,7 +478,10 @@ def get_files_sync(folders: List[str], ignored_files: List[str]) -> Tuple[List[s
         nonlocal ignored_count
         # 1. Cheap check: Extension
         _, ext = os.path.splitext(filepath)
-        if ext.lower() not in _YAML_FILE_EXTS + _JSON_FILE_EXTS:
+        filename = os.path.basename(filepath)
+
+        is_whitelisted = filename in _STORAGE_WHITELIST
+        if not is_whitelisted and ext.lower() not in _YAML_FILE_EXTS and ext.lower() not in _JSON_FILE_EXTS:
             return
 
         # 2. Expensive check: Ignored patterns
@@ -503,30 +503,21 @@ def get_files_sync(folders: List[str], ignored_files: List[str]) -> Tuple[List[s
         else:
             final_files.append(abs_path)
 
-    for pattern in folders:
-        # Optimize recursive scan
-        if pattern.endswith("/**") or pattern.endswith(os.sep + "**"):
-            base_dir = pattern[:-3] # Remove /**
-            if os.path.isdir(base_dir):
-                for root, dirs, files in os.walk(base_dir):
-                    # Prune ignored directories in-place
-                    dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS]
-                    for file in files:
-                        process_file(os.path.join(root, file))
-                continue
+    # 1. Main recursive scan
+    for root, dirs, files in os.walk(root_path):
+        # Prune ignored directories in-place
+        dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS]
 
-        # Standard logic for other patterns
-        if os.path.isdir(pattern):
-            for root, dirs, files in os.walk(pattern):
-                # Prune ignored directories in-place
-                dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS]
-                for file in files:
-                    process_file(os.path.join(root, file))
-        else:
-            # Fallback to glob for non-recursive or specific patterns
-            for filepath in glob.glob(pattern, recursive=True):
-                if os.path.isfile(filepath):
-                    process_file(filepath)
+        for file in files:
+            process_file(os.path.join(root, file))
+
+    # 2. Targeted scan of .storage
+    storage_path = os.path.join(root_path, '.storage')
+    if os.path.isdir(storage_path):
+        for filename in _STORAGE_WHITELIST:
+             filepath = os.path.join(storage_path, filename)
+             if os.path.isfile(filepath):
+                 process_file(filepath)
 
     return sorted(list(set(final_files))), ignored_count
 
@@ -566,14 +557,14 @@ class WatchmanParser:
             if "locked" in msg or "busy" in msg:
                 _LOGGER.warning(f"Database locked during check, skipping repair: {e}")
                 return
-            
+
             _LOGGER.error(f"Database corrupted ({e}), deleting {self.db_path}")
             if os.path.exists(self.db_path):
                 try:
                     os.remove(self.db_path)
                 except OSError as remove_err:
                     _LOGGER.error(f"Failed to remove corrupted DB: {remove_err}")
-            
+
             # Re-init (will create new file)
             try:
                 self._init_db(self.db_path).close()
@@ -654,7 +645,7 @@ class WatchmanParser:
         conn.commit()
         return conn
 
-    async def async_scan(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> None:
+    async def async_scan(self, root_path: str, ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> None:
         """
         Orchestrates the scanning process.
         If force = True, unmodified files will be scanned again
@@ -672,7 +663,7 @@ class WatchmanParser:
 
             # Offload get_files_sync to executor as it uses os.walk which is blocking
             traverse_time = time.monotonic()
-            files_to_scan, ignored_count = await self.executor(get_files_sync, included_folders, ignored_files)
+            files_to_scan, ignored_count = await self.executor(get_files_sync, root_path, ignored_files)
             _LOGGER.debug(f"Found {len(files_to_scan)} files, os.walk took {(time.monotonic() - traverse_time):.3f} sec")
 
             # Fetch all previously processed files metadata into memory cache
@@ -903,10 +894,10 @@ class WatchmanParser:
                 }
             return None
 
-    async def async_parse(self, included_folders: List[str], ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> Tuple[List[str], List[str], int, int, Dict]:
+    async def async_parse(self, root_path: str, ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> Tuple[List[str], List[str], int, int, Dict]:
         """
         Params:
-            included_folders: where to scan
+            root_path: where to scan
             ignored_files: file paths which should be ignored during scan
             force (bool): if false, files witch unchanged modification time will be not be parsed
             custom_domains: additional domains provided by customer integrations which should not be ignored by WM, e.g. xiaomi_miio.*
@@ -919,7 +910,7 @@ class WatchmanParser:
             ignored_files_count (int): Always 0 (stub).
             entity_to_automations (dict): Empty dictionary (stub).
         """
-        await self.async_scan(included_folders, ignored_files, force, custom_domains, base_path)
+        await self.async_scan(root_path, ignored_files, force, custom_domains, base_path)
 
         try:
             with self._db_session() as conn:

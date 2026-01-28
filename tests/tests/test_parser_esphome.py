@@ -16,8 +16,9 @@ def test_esphome_context(parser_client, new_test_data_dir):
     # H:9 ESPHOME Context
 
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "esphome", "device.yaml")
+    yaml_dir = os.path.dirname(yaml_file)
 
-    entities, services, _, _, _ = asyncio.run(parser_client.async_parse([yaml_file], []))
+    entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     # Allowed: keys are 'service', 'action', 'entity_id'
     assert "light.turn_on" in services
