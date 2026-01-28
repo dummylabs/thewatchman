@@ -1,6 +1,5 @@
 name: Deploy to Dev Repo
 
-# Trigger the workflow only on push to the 'dev' branch
 on:
     push:
         branches:
@@ -18,30 +17,30 @@ jobs:
             - name: Transform to Dev version
               run: |
                   # --- 1. Modifications to manifest.json ---
-                  # Change domain from "watchman" to "watchman_dev"
                   sed -i 's/"domain": "watchman"/"domain": "watchman_dev"/' custom_components/watchman/manifest.json
-                  # Change the name displayed in UI (find "name": "..." field and replace)
                   sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' custom_components/watchman/manifest.json
 
                   # --- 2. Modifications to const.py ---
-                  # Change the database filename to avoid overwriting the production DB
                   sed -i 's/DB_FILENAME = "watchman.db"/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
-
-                  # Change DOMAIN so integrations use different memory areas in hass.data
                   sed -i 's/DOMAIN = "watchman"/DOMAIN = "watchman_dev"/' custom_components/watchman/const.py
 
                   # --- 3. Rename the folder ---
-                  # Home Assistant requires the folder name to match the domain
                   mv custom_components/watchman custom_components/watchman_dev
 
-            - name: Push to Dev Repository
-              uses: cpina/github-action-push-to-another-repository@main
+            - name: Push to Dev Repository (Manual Force)
               env:
-                  API_TOKEN_GITHUB: ${{ secrets.DEV_REPO_TOKEN }}
-              with:
-                  source-directory: "."
-                  destination-github-username: "${{ github.repository_owner }}"
-                  destination-repository-name: "thewatchman_dev"
-                  user-email: ${{ github.actor }}@users.noreply.github.com
-                  target-branch: main
-                  commit-message: "Auto-deploy DEV version from main repo"
+                  # Pass the token as an environment variable
+                  TARGET_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+              run: |
+                  # 1. Configure git (required for the commit)
+                  git config --global user.name "Deploy Action"
+                  git config --global user.email "action@github.com"
+
+                  # 2. Commit our changes (renamed folders and files) to local history
+                  git add .
+                  git commit -m "Auto-deploy DEV version"
+
+                  # 3. Direct push to the target repository
+                  # We inject the token directly into the URL. This guarantees the token is used.
+                  # HEAD:main means "take the current state and force write it to the main branch"
+                  git push https://dummylabs:$TARGET_TOKEN@github.com/dummylabs/thewatchman_dev.git HEAD:main --force
