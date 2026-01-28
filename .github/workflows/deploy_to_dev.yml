@@ -28,20 +28,15 @@ jobs:
                   # --- 3. Rename the folder ---
                   mv custom_components/watchman custom_components/watchman_dev
 
-            - name: Push to Dev Repository (Manual Force)
+            - name: Push to Dev Repository
+              uses: cpina/github-action-push-to-another-repository@main
               env:
-                  # Pass the token as an environment variable
-                  TARGET_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
-              run: |
-                  # 1. Configure git (required for the commit)
-                  git config --global user.name "Deploy Action"
-                  git config --global user.email "action@github.com"
-
-                  # 2. Commit our changes (renamed folders and files) to local history
-                  git add .
-                  git commit -m "Auto-deploy DEV version"
-
-                  # 3. Direct push to the target repository
-                  # We inject the token directly into the URL. This guarantees the token is used.
-                  # HEAD:main means "take the current state and force write it to the main branch"
-                  git push https://dummylabs:$TARGET_TOKEN@github.com/dummylabs/thewatchman_dev.git HEAD:main --force
+                  API_TOKEN_GITHUB: ${{ secrets.DEV_REPO_TOKEN }}
+              with:
+                  source-directory: "."
+                  destination-github-username: "${{ github.repository_owner }}"
+                  destination-repository-name: "thewatchman_dev"
+                  user-email: ${{ github.actor }}@users.noreply.github.com
+                  target-branch: main
+                  create-target-branch-if-needed: true
+                  commit-message: "Auto-deploy DEV version from main repo"
