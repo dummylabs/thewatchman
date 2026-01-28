@@ -24,6 +24,8 @@ jobs:
                   # --- 2. Modifications to const.py ---
                   sed -i 's/DB_FILENAME = "watchman.db"/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
                   sed -i 's/DOMAIN = "watchman"/DOMAIN = "watchman_dev"/' custom_components/watchman/const.py
+                  sed -i 's/DOMAIN_DATA = "watchman_data"/DOMAIN_DATA = "watchman_dev_data"/' custom_components/watchman/const.py
+                  sed -i 's/PACKAGE_NAME = "custom_components.watchman"/PACKAGE_NAME = "custom_components.watchman_dev"/' custom_components/watchman/const.py
 
                   # --- 3. Rename the folder ---
                   mv custom_components/watchman custom_components/watchman_dev
