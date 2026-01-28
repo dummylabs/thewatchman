@@ -68,7 +68,7 @@ EVENT_SCENE_RELOADED = "scene_reloaded"
 SENSOR_LAST_UPDATE = "watchman_last_updated"
 SENSOR_MISSING_ENTITIES = "watchman_missing_entities"
 SENSOR_MISSING_ACTIONS = "watchman_missing_actions"
-SENSOR_STATUS = "status"
+SENSOR_STATUS = "watchman_status"
 MONITORED_STATES = ["unavailable", "unknown", "missing", "disabled"]
 
 STATE_WAITING_HA = "waiting_for_ha"
