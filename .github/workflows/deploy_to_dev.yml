@@ -21,7 +21,10 @@ jobs:
                   sed -i 's/"domain": "watchman"/"domain": "watchman_dev"/' custom_components/watchman/manifest.json
                   sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' custom_components/watchman/manifest.json
 
-                  # --- 2. Modifications to const.py (ROBUST METHOD) ---
+                  # --- 2. Modifications to hacs.json (FIX NAME IN HACS UI) ---
+                  sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' hacs.json
+
+                  # --- 3. Modifications to const.py (ROBUST METHOD) ---
 
                   # Replace DB_FILENAME
                   sed -i 's/^DB_FILENAME = .*/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
@@ -47,7 +50,7 @@ jobs:
                   # Replace SENSOR_MISSING_ACTIONS
                   sed -i 's/^SENSOR_MISSING_ACTIONS = .*/SENSOR_MISSING_ACTIONS = "watchman_dev_missing_actions"/' custom_components/watchman/const.py
 
-                  # --- 3. Rename the folder ---
+                  # --- 4. Rename the folder ---
                   mv custom_components/watchman custom_components/watchman_dev
 
             - name: Push to Dev Repository (Manual Force)
