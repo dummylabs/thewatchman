@@ -320,3 +320,16 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         )
         return True
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle removal of an entry."""
+    import os
+    db_path = hass.config.path(".storage", DB_FILENAME)
+
+    def remove_db():
+        if os.path.exists(db_path):
+            os.remove(db_path)
+
+    await hass.async_add_executor_job(remove_db)
+    _LOGGER.info("Watchman database file removed: %s", db_path)

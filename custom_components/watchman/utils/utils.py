@@ -66,6 +66,8 @@ def to_listi(options, key, section=None):
 
 def get_entry(hass: HomeAssistant) -> Any:
     """Return Watchman's ConfigEntry instance."""
+    if DOMAIN_DATA not in hass.data:
+        return None
     return hass.config_entries.async_get_entry(
         hass.data[DOMAIN_DATA]["config_entry_id"]
     )
@@ -73,12 +75,15 @@ def get_entry(hass: HomeAssistant) -> Any:
 
 def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any:
     """Get configuration value from ConfigEntry."""
-    assert hass.data.get(DOMAIN_DATA)
+    if DOMAIN_DATA not in hass.data:
+        return default
+
     entry = hass.config_entries.async_get_entry(
         hass.data[DOMAIN_DATA]["config_entry_id"]
     )
 
-    assert isinstance(entry, ConfigEntry)
+    if not isinstance(entry, ConfigEntry):
+        return default
 
     if key in [
         CONF_INCLUDED_FOLDERS,
@@ -102,7 +107,7 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
         else:
             return get_val(entry.data, key, section_name)
 
-    assert False, "Unknown key {}".format(key)
+    return default
 
 
 async def async_is_valid_path(path) -> bool:
