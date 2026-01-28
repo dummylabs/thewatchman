@@ -50,10 +50,12 @@ from .const import (
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
     REPORT_SERVICE_NAME,
+    STATE_WAITING_HA,
     TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
     PLATFORMS,
     VERSION,
+    STATE_IDLE,
 )
 
 
@@ -74,6 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
         """
         update watchman sensors anf start listening to HA events when Home Assistant started
         """
+
         async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
             """Refresh sensors state."""
             hass.data.get(DOMAIN_DATA)
@@ -104,17 +107,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
     WatchmanServicesSetup(hass, config_entry)
 
-
-    if hass.is_running:
-        # HA is already up and running (e.g. integration was installed)
-        await async_on_home_assistant_started(None)
-    else:
-        # integration started during HA startup, wait until it is fully loaded
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
-
     await coordinator.async_config_entry_first_refresh()
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
+
+    if hass.is_running:
+        # HA is already up and running (e.g. integration was installed)
+        # config_entry.runtime_data.coordinator.update_status(STATE_IDLE)
+        await async_on_home_assistant_started(None)
+    else:
+        # integration started during HA startup, wait until it is fully loaded
+        config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
 
     if not hass.is_running:
         # home assistant is not yet loaded

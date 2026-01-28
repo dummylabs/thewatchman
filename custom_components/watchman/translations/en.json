@@ -78,5 +78,26 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "last_updated": {
+        "name": "Last Update"
+      },
+      "missing_entities": {
+        "name": "Missing Entities"
+      },
+      "missing_actions": {
+        "name": "Missing Actions"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "waiting_for_ha": "Waiting for HA Start",
+          "parsing": "Parsing Configuration",
+          "idle": "Idle"
+        }
+      }
+    }
   }
 }

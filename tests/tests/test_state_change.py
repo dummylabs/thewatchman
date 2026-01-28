@@ -41,8 +41,12 @@ async def test_entity_state_change_tracking(hass, tmp_path):
     # 2. Verify Initial State
     # Watchman should have parsed the file and found 'sensor.test_monitored_sensor'
     # Since state is 'on', missing entities should be 0.
-    
-    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ENTITIES}")
+
+    from homeassistant.helpers import entity_registry as er
+    entity_registry = er.async_get(hass)
+    entity_id = next(e.entity_id for e in entity_registry.entities.values() if e.unique_id.endswith(SENSOR_MISSING_ENTITIES))
+
+    missing_sensor = hass.states.get(entity_id)
     assert missing_sensor is not None
     assert missing_sensor.state == "0", "Initial missing count should be 0"
 
@@ -55,7 +59,7 @@ async def test_entity_state_change_tracking(hass, tmp_path):
 
     # 4. Verify Updated State
     # Watchman should detect the state change for the monitored entity and trigger a refresh
-    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ENTITIES}")
+    missing_sensor = hass.states.get(entity_id)
     assert missing_sensor.state == "1", "Missing count should update to 1 after entity becomes unavailable"
     
     # Verify attributes
@@ -67,7 +71,7 @@ async def test_entity_state_change_tracking(hass, tmp_path):
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
     
-    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ENTITIES}")
+    missing_sensor = hass.states.get(entity_id)
     assert missing_sensor.state == "0", "Missing count should return to 0 after entity recovers"
 
     # 6. Removal: Remove the state entirely
@@ -76,6 +80,6 @@ async def test_entity_state_change_tracking(hass, tmp_path):
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
 
-    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ENTITIES}")
+    missing_sensor = hass.states.get(entity_id)
     assert missing_sensor.state == "1", "Missing count should become 1 after entity state is removed"
     assert "sensor.test_monitored_sensor" in str(missing_sensor.attributes)

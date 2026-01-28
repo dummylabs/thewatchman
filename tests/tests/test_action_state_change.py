@@ -38,8 +38,12 @@ async def test_action_state_change_tracking(hass, tmp_path):
     # 2. Verify Initial State
     # The service 'script.test_service' is NOT registered yet, so it should be reported as missing.
     # Note: New installations use watchman_missing_actions by default
-
-    missing_sensor = hass.states.get(f"sensor.{SENSOR_MISSING_ACTIONS}")
+    
+    from homeassistant.helpers import entity_registry as er
+    entity_registry = er.async_get(hass)
+    entity_id = next(e.entity_id for e in entity_registry.entities.values() if e.unique_id.endswith(SENSOR_MISSING_ACTIONS))
+    
+    missing_sensor = hass.states.get(entity_id)
     assert missing_sensor is not None
     assert missing_sensor.state == "1", "Initial missing count should be 1 (service not registered)"
     assert "script.test_service" in str(missing_sensor.attributes)

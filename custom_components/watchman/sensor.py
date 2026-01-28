@@ -8,6 +8,7 @@ from homeassistant.components.sensor.const import (
     SensorDeviceClass,
     SensorStateClass,
 )
+from homeassistant.const import EntityCategory
 
 from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
@@ -18,51 +19,59 @@ from .const import (
     COORD_DATA_ENTITY_ATTRS,
     COORD_DATA_LAST_UPDATE,
     COORD_DATA_MISSING_ENTITIES,
-    COORD_DATA_MISSING_SERVICES,
+    COORD_DATA_MISSING_ACTIONS,
     COORD_DATA_SERVICE_ATTRS,
     DOMAIN,
     SENSOR_LAST_UPDATE,
     SENSOR_MISSING_ACTIONS,
     SENSOR_MISSING_ENTITIES,
-    SENSOR_MISSING_SERVICES,
+    SENSOR_STATUS,
+    STATE_WAITING_HA,
+    STATE_PARSING,
+    STATE_IDLE,
 )
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    # if sensor.watchman_missing_sensor exists in entity registry - this is an existing
-    # user and we don't want to break compatibility by changing sensor name to actions
-    entity_registry = er.async_get(hass)
-    action_sensor_name = (
-        SENSOR_MISSING_SERVICES
-        if entity_registry.async_get(f"sensor.{SENSOR_MISSING_SERVICES}")
-        else SENSOR_MISSING_ACTIONS
-    )
     async_add_devices(
         [
             LastUpdateSensor(
                 coordinator=coordinator,
                 entity_description=SensorEntityDescription(
                     key=SENSOR_LAST_UPDATE,
-                    name=SENSOR_LAST_UPDATE,
+                    translation_key="last_updated",
                     device_class=SensorDeviceClass.TIMESTAMP,
+                    entity_category=EntityCategory.DIAGNOSTIC,
                 ),
             ),
             MissingEntitiesSensor(
                 coordinator=coordinator,
                 entity_description=SensorEntityDescription(
                     key=SENSOR_MISSING_ENTITIES,
-                    name=SENSOR_MISSING_ENTITIES,
+                    translation_key="missing_entities",
                     state_class=SensorStateClass.MEASUREMENT,
+                    entity_category=EntityCategory.DIAGNOSTIC,
                 ),
             ),
-            MissingServicesSensor(
+            MissingActionsSensor(
                 coordinator=coordinator,
                 entity_description=SensorEntityDescription(
-                    key=action_sensor_name,
-                    name=action_sensor_name,
+                    key=SENSOR_MISSING_ACTIONS,
+                    translation_key="missing_actions",
                     state_class=SensorStateClass.MEASUREMENT,
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+            ),
+            StatusSensor(
+                coordinator=coordinator,
+                entity_description=SensorEntityDescription(
+                    key=SENSOR_STATUS,
+                    translation_key="status",
+                    device_class=SensorDeviceClass.ENUM,
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                    options=[STATE_WAITING_HA, STATE_PARSING, STATE_IDLE],
                 ),
             ),
         ]
@@ -73,6 +82,7 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
     """Timestamp sensor for last watchman update time."""
 
     _attr_should_poll = False
+    _attr_has_entity_name = True
     _attr_icon = "mdi:shield-half-full"
 
     @property
@@ -101,6 +111,7 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     """Number of missing entities from watchman report."""
 
     _attr_should_poll = False
+    _attr_has_entity_name = True
     _attr_icon = "mdi:shield-half-full"
     _attr_native_unit_of_measurement = "items"
     _unrecorded_attributes = frozenset({MATCH_ALL})
@@ -138,10 +149,11 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
         super()._handle_coordinator_update()
 
 
-class MissingServicesSensor(WatchmanEntity, SensorEntity):
+class MissingActionsSensor(WatchmanEntity, SensorEntity):
     """Number of missing services from watchman report."""
 
     _attr_should_poll = False
+    _attr_has_entity_name = True
     _attr_icon = "mdi:shield-half-full"
     _attr_native_unit_of_measurement = "items"
     _unrecorded_attributes = frozenset({MATCH_ALL})
@@ -155,7 +167,7 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_MISSING_SERVICES]
+            return self.coordinator.data[COORD_DATA_MISSING_ACTIONS]
         else:
             return self._attr_native_value
 
@@ -171,9 +183,42 @@ class MissingServicesSensor(WatchmanEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_MISSING_SERVICES]
+            self._attr_native_value = self.coordinator.data[COORD_DATA_MISSING_ACTIONS]
             self._attr_extra_state_attributes = {
                 "services": self.coordinator.data[COORD_DATA_SERVICE_ATTRS]
             }
+        self.async_write_ha_state()
+        super()._handle_coordinator_update()
+
+
+class StatusSensor(WatchmanEntity, SensorEntity):
+    """Diagnostic sensor for Watchman status."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+
+    @property
+    def should_poll(self) -> bool:
+        """No polling needed."""
+        return False
+
+    @property
+    def native_value(self):
+        """Return the native value of the sensor."""
+        return self.coordinator.status
+
+    @property
+    def icon(self):
+        """Return dynamic icon based on status."""
+        if self.coordinator.status == STATE_PARSING:
+            return "mdi:progress-clock"
+        if self.coordinator.status == STATE_IDLE:
+            return "mdi:sleep"
+        return "mdi:timer-sand"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._attr_native_value = self.coordinator.status
         self.async_write_ha_state()
         super()._handle_coordinator_update()
