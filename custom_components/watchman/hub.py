@@ -22,6 +22,9 @@ class WatchmanHub:
 
         self._parser = WatchmanParser(db_path, executor=ha_executor)
         self.cached_items = {}
+        
+        # Verify DB integrity on startup
+        self.hass.async_add_executor_job(self._parser.check_and_fix_db)
 
     async def async_get_parsed_entities(self) -> Dict[str, Any]:
         """Return a dictionary of parsed entities and their locations."""
