@@ -1,0 +1,72 @@
+name: Deploy to Dev Repo
+
+on:
+    push:
+        branches:
+            - dev
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout main repo
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Transform to Dev version
+              run: |
+                  # --- 1. Modifications to manifest.json ---
+                  sed -i 's/"domain": "watchman"/"domain": "watchman_dev"/' custom_components/watchman/manifest.json
+                  sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' custom_components/watchman/manifest.json
+
+                  # --- 2. Modifications to hacs.json (FIX NAME IN HACS UI) ---
+                  sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' hacs.json
+
+                  # --- 3. Modifications to const.py (ROBUST METHOD) ---
+
+                  # Replace DB_FILENAME
+                  sed -i 's/^DB_FILENAME = .*/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
+
+                  # Replace DOMAIN
+                  sed -i 's/^DOMAIN = .*/DOMAIN = "watchman_dev"/' custom_components/watchman/const.py
+
+                  # Replace DOMAIN_DATA
+                  sed -i 's/^DOMAIN_DATA = .*/DOMAIN_DATA = "watchman_dev_data"/' custom_components/watchman/const.py
+
+                  # Replace PACKAGE_NAME
+                  sed -i 's/^PACKAGE_NAME = .*/PACKAGE_NAME = "custom_components.watchman_dev"/' custom_components/watchman/const.py
+
+                  # Replace SENSOR_LAST_UPDATE
+                  sed -i 's/^SENSOR_LAST_UPDATE = .*/SENSOR_LAST_UPDATE = "watchman_dev_last_updated"/' custom_components/watchman/const.py
+
+                  # Replace SENSOR_MISSING_ENTITIES
+                  sed -i 's/^SENSOR_MISSING_ENTITIES = .*/SENSOR_MISSING_ENTITIES = "watchman_dev_missing_entities"/' custom_components/watchman/const.py
+
+                  # Replace SENSOR_MISSING_SERVICES
+                  sed -i 's/^SENSOR_MISSING_SERVICES = .*/SENSOR_MISSING_SERVICES = "watchman_dev_missing_services"/' custom_components/watchman/const.py
+
+                  # Replace SENSOR_MISSING_ACTIONS
+                  sed -i 's/^SENSOR_MISSING_ACTIONS = .*/SENSOR_MISSING_ACTIONS = "watchman_dev_missing_actions"/' custom_components/watchman/const.py
+
+                  # --- 4. Rename the folder ---
+                  mv custom_components/watchman custom_components/watchman_dev
+
+            - name: Push to Dev Repository (Manual Force)
+              env:
+                  # Pass the token as an environment variable
+                  TARGET_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+              run: |
+                  # 1. Configure git (required for the commit)
+                  git config --global user.name "Deploy Action"
+                  git config --global user.email "action@github.com"
+
+                  # 2. Commit our changes (renamed folders and files) to local history
+                  git add .
+                  git commit -m "Auto-deploy DEV version"
+
+                  # 3. Direct push to the target repository
+                  # We inject the token directly into the URL. This guarantees the token is used.
+                  # HEAD:main means "take the current state and force write it to the main branch"
+                  git push https://dummylabs:$TARGET_TOKEN@github.com/dummylabs/thewatchman_dev.git HEAD:main --force
