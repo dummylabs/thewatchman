@@ -1,4 +1,4 @@
-from custom_components.watchman.const import (
+from .const import (
     CONF_ACTION_NAME,
     CONF_ALLOWED_SERVICE_PARAMS,
     CONF_CHUNK_SIZE,
