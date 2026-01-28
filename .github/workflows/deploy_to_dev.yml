@@ -50,9 +50,6 @@ jobs:
                   # Replace SENSOR_MISSING_ACTIONS
                   sed -i 's/^SENSOR_MISSING_ACTIONS = .*/SENSOR_MISSING_ACTIONS = "watchman_dev_missing_actions"/' custom_components/watchman/const.py
 
-                  # Replace report REPORT_SERVICE_NAME
-                  sed -i 's/^REPORT_SERVICE_NAME = .*/REPORT_SERVICE_NAME = "report_dev"/' custom_components/watchman/const.py
-
                   # --- 4. Rename the folder ---
                   mv custom_components/watchman custom_components/watchman_dev
 
