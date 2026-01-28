@@ -22,9 +22,6 @@ jobs:
                   sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' custom_components/watchman/manifest.json
 
                   # --- 2. Modifications to const.py (ROBUST METHOD) ---
-                  # We use regular expressions to ensure replacement works regardless of spacing or quotes:
-                  # ^  - start of the line
-                  # .* - any characters until the end of the line
 
                   # Replace DB_FILENAME
                   sed -i 's/^DB_FILENAME = .*/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
@@ -33,4 +30,27 @@ jobs:
                   sed -i 's/^DOMAIN = .*/DOMAIN = "watchman_dev"/' custom_components/watchman/const.py
 
                   # Replace DOMAIN_DATA
-                  sed -i 's/^DOMAIN_DATA = .*/DOMAIN_DATA =
+                  sed -i 's/^DOMAIN_DATA = .*/DOMAIN_DATA = "watchman_dev_data"/' custom_components/watchman/const.py
+
+                  # Replace PACKAGE_NAME
+                  sed -i 's/^PACKAGE_NAME = .*/PACKAGE_NAME = "custom_components.watchman_dev"/' custom_components/watchman/const.py
+
+                  # --- 3. Rename the folder ---
+                  mv custom_components/watchman custom_components/watchman_dev
+
+            # --- DEBUG STEP: Verify file before pushing ---
+            - name: Verify const.py content
+              run: cat custom_components/watchman_dev/const.py
+
+            - name: Push to Dev Repository
+              uses: cpina/github-action-push-to-another-repository@main
+              env:
+                  API_TOKEN_GITHUB: ${{ secrets.DEV_REPO_TOKEN }}
+              with:
+                  source-directory: "."
+                  destination-github-username: "${{ github.repository_owner }}"
+                  destination-repository-name: "thewatchman_dev"
+                  user-email: ${{ github.actor }}@users.noreply.github.com
+                  target-branch: main
+                  create-target-branch-if-needed: true
+                  commit-message: "Auto-deploy DEV version from main repo"
