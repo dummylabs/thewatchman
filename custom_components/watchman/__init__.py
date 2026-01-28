@@ -33,6 +33,7 @@ from .const import (
     CONFIG_ENTRY_VERSION,
     DEFAULT_OPTIONS,
     DEFAULT_REPORT_FILENAME,
+    DB_FILENAME,
     DOMAIN,
     DOMAIN_DATA,
     CONF_IGNORED_FILES,
@@ -90,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
         await add_event_handlers(hass, config_entry)
         _LOGGER.debug("Subscribed to HA events to keep actual state of sensors.")
 
-    db_path = hass.config.path(".storage", "watchman.db")
+    db_path = hass.config.path(".storage", DB_FILENAME)
     hub = WatchmanHub(hass, db_path)
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title, hub=hub)
     # parsing shouldn't occur if HA is not running yet
