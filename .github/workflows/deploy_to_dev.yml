@@ -1,0 +1,47 @@
+name: Deploy to Dev Repo
+
+# Trigger the workflow only on push to the 'dev' branch
+on:
+    push:
+        branches:
+            - dev
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout main repo
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Transform to Dev version
+              run: |
+                  # --- 1. Modifications to manifest.json ---
+                  # Change domain from "watchman" to "watchman_dev"
+                  sed -i 's/"domain": "watchman"/"domain": "watchman_dev"/' custom_components/watchman/manifest.json
+                  # Change the name displayed in UI (find "name": "..." field and replace)
+                  sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' custom_components/watchman/manifest.json
+
+                  # --- 2. Modifications to const.py ---
+                  # Change the database filename to avoid overwriting the production DB
+                  sed -i 's/DB_FILENAME = "watchman.db"/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
+
+                  # Change DOMAIN so integrations use different memory areas in hass.data
+                  sed -i 's/DOMAIN = "watchman"/DOMAIN = "watchman_dev"/' custom_components/watchman/const.py
+
+                  # --- 3. Rename the folder ---
+                  # Home Assistant requires the folder name to match the domain
+                  mv custom_components/watchman custom_components/watchman_dev
+
+            - name: Push to Dev Repository
+              uses: cpina/github-action-push-to-another-repository@main
+              env:
+                  API_TOKEN_GITHUB: ${{ secrets.DEV_REPO_TOKEN }}
+              with:
+                  source-directory: "."
+                  destination-github-username: "${{ github.repository_owner }}"
+                  destination-repository-name: "thewatchman_dev"
+                  user-email: ${{ github.actor }}@users.noreply.github.com
+                  target-branch: main
+                  commit-message: "Auto-deploy DEV version from main repo"
