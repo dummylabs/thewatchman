@@ -13,7 +13,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-                  persist-credentials: false
+                  persist-credentials: false # Important: disable this so the bot token doesn't interfere
 
             - name: Transform to Dev version
               run: |
@@ -21,24 +21,16 @@ jobs:
                   sed -i 's/"domain": "watchman"/"domain": "watchman_dev"/' custom_components/watchman/manifest.json
                   sed -i 's/"name":.*,/"name": "Watchman (DEV)",/' custom_components/watchman/manifest.json
 
-                  # --- 2. Modifications to const.py ---
-                  sed -i 's/DB_FILENAME = "watchman.db"/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
-                  sed -i 's/DOMAIN = "watchman"/DOMAIN = "watchman_dev"/' custom_components/watchman/const.py
-                  sed -i 's/DOMAIN_DATA = "watchman_data"/DOMAIN_DATA = "watchman_dev_data"/' custom_components/watchman/const.py
-                  sed -i 's/PACKAGE_NAME = "custom_components.watchman"/PACKAGE_NAME = "custom_components.watchman_dev"/' custom_components/watchman/const.py
+                  # --- 2. Modifications to const.py (ROBUST METHOD) ---
+                  # We use regular expressions to ensure replacement works regardless of spacing or quotes:
+                  # ^  - start of the line
+                  # .* - any characters until the end of the line
 
-                  # --- 3. Rename the folder ---
-                  mv custom_components/watchman custom_components/watchman_dev
+                  # Replace DB_FILENAME
+                  sed -i 's/^DB_FILENAME = .*/DB_FILENAME = "watchman_dev.db"/' custom_components/watchman/const.py
 
-            - name: Push to Dev Repository
-              uses: cpina/github-action-push-to-another-repository@main
-              env:
-                  API_TOKEN_GITHUB: ${{ secrets.DEV_REPO_TOKEN }}
-              with:
-                  source-directory: "."
-                  destination-github-username: "${{ github.repository_owner }}"
-                  destination-repository-name: "thewatchman_dev"
-                  user-email: ${{ github.actor }}@users.noreply.github.com
-                  target-branch: main
-                  create-target-branch-if-needed: true
-                  commit-message: "Auto-deploy DEV version from main repo"
+                  # Replace DOMAIN
+                  sed -i 's/^DOMAIN = .*/DOMAIN = "watchman_dev"/' custom_components/watchman/const.py
+
+                  # Replace DOMAIN_DATA
+                  sed -i 's/^DOMAIN_DATA = .*/DOMAIN_DATA =
