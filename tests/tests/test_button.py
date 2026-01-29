@@ -12,7 +12,7 @@ async def test_button_press_triggers_report(hass: HomeAssistant):
     
     # Verify button entity exists
     entity_registry = er.async_get(hass)
-    entry = entity_registry.async_get("button.watchman_report")
+    entry = entity_registry.async_get("button.watchman_create_report_file")
     assert entry
     assert entry.platform == DOMAIN
     
@@ -24,7 +24,7 @@ async def test_button_press_triggers_report(hass: HomeAssistant):
         
         # Press the button
         await hass.services.async_call(
-            "button", "press", {"entity_id": "button.watchman_report"}, blocking=True
+            "button", "press", {"entity_id": "button.watchman_create_report_file"}, blocking=True
         )
         await hass.async_block_till_done()
         
