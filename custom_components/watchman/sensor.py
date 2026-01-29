@@ -9,7 +9,6 @@ from homeassistant.components.sensor.const import (
     SensorStateClass,
 )
 from homeassistant.const import EntityCategory
-
 from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
 from homeassistant.const import MATCH_ALL
@@ -40,89 +39,103 @@ from .const import (
     STATE_SAFE_MODE,
 )
 
+SENSORS_CONFIGURATION = [
+    SensorEntityDescription(
+        key=SENSOR_LAST_UPDATE,
+        translation_key="last_updated",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:calendar-clock",
+    ),
+    SensorEntityDescription(
+        key=SENSOR_MISSING_ENTITIES,
+        translation_key="missing_entities",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:shield-half-full",
+        native_unit_of_measurement="items",
+    ),
+    SensorEntityDescription(
+        key=SENSOR_MISSING_ACTIONS,
+        translation_key="missing_actions",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:shield-half-full",
+        native_unit_of_measurement="items",
+    ),
+    SensorEntityDescription(
+        key=SENSOR_STATUS,
+        translation_key="status",
+        device_class=SensorDeviceClass.ENUM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        options=[STATE_WAITING_HA, STATE_PARSING, STATE_IDLE, STATE_SAFE_MODE],
+    ),
+    SensorEntityDescription(
+        key=SENSOR_PARSE_DURATION,
+        translation_key="parse_duration",
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="s",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:timer-outline",
+    ),
+    SensorEntityDescription(
+        key=SENSOR_LAST_PARSE,
+        translation_key="last_parse",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:calendar-clock",
+    ),
+    SensorEntityDescription(
+        key=SENSOR_PROCESSED_FILES,
+        translation_key="processed_files",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:file-document-check",
+    ),
+    SensorEntityDescription(
+        key=SENSOR_IGNORED_FILES,
+        translation_key="ignored_files",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:file-remove",
+    ),
+]
+
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_devices(
-        [
-            LastUpdateSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_LAST_UPDATE,
-                    translation_key="last_updated",
-                    device_class=SensorDeviceClass.TIMESTAMP,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                ),
-            ),
-            MissingEntitiesSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_MISSING_ENTITIES,
-                    translation_key="missing_entities",
-                    state_class=SensorStateClass.MEASUREMENT,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                ),
-            ),
-            MissingActionsSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_MISSING_ACTIONS,
-                    translation_key="missing_actions",
-                    state_class=SensorStateClass.MEASUREMENT,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                ),
-            ),
-            StatusSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_STATUS,
-                    translation_key="status",
-                    device_class=SensorDeviceClass.ENUM,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                    options=[STATE_WAITING_HA, STATE_PARSING, STATE_IDLE, STATE_SAFE_MODE],
-                ),
-            ),
-            ParseDurationSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_PARSE_DURATION,
-                    translation_key="parse_duration",
-                    device_class=SensorDeviceClass.DURATION,
-                    state_class=SensorStateClass.MEASUREMENT,
-                    native_unit_of_measurement="s",
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                ),
-            ),
-            LastParseSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_LAST_PARSE,
-                    translation_key="last_parse",
-                    device_class=SensorDeviceClass.TIMESTAMP,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                ),
-            ),
-            ProcessedFilesSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_PROCESSED_FILES,
-                    translation_key="processed_files",
-                    state_class=SensorStateClass.MEASUREMENT,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                ),
-            ),
-            IgnoredFilesSensor(
-                coordinator=coordinator,
-                entity_description=SensorEntityDescription(
-                    key=SENSOR_IGNORED_FILES,
-                    translation_key="ignored_files",
-                    state_class=SensorStateClass.MEASUREMENT,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                ),
-            ),
-        ]
-    )
+    ent_reg = er.async_get(hass)
+    entities = []
+
+    for description in SENSORS_CONFIGURATION:
+        # Migration logic
+        old_uid = f"{entry.entry_id}_{description.key}"
+        new_uid = f"{DOMAIN}_{description.key}"
+
+        if entity_id := ent_reg.async_get_entity_id("sensor", DOMAIN, old_uid):
+            ent_reg.async_update_entity(entity_id, new_unique_id=new_uid)
+
+        # Instantiate sensor classes
+        if description.key == SENSOR_LAST_UPDATE:
+            entities.append(LastUpdateSensor(coordinator, description))
+        elif description.key == SENSOR_MISSING_ENTITIES:
+            entities.append(MissingEntitiesSensor(coordinator, description))
+        elif description.key == SENSOR_MISSING_ACTIONS:
+            entities.append(MissingActionsSensor(coordinator, description))
+        elif description.key == SENSOR_STATUS:
+            entities.append(StatusSensor(coordinator, description))
+        elif description.key == SENSOR_PARSE_DURATION:
+            entities.append(ParseDurationSensor(coordinator, description))
+        elif description.key == SENSOR_LAST_PARSE:
+            entities.append(LastParseSensor(coordinator, description))
+        elif description.key == SENSOR_PROCESSED_FILES:
+            entities.append(ProcessedFilesSensor(coordinator, description))
+        elif description.key == SENSOR_IGNORED_FILES:
+            entities.append(IgnoredFilesSensor(coordinator, description))
+
+    async_add_devices(entities)
 
 
 class LastUpdateSensor(WatchmanEntity, SensorEntity):
@@ -130,7 +143,6 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:calendar-clock"
 
     @property
     def should_poll(self) -> bool:
@@ -141,15 +153,14 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_LAST_UPDATE]
-        else:
-            return self._attr_native_value
+            return self.coordinator.data.get(COORD_DATA_LAST_UPDATE)
+        return None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_LAST_UPDATE]
+            self._attr_native_value = self.coordinator.data.get(COORD_DATA_LAST_UPDATE)
             self.async_write_ha_state()
         super()._handle_coordinator_update()
 
@@ -159,8 +170,6 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:shield-half-full"
-    _attr_native_unit_of_measurement = "items"
     _unrecorded_attributes = frozenset({MATCH_ALL})
 
     @property
@@ -172,25 +181,23 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_MISSING_ENTITIES]
-        else:
-            return self._attr_native_value
+            return self.coordinator.data.get(COORD_DATA_MISSING_ENTITIES)
+        return None
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         if self.coordinator.data:
-            return {"entities": self.coordinator.data[COORD_DATA_ENTITY_ATTRS]}
-        else:
-            return {}
+            return {"entities": self.coordinator.data.get(COORD_DATA_ENTITY_ATTRS, [])}
+        return {}
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_MISSING_ENTITIES]
+            self._attr_native_value = self.coordinator.data.get(COORD_DATA_MISSING_ENTITIES)
             self._attr_extra_state_attributes = {
-                "entities": self.coordinator.data[COORD_DATA_ENTITY_ATTRS]
+                "entities": self.coordinator.data.get(COORD_DATA_ENTITY_ATTRS, [])
             }
             self.async_write_ha_state()
         super()._handle_coordinator_update()
@@ -201,8 +208,6 @@ class MissingActionsSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:shield-half-full"
-    _attr_native_unit_of_measurement = "items"
     _unrecorded_attributes = frozenset({MATCH_ALL})
 
     @property
@@ -214,25 +219,23 @@ class MissingActionsSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_MISSING_ACTIONS]
-        else:
-            return self._attr_native_value
+            return self.coordinator.data.get(COORD_DATA_MISSING_ACTIONS)
+        return None
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         if self.coordinator.data:
-            return {"entities": self.coordinator.data[COORD_DATA_SERVICE_ATTRS]}
-        else:
-            return {}
+            return {"entities": self.coordinator.data.get(COORD_DATA_SERVICE_ATTRS, [])}
+        return {}
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_MISSING_ACTIONS]
+            self._attr_native_value = self.coordinator.data.get(COORD_DATA_MISSING_ACTIONS)
             self._attr_extra_state_attributes = {
-                "services": self.coordinator.data[COORD_DATA_SERVICE_ATTRS]
+                "services": self.coordinator.data.get(COORD_DATA_SERVICE_ATTRS, [])
             }
         self.async_write_ha_state()
         super()._handle_coordinator_update()
@@ -278,7 +281,6 @@ class ParseDurationSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:timer-outline"
 
     @property
     def should_poll(self) -> bool:
@@ -289,15 +291,14 @@ class ParseDurationSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_PARSE_DURATION]
-        else:
-            return self._attr_native_value
+            return self.coordinator.data.get(COORD_DATA_PARSE_DURATION)
+        return None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_PARSE_DURATION]
+            self._attr_native_value = self.coordinator.data.get(COORD_DATA_PARSE_DURATION)
             self.async_write_ha_state()
         super()._handle_coordinator_update()
 
@@ -307,7 +308,6 @@ class LastParseSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:calendar-clock"
 
     @property
     def should_poll(self) -> bool:
@@ -318,15 +318,14 @@ class LastParseSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_LAST_PARSE]
-        else:
-            return self._attr_native_value
+            return self.coordinator.data.get(COORD_DATA_LAST_PARSE)
+        return None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_LAST_PARSE]
+            self._attr_native_value = self.coordinator.data.get(COORD_DATA_LAST_PARSE)
             self.async_write_ha_state()
         super()._handle_coordinator_update()
 
@@ -336,7 +335,6 @@ class ProcessedFilesSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:file-document-check"
 
     @property
     def should_poll(self) -> bool:
@@ -347,15 +345,14 @@ class ProcessedFilesSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_PROCESSED_FILES]
-        else:
-            return self._attr_native_value
+            return self.coordinator.data.get(COORD_DATA_PROCESSED_FILES)
+        return None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_PROCESSED_FILES]
+            self._attr_native_value = self.coordinator.data.get(COORD_DATA_PROCESSED_FILES)
             self.async_write_ha_state()
         super()._handle_coordinator_update()
 
@@ -365,7 +362,6 @@ class IgnoredFilesSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:file-remove"
 
     @property
     def should_poll(self) -> bool:
@@ -376,14 +372,13 @@ class IgnoredFilesSensor(WatchmanEntity, SensorEntity):
     def native_value(self):
         """Return the native value of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data[COORD_DATA_IGNORED_FILES]
-        else:
-            return self._attr_native_value
+            return self.coordinator.data.get(COORD_DATA_IGNORED_FILES)
+        return None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if self.coordinator.data:
-            self._attr_native_value = self.coordinator.data[COORD_DATA_IGNORED_FILES]
+            self._attr_native_value = self.coordinator.data.get(COORD_DATA_IGNORED_FILES)
             self.async_write_ha_state()
         super()._handle_coordinator_update()

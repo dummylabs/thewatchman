@@ -21,9 +21,7 @@ class WatchmanEntity(CoordinatorEntity):
         super().__init__(coordinator)
         self.entity_description = entity_description
         # per sensor unique_id
-        self._attr_unique_id = (
-            f"{coordinator.config_entry.entry_id}_{entity_description.key}"
-        )
+        self._attr_unique_id = f"{DOMAIN}_{entity_description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "watchman_unique_id")},
             manufacturer="dummylabs",
