@@ -1,0 +1,77 @@
+"""Test Watchman Diagnostic Sensors."""
+from unittest.mock import patch, AsyncMock
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+from homeassistant.const import EntityCategory
+from custom_components.watchman.const import (
+    DOMAIN,
+    SENSOR_PARSE_DURATION,
+    SENSOR_LAST_PARSE,
+    SENSOR_PROCESSED_FILES,
+    SENSOR_IGNORED_FILES,
+)
+from tests import async_init_integration
+import asyncio
+from datetime import timedelta
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+async def test_diagnostic_sensors(hass: HomeAssistant):
+    """Test the new diagnostic sensors."""
+    
+    await async_init_integration(hass)
+    
+    ent_reg = er.async_get(hass)
+    entity_registry = list(ent_reg.entities.values())
+    
+    # Helper to find entity_id by suffix
+    def get_entity_id(suffix):
+        return next(e.entity_id for e in entity_registry if e.unique_id.endswith(suffix))
+
+    # 1. Verify Sensors Exist and have correct Category
+    sensors = [
+        SENSOR_PARSE_DURATION,
+        SENSOR_LAST_PARSE,
+        SENSOR_PROCESSED_FILES,
+        SENSOR_IGNORED_FILES
+    ]
+    
+    for sensor_suffix in sensors:
+        entity_id = get_entity_id(sensor_suffix)
+        entry = ent_reg.async_get(entity_id)
+        assert entry is not None
+        assert entry.entity_category == EntityCategory.DIAGNOSTIC, f"{sensor_suffix} should be DIAGNOSTIC"
+        
+    # 2. Trigger a scan and verify values update
+    coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
+    
+    # Mock return values from parser
+    mock_info = {
+        "duration": 12.5,
+        "timestamp": "2023-01-01T12:00:00+00:00",
+        "processed_files_count": 42,
+        "ignored_files_count": 5
+    }
+    
+    with patch.object(coordinator.hub, 'async_get_last_parse_info', return_value=mock_info):
+        # Trigger update
+        coordinator.request_parser_rescan("Test")
+        
+        # Force debounce to fire
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=15))
+        await coordinator.async_request_refresh()
+        await hass.async_block_till_done()
+        
+        # Verify Values
+        processed_id = get_entity_id(SENSOR_PROCESSED_FILES)
+        assert hass.states.get(processed_id).state == "42"
+        
+        ignored_id = get_entity_id(SENSOR_IGNORED_FILES)
+        assert hass.states.get(ignored_id).state == "5"
+        
+        duration_id = get_entity_id(SENSOR_PARSE_DURATION)
+        assert hass.states.get(duration_id).state == "12.5"
+        
+        last_parse_id = get_entity_id(SENSOR_LAST_PARSE)
+        # HA handles timestamp formatting, but it should be present
+        assert hass.states.get(last_parse_id).state == "2023-01-01T12:00:00+00:00"

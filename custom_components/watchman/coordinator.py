@@ -1,5 +1,6 @@
 import asyncio
 from typing import Any
+import os
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers import entity_registry as er
@@ -23,6 +24,8 @@ from .const import (
     STATE_WAITING_HA,
     STATE_PARSING,
     STATE_IDLE,
+    STATE_SAFE_MODE,
+    LOCK_FILENAME,
 )
 from .utils.utils import (
     get_entity_state,
@@ -219,6 +222,11 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         """Return the current status of the integration."""
         return self._status
 
+    @property
+    def safe_mode(self):
+        """Return True if integration is in safe mode."""
+        return self._status == STATE_SAFE_MODE
+
     def update_status(self, new_status):
         """Update the status and notify listeners."""
         self._status = new_status
@@ -288,6 +296,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         Update will trigger parsing of configuration files if rescan was requested beforehand (with request_parser_rescan)
         """
 
+        if self.safe_mode:
+            _LOGGER.warning("Watchman is in Safe Mode. Skipping update.")
+            return {}
+
         if not parser_lock.locked():
             _LOGGER.debug("_async_update_data: update sensor data with actual state of entities and actions")
             async with parser_lock:
@@ -295,9 +307,25 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 try:
                     if self.hass.is_running:
                         if self.parser_rescan_requested:
-                            await self.async_parse_config(
-                                reason=self.parser_rescan_reason
-                            )
+                            # Create lock file before parsing
+                            lock_path = self.hass.config.path(".storage", LOCK_FILENAME)
+                            def create_lock_file():
+                                with open(lock_path, "w") as f:
+                                    f.write("1")
+                            
+                            await self.hass.async_add_executor_job(create_lock_file)
+
+                            try:
+                                await self.async_parse_config(
+                                    reason=self.parser_rescan_reason
+                                )
+                            finally:
+                                # Remove lock file after parsing (success or failure)
+                                def remove_lock_file():
+                                    if os.path.exists(lock_path):
+                                        os.remove(lock_path)
+                                await self.hass.async_add_executor_job(remove_lock_file)
+
                             self._cancel_parser_rescan()
 
                         start_time = time.time()
