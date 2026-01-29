@@ -12,6 +12,10 @@ from .const import (
     COORD_DATA_MISSING_ENTITIES,
     COORD_DATA_MISSING_ACTIONS,
     COORD_DATA_SERVICE_ATTRS,
+    COORD_DATA_PARSE_DURATION,
+    COORD_DATA_LAST_PARSE,
+    COORD_DATA_PROCESSED_FILES,
+    COORD_DATA_IGNORED_FILES,
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
@@ -202,6 +206,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_LAST_UPDATE: dt_util.now(),
             COORD_DATA_SERVICE_ATTRS: "",
             COORD_DATA_ENTITY_ATTRS: "",
+            COORD_DATA_PARSE_DURATION: 0.0,
+            COORD_DATA_LAST_PARSE: None,
+            COORD_DATA_PROCESSED_FILES: 0,
+            COORD_DATA_IGNORED_FILES: 0,
         }
         self.parser_rescan_requested = False
         self.parser_rescan_reason = None
@@ -312,6 +320,18 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                             time.time() - start_time
                         )
 
+                        parse_info = await self.hub.async_get_last_parse_info()
+                        # parse_info = {'duration': float, 'timestamp': str iso, 'ignored_files_count': int, 'processed_files_count': int}
+                        
+                        last_parse_dt = None
+                        if parse_info.get("timestamp"):
+                             try:
+                                 last_parse_dt = dt_util.parse_datetime(parse_info["timestamp"])
+                                 if last_parse_dt and last_parse_dt.tzinfo is None:
+                                     last_parse_dt = last_parse_dt.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+                             except Exception:
+                                 pass
+
                         # build entity attributes map for missing_entities sensor
                         # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
                         entity_attrs = []
@@ -345,6 +365,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                             COORD_DATA_LAST_UPDATE: dt_util.now(),
                             COORD_DATA_SERVICE_ATTRS: service_attrs,
                             COORD_DATA_ENTITY_ATTRS: entity_attrs,
+                            COORD_DATA_PARSE_DURATION: parse_info.get("duration", 0.0),
+                            COORD_DATA_LAST_PARSE: last_parse_dt,
+                            COORD_DATA_PROCESSED_FILES: parse_info.get("processed_files_count", 0),
+                            COORD_DATA_IGNORED_FILES: parse_info.get("ignored_files_count", 0),
                         }
                         _LOGGER.debug(
                             f"Sensors updated, actions: {self.data[COORD_DATA_MISSING_ACTIONS]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"

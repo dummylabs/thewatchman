@@ -21,11 +21,19 @@ from .const import (
     COORD_DATA_MISSING_ENTITIES,
     COORD_DATA_MISSING_ACTIONS,
     COORD_DATA_SERVICE_ATTRS,
+    COORD_DATA_PARSE_DURATION,
+    COORD_DATA_LAST_PARSE,
+    COORD_DATA_PROCESSED_FILES,
+    COORD_DATA_IGNORED_FILES,
     DOMAIN,
     SENSOR_LAST_UPDATE,
     SENSOR_MISSING_ACTIONS,
     SENSOR_MISSING_ENTITIES,
     SENSOR_STATUS,
+    SENSOR_PARSE_DURATION,
+    SENSOR_LAST_PARSE,
+    SENSOR_PROCESSED_FILES,
+    SENSOR_IGNORED_FILES,
     STATE_WAITING_HA,
     STATE_PARSING,
     STATE_IDLE,
@@ -74,6 +82,44 @@ async def async_setup_entry(hass, entry, async_add_devices):
                     options=[STATE_WAITING_HA, STATE_PARSING, STATE_IDLE],
                 ),
             ),
+            ParseDurationSensor(
+                coordinator=coordinator,
+                entity_description=SensorEntityDescription(
+                    key=SENSOR_PARSE_DURATION,
+                    translation_key="parse_duration",
+                    device_class=SensorDeviceClass.DURATION,
+                    state_class=SensorStateClass.MEASUREMENT,
+                    native_unit_of_measurement="s",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+            ),
+            LastParseSensor(
+                coordinator=coordinator,
+                entity_description=SensorEntityDescription(
+                    key=SENSOR_LAST_PARSE,
+                    translation_key="last_parse",
+                    device_class=SensorDeviceClass.TIMESTAMP,
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+            ),
+            ProcessedFilesSensor(
+                coordinator=coordinator,
+                entity_description=SensorEntityDescription(
+                    key=SENSOR_PROCESSED_FILES,
+                    translation_key="processed_files",
+                    state_class=SensorStateClass.MEASUREMENT,
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+            ),
+            IgnoredFilesSensor(
+                coordinator=coordinator,
+                entity_description=SensorEntityDescription(
+                    key=SENSOR_IGNORED_FILES,
+                    translation_key="ignored_files",
+                    state_class=SensorStateClass.MEASUREMENT,
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+            ),
         ]
     )
 
@@ -83,7 +129,7 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_icon = "mdi:shield-half-full"
+    _attr_icon = "mdi:calendar-clock"
 
     @property
     def should_poll(self) -> bool:
@@ -221,4 +267,120 @@ class StatusSensor(WatchmanEntity, SensorEntity):
         """Handle updated data from the coordinator."""
         self._attr_native_value = self.coordinator.status
         self.async_write_ha_state()
+        super()._handle_coordinator_update()
+
+
+class ParseDurationSensor(WatchmanEntity, SensorEntity):
+    """Sensor for last parse duration."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:timer-outline"
+
+    @property
+    def should_poll(self) -> bool:
+        """No polling needed."""
+        return False
+
+    @property
+    def native_value(self):
+        """Return the native value of the sensor."""
+        if self.coordinator.data:
+            return self.coordinator.data[COORD_DATA_PARSE_DURATION]
+        else:
+            return self._attr_native_value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data:
+            self._attr_native_value = self.coordinator.data[COORD_DATA_PARSE_DURATION]
+            self.async_write_ha_state()
+        super()._handle_coordinator_update()
+
+
+class LastParseSensor(WatchmanEntity, SensorEntity):
+    """Timestamp sensor for last parse time."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:calendar-clock"
+
+    @property
+    def should_poll(self) -> bool:
+        """No polling needed."""
+        return False
+
+    @property
+    def native_value(self):
+        """Return the native value of the sensor."""
+        if self.coordinator.data:
+            return self.coordinator.data[COORD_DATA_LAST_PARSE]
+        else:
+            return self._attr_native_value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data:
+            self._attr_native_value = self.coordinator.data[COORD_DATA_LAST_PARSE]
+            self.async_write_ha_state()
+        super()._handle_coordinator_update()
+
+
+class ProcessedFilesSensor(WatchmanEntity, SensorEntity):
+    """Sensor for number of processed files."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:file-document-check"
+
+    @property
+    def should_poll(self) -> bool:
+        """No polling needed."""
+        return False
+
+    @property
+    def native_value(self):
+        """Return the native value of the sensor."""
+        if self.coordinator.data:
+            return self.coordinator.data[COORD_DATA_PROCESSED_FILES]
+        else:
+            return self._attr_native_value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data:
+            self._attr_native_value = self.coordinator.data[COORD_DATA_PROCESSED_FILES]
+            self.async_write_ha_state()
+        super()._handle_coordinator_update()
+
+
+class IgnoredFilesSensor(WatchmanEntity, SensorEntity):
+    """Sensor for number of ignored files."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:file-remove"
+
+    @property
+    def should_poll(self) -> bool:
+        """No polling needed."""
+        return False
+
+    @property
+    def native_value(self):
+        """Return the native value of the sensor."""
+        if self.coordinator.data:
+            return self.coordinator.data[COORD_DATA_IGNORED_FILES]
+        else:
+            return self._attr_native_value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data:
+            self._attr_native_value = self.coordinator.data[COORD_DATA_IGNORED_FILES]
+            self.async_write_ha_state()
         super()._handle_coordinator_update()

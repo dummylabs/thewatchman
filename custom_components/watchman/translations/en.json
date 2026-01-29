@@ -97,6 +97,18 @@
           "parsing": "Parsing Configuration",
           "idle": "Idle"
         }
+      },
+      "parse_duration": {
+        "name": "Parse Duration"
+      },
+      "last_parse": {
+        "name": "Last Parse"
+      },
+      "processed_files": {
+        "name": "Processed Files"
+      },
+      "ignored_files": {
+        "name": "Ignored Files"
       }
     }
   }

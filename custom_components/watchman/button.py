@@ -10,7 +10,7 @@ class WatchmanReportButton(ButtonEntity):
     """Button entity to trigger Watchman report."""
 
     _attr_has_entity_name = True
-    _attr_name = "Report"
+    _attr_name = "Create Report File"
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:file-document-outline"
 

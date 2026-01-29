@@ -82,7 +82,7 @@ _ENTITY_PATTERN = re.compile(
 _IGNORED_KEYS = {'url', 'example', 'description'}
 
 # Directories to skip during recursive scan
-_IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome', '.storage', 'tmp', "blueprints"}
+_IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome', '.storage', 'tmp', 'blueprints', 'media', 'share', 'www', 'trash'}
 
 
 # Regex patterns to identify actions (services) definitions

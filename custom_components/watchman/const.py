@@ -3,19 +3,19 @@
 from homeassistant.const import Platform
 
 DOMAIN = "watchman"
-DOMAIN_DATA = "watchman_data"
+DOMAIN_DATA = f"{DOMAIN}_data"
 VERSION = "0.8.2"
 
 CONFIG_ENTRY_VERSION = 2
 CONFIG_ENTRY_MINOR_VERSION = 2
 
-DEFAULT_REPORT_FILENAME = "watchman_report.txt"
-DB_FILENAME = "watchman.db"
+DEFAULT_REPORT_FILENAME = f"{DOMAIN}_report.txt"
+DB_FILENAME = f"{DOMAIN}.db"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
 DB_TIMEOUT = 5
 
-PACKAGE_NAME = "custom_components.watchman"
+PACKAGE_NAME = f"custom_components.{DOMAIN}"
 REPORT_SERVICE_NAME = "report"
 
 HASS_DATA_CANCEL_HANDLERS = "cancel_handlers"
@@ -25,6 +25,10 @@ COORD_DATA_MISSING_ACTIONS = "services_missing"
 COORD_DATA_LAST_UPDATE = "last_update"
 COORD_DATA_SERVICE_ATTRS = "service_attrs"
 COORD_DATA_ENTITY_ATTRS = "entity_attrs"
+COORD_DATA_PARSE_DURATION = "parse_duration"
+COORD_DATA_LAST_PARSE = "last_parse"
+COORD_DATA_PROCESSED_FILES = "processed_files"
+COORD_DATA_IGNORED_FILES = "ignored_files"
 
 REPORT_ENTRY_TYPE_SERVICE = "service_list"
 REPORT_ENTRY_TYPE_ENTITY = "entity_list"
@@ -65,10 +69,14 @@ CONF_SECTION_NOTIFY_ACTION = "notify_action_options"
 EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_SCENE_RELOADED = "scene_reloaded"
 
-SENSOR_LAST_UPDATE = "watchman_last_updated"
-SENSOR_MISSING_ENTITIES = "watchman_missing_entities"
-SENSOR_MISSING_ACTIONS = "watchman_missing_actions"
-SENSOR_STATUS = "watchman_status"
+SENSOR_LAST_UPDATE = f"{DOMAIN}_last_updated"
+SENSOR_MISSING_ENTITIES = f"{DOMAIN}_missing_entities"
+SENSOR_MISSING_ACTIONS = f"{DOMAIN}_missing_actions"
+SENSOR_STATUS = f"{DOMAIN}_status"
+SENSOR_PARSE_DURATION = f"{DOMAIN}_parse_duration"
+SENSOR_LAST_PARSE = f"{DOMAIN}_last_parse"
+SENSOR_PROCESSED_FILES = f"{DOMAIN}_processed_files"
+SENSOR_IGNORED_FILES = f"{DOMAIN}_ignored_files"
 MONITORED_STATES = ["unavailable", "unknown", "missing", "disabled"]
 
 STATE_WAITING_HA = "waiting_for_ha"
