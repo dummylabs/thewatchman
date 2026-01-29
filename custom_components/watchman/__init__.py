@@ -1,5 +1,6 @@
 """The Watchman integration."""
 
+import os
 from datetime import timedelta
 from dataclasses import dataclass
 from homeassistant.util import dt as dt_util
@@ -24,7 +25,7 @@ from homeassistant.components.homeassistant import (
 from .services import WatchmanServicesSetup
 from .coordinator import WatchmanCoordinator
 from .utils.logger import _LOGGER
-from .utils.utils import get_config, get_entry
+from .utils.utils import get_config
 from .hub import WatchmanHub
 
 
@@ -34,6 +35,7 @@ from .const import (
     DEFAULT_OPTIONS,
     DEFAULT_REPORT_FILENAME,
     DB_FILENAME,
+    LOCK_FILENAME,
     DOMAIN,
     DOMAIN_DATA,
     CONF_IGNORED_FILES,
@@ -41,7 +43,6 @@ from .const import (
     CONF_REPORT_PATH,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_LABELS,
-    CONF_INCLUDED_FOLDERS,
     CONF_IGNORED_STATES,
     CONF_COLUMNS_WIDTH,
     CONF_STARTUP_DELAY,
@@ -51,11 +52,11 @@ from .const import (
     EVENT_SCENE_RELOADED,
     REPORT_SERVICE_NAME,
     STATE_WAITING_HA,
+    STATE_SAFE_MODE,
     TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
     PLATFORMS,
-    VERSION,
-    STATE_IDLE,
+    VERSION
 )
 
 
@@ -90,15 +91,25 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
             async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
 
         startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
-        await async_schedule_refresh_states(startup_delay)
-        await add_event_handlers(hass, config_entry)
-        _LOGGER.debug("Subscribed to HA events to keep actual state of sensors.")
+
+        if not config_entry.runtime_data.coordinator.safe_mode:
+            await async_schedule_refresh_states(startup_delay)
+            await add_event_handlers(hass, config_entry)
+            _LOGGER.debug("Subscribed to HA events to keep actual state of sensors.")
+        else:
+            _LOGGER.info("Watchman is in Safe Mode. Skipping event subscriptions and initial scan.")
 
     db_path = hass.config.path(".storage", DB_FILENAME)
     hub = WatchmanHub(hass, db_path)
     coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title, hub=hub)
     # parsing shouldn't occur if HA is not running yet
     config_entry.runtime_data = WMData(coordinator, hub)
+
+    # Check for previous crash
+    lock_path = hass.config.path(".storage", LOCK_FILENAME)
+    if await hass.async_add_executor_job(os.path.exists, lock_path):
+        _LOGGER.error("Previous crash detected (lock file found). Watchman is starting in Safe Mode.")
+        coordinator.update_status(STATE_SAFE_MODE)
 
     hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
@@ -113,17 +124,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
     if hass.is_running:
         # HA is already up and running (e.g. integration was installed)
-        # config_entry.runtime_data.coordinator.update_status(STATE_IDLE)
+        # don't need to wait until it is booted
         await async_on_home_assistant_started(None)
     else:
         # integration started during HA startup, wait until it is fully loaded
-        config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
+        if not coordinator.safe_mode:
+            config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
 
-    if not hass.is_running:
-        # home assistant is not yet loaded
-        # parse_config will be scheduled once HA is fully loaded
-        _LOGGER.info("Watchman started [%s]", VERSION)
+    _LOGGER.info("Watchman started [%s]", VERSION)
     return True
 
 
@@ -202,10 +211,7 @@ async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
                 _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
                 await coordinator.async_request_refresh()
 
-    # hass is not started yet, schedule config parsing once it loaded
-    #if not hass.is_running:
-    #    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
-
+    # event handlers will be automatically cancelled by HA on entry unload
     entry.async_on_unload(
         # track service calls which update HA configuration
         hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
@@ -226,7 +232,7 @@ async def add_event_handlers(hass: HomeAssistant, entry: WMConfigEntry):
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
     """Migrate ConfigEntry persistent data to a new version."""
     if config_entry.version > CONFIG_ENTRY_VERSION:
-        # This means the user has downgraded from a future version
+        # the user has downgraded from a future version
         _LOGGER.error(
             "Unable to migratre Watchman entry from version %d.%d. If integration version was downgraded, use backup to restore its data.",
             config_entry.version,
@@ -322,12 +328,14 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle removal of an entry."""
-    import os
     db_path = hass.config.path(".storage", DB_FILENAME)
+    lock_path = hass.config.path(".storage", LOCK_FILENAME)
 
-    def remove_db():
+    def remove_files():
         if os.path.exists(db_path):
             os.remove(db_path)
+        if os.path.exists(lock_path):
+            os.remove(lock_path)
 
-    await hass.async_add_executor_job(remove_db)
+    await hass.async_add_executor_job(remove_files)
     _LOGGER.info("Watchman database file removed: %s", db_path)

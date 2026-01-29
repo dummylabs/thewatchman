@@ -37,6 +37,7 @@ from .const import (
     STATE_WAITING_HA,
     STATE_PARSING,
     STATE_IDLE,
+    STATE_SAFE_MODE,
 )
 
 
@@ -79,7 +80,7 @@ async def async_setup_entry(hass, entry, async_add_devices):
                     translation_key="status",
                     device_class=SensorDeviceClass.ENUM,
                     entity_category=EntityCategory.DIAGNOSTIC,
-                    options=[STATE_WAITING_HA, STATE_PARSING, STATE_IDLE],
+                    options=[STATE_WAITING_HA, STATE_PARSING, STATE_IDLE, STATE_SAFE_MODE],
                 ),
             ),
             ParseDurationSensor(
@@ -260,6 +261,8 @@ class StatusSensor(WatchmanEntity, SensorEntity):
             return "mdi:progress-clock"
         if self.coordinator.status == STATE_IDLE:
             return "mdi:sleep"
+        if self.coordinator.status == STATE_SAFE_MODE:
+            return "mdi:shield-alert"
         return "mdi:timer-sand"
 
     @callback
