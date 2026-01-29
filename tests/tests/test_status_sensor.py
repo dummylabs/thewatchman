@@ -10,6 +10,9 @@ from custom_components.watchman.const import (
 )
 from tests import async_init_integration
 import asyncio
+from datetime import timedelta
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 async def test_status_sensor_states(hass: HomeAssistant):
     """Test the status sensor transitions through all states."""
@@ -57,6 +60,9 @@ async def test_status_sensor_states(hass: HomeAssistant):
     with patch.object(coordinator.hub, 'async_parse', side_effect=mocked_async_parse) as mock_parse:
         # Request a rescan to ensure parsing logic is triggered
         coordinator.request_parser_rescan("Test")
+        
+        # Force debounce to fire
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=15))
         
         # Trigger an update
         task = asyncio.create_task(coordinator.async_request_refresh())

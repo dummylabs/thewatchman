@@ -28,7 +28,7 @@ async def async_init_integration(
     config[CONF_INCLUDED_FOLDERS] = "/workspaces/thewatchman/tests/data"
     if add_params:
         config = config | add_params
-    
+
     # Support tests that rely on changing the scan root via included_folders
     if CONF_INCLUDED_FOLDERS in config:
         path = config[CONF_INCLUDED_FOLDERS]
@@ -52,6 +52,23 @@ async def async_init_integration(
     await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
+    # Wait for initial parse to complete (restore deterministic behavior for tests)
+    # The integration now starts in background, but tests expect data to be ready.
+    if DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]
+        import asyncio
+        from custom_components.watchman.const import STATE_IDLE, STATE_SAFE_MODE
+
+        # Wait until we are in a stable state (IDLE or SAFE_MODE)
+        # We want to avoid returning while in WAITING_HA or PARSING
+        for _ in range(200): # 20 seconds max
+            if coordinator.status in [STATE_IDLE, STATE_SAFE_MODE]:
+                break
+            await asyncio.sleep(0.1)
+        else:
+            raise TimeoutError(f"Coordinator stuck in {coordinator.status} state during initialization")
+
+        await hass.async_block_till_done()
     return config_entry
 
 

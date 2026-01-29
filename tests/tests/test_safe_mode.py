@@ -25,13 +25,15 @@ async def test_safe_mode_activates(hass: HomeAssistant, tmp_path):
     lock_file = storage_dir / LOCK_FILENAME
     lock_file.write_text("1")
     
-    # Initialize integration
-    await async_init_integration(
-        hass,
-        add_params={
-            CONF_INCLUDED_FOLDERS: str(config_dir),
-        },
-    )
+    # Mock hass.config.path to ensure the integration finds our lock file
+    with patch.object(hass.config, "path", side_effect=lambda *args: str(config_dir.joinpath(*args))):
+        # Initialize integration
+        await async_init_integration(
+            hass,
+            add_params={
+                CONF_INCLUDED_FOLDERS: str(config_dir),
+            },
+        )
     
     # Get coordinator
     coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
@@ -57,7 +59,8 @@ async def test_safe_mode_prevents_parsing(hass: HomeAssistant, tmp_path):
     storage_dir.mkdir()
     (storage_dir / LOCK_FILENAME).write_text("1")
     
-    with patch("custom_components.watchman.coordinator.WatchmanCoordinator.async_parse_config") as mock_parse:
+    with patch("custom_components.watchman.coordinator.WatchmanCoordinator.async_parse_config") as mock_parse, \
+         patch.object(hass.config, "path", side_effect=lambda *args: str(config_dir.joinpath(*args))):
         await async_init_integration(
             hass,
             add_params={

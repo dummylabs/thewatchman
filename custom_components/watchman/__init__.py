@@ -8,7 +8,6 @@ from homeassistant.helpers.event import async_track_point_in_utc_time
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_SERVICE_REGISTERED,
@@ -118,9 +117,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
     WatchmanServicesSetup(hass, config_entry)
 
-    await coordinator.async_config_entry_first_refresh()
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
+    coordinator.request_parser_rescan(reason="initial_setup")
 
     if hass.is_running:
         # HA is already up and running (e.g. integration was installed)
@@ -131,6 +128,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
         if not coordinator.safe_mode:
             config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+
+    config_entry.async_create_background_task(
+        hass, coordinator._async_update_data(), "watchman_initial_parse"
+    )
 
     _LOGGER.info("Watchman started [%s]", VERSION)
     return True
