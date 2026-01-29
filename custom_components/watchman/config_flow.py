@@ -199,6 +199,7 @@ class OptionsFlowHandler(OptionsFlow):
                     errors,
                     placeholders,
                 )
+                placeholders["url"] = "https://github.com/dummylabs/thewatchman#configuration"
                 return self.async_show_form(
                     step_id="init",
                     data_schema=self.add_suggested_values_to_schema(
@@ -215,4 +216,7 @@ class OptionsFlowHandler(OptionsFlow):
                 _get_data_schema(),
                 self.config_entry.data,
             ),
+            description_placeholders={
+                "url": "https://github.com/dummylabs/thewatchman#configuration"
+            },
         )

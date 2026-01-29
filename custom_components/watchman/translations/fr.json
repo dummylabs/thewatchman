@@ -42,7 +42,7 @@
                         }
                     }
                 },
-                "description": "[Aide pour les paramètres on settings](https://github.com/dummylabs/thewatchman#configuration)"
+                "description": "[Aide pour les paramètres on settings]({url})"
             }
         }
     },
