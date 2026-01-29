@@ -1,5 +1,4 @@
 import os
-import glob
 import sqlite3
 import datetime
 import time
@@ -18,7 +17,7 @@ from ..const import DB_TIMEOUT
 _YAML_FILE_EXTS = {'.yaml', '.yml'}
 _JSON_FILE_EXTS = {'.config_entries'}
 
-_STORAGE_WHITELIST = {'lovelace', 'lovelace_dashboards', 'lovelace_resources'}
+_STORAGE_WHITELIST = {'lovelace', 'lovelace_dashboards', 'lovelace_resources', 'core.config_entries'}
 _MAX_FILE_SIZE = 500 * 1024  # 500 KB
 
 _PLATFORMS = [
