@@ -1,6 +1,7 @@
 """Test for custom domain injection via hass services."""
 import pytest
 import os
+import asyncio
 from unittest.mock import MagicMock
 from custom_components.watchman.hub import WatchmanHub
 from custom_components.watchman.const import DOMAIN_DATA
@@ -27,8 +28,13 @@ async def test_custom_domain_injection(new_test_data_dir, tmp_path):
     hass.config.path = MagicMock(side_effect=mock_path)
     
     # Mock async_add_executor_job to run synchronously for the test
-    async def run_sync(target, *args):
-        return target(*args)
+    # We return a Future so it can be awaited (by parser methods) OR ignored (by __init__)
+    def run_sync(target, *args):
+        res = target(*args)
+        f = asyncio.Future()
+        f.set_result(res)
+        return f
+        
     hass.async_add_executor_job = MagicMock(side_effect=run_sync)
 
     # Mock hass.data and config_entries for get_entry(hass)
