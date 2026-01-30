@@ -77,10 +77,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
         async def async_schedule_refresh_states(delay):
             """Schedule delayed refresh of the sensors state."""
+            _LOGGER.debug("async_schedule_refresh_states")
             now = dt_util.utcnow()
             next_interval = now + timedelta(seconds=delay)
             async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
 
+        _LOGGER.debug("async_on_home_assistant_started")
         startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
         if startup_delay > 0:
             _LOGGER.info(f"User set startup delay for {startup_delay} sec, waiting.")

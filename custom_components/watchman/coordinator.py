@@ -329,7 +329,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
     def update_ignored_labels(self, labels: list[str]) -> None:
         """Update ignored labels list and refresh data."""
         self.ignored_labels = set(labels)
-        self.hass.async_create_task(self.async_request_refresh())
+        # Only trigger refresh if we are not waiting for HA startup
+        if self._status != STATE_WAITING_HA:
+            self.hass.async_create_task(self.async_request_refresh())
 
     def subscribe_to_events(self, entry):
         """Subscribe to Home Assistant events."""

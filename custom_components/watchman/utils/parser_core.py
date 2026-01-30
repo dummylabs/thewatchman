@@ -528,72 +528,76 @@ class WatchmanParser:
             os.makedirs(db_dir, exist_ok=True)
 
         conn = sqlite3.connect(db_path, timeout=DB_TIMEOUT)
-        c = conn.cursor()
-
-        c.execute("PRAGMA foreign_keys = ON;")
-        c.execute("PRAGMA journal_mode = WAL;")
-        c.execute("PRAGMA synchronous = OFF;")
-
-        c.execute('''CREATE TABLE IF NOT EXISTS processed_files (
-                        file_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        scan_date TEXT,
-                        path TEXT UNIQUE,
-                        entity_count INTEGER,
-                        file_type TEXT
-                    )''')
-
-        c.execute('''CREATE TABLE IF NOT EXISTS found_items (
-                        item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        file_id INTEGER,
-                        line INTEGER,
-                        entity_id TEXT,
-                        item_type TEXT DEFAULT 'entity',
-                        is_key BOOLEAN,
-                        key_name TEXT,
-                        is_automation_context BOOLEAN,
-                        parent_type TEXT,
-                        parent_id TEXT,
-                        parent_alias TEXT,
-                                        FOREIGN KEY(file_id) REFERENCES processed_files(file_id) ON DELETE CASCADE
-                                    )''')
-
-        c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_file_id ON found_items(file_id);")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_item_type ON found_items(item_type);")
-
-        # Schema migration for existing DB
         try:
-            c.execute("ALTER TABLE found_items ADD COLUMN item_type TEXT DEFAULT 'entity'")
-        except sqlite3.OperationalError:
-            pass # Column likely exists
+            c = conn.cursor()
 
-        c.execute('''CREATE TABLE IF NOT EXISTS scan_config (
-                        id INTEGER PRIMARY KEY DEFAULT 1 CHECK(id=1), -- Ensure only one row
-                        included_folders TEXT,
-                        ignored_files TEXT,
-                        last_parse_duration REAL,
-                        last_parse_timestamp TEXT
-                    )''')
+            c.execute("PRAGMA foreign_keys = ON;")
+            c.execute("PRAGMA journal_mode = WAL;")
+            c.execute("PRAGMA synchronous = OFF;")
 
-        # Schema migration for last_parse_duration
-        try:
-            c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_duration REAL")
-        except sqlite3.OperationalError:
-            pass
+            c.execute('''CREATE TABLE IF NOT EXISTS processed_files (
+                            file_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            scan_date TEXT,
+                            path TEXT UNIQUE,
+                            entity_count INTEGER,
+                            file_type TEXT
+                        )''')
 
-        try:
-            c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_timestamp TEXT")
-        except sqlite3.OperationalError:
-            pass
+            c.execute('''CREATE TABLE IF NOT EXISTS found_items (
+                            item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            file_id INTEGER,
+                            line INTEGER,
+                            entity_id TEXT,
+                            item_type TEXT DEFAULT 'entity',
+                            is_key BOOLEAN,
+                            key_name TEXT,
+                            is_automation_context BOOLEAN,
+                            parent_type TEXT,
+                            parent_id TEXT,
+                            parent_alias TEXT,
+                                            FOREIGN KEY(file_id) REFERENCES processed_files(file_id) ON DELETE CASCADE
+                                        )''')
 
-        try:
-            c.execute("ALTER TABLE scan_config ADD COLUMN ignored_files_count INTEGER DEFAULT 0")
-        except sqlite3.OperationalError:
-            pass
+            c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_file_id ON found_items(file_id);")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_item_type ON found_items(item_type);")
 
-        c.execute("INSERT OR IGNORE INTO scan_config (id) VALUES (1)")
+            # Schema migration for existing DB
+            try:
+                c.execute("ALTER TABLE found_items ADD COLUMN item_type TEXT DEFAULT 'entity'")
+            except sqlite3.OperationalError:
+                pass # Column likely exists
 
-        conn.commit()
-        return conn
+            c.execute('''CREATE TABLE IF NOT EXISTS scan_config (
+                            id INTEGER PRIMARY KEY DEFAULT 1 CHECK(id=1), -- Ensure only one row
+                            included_folders TEXT,
+                            ignored_files TEXT,
+                            last_parse_duration REAL,
+                            last_parse_timestamp TEXT
+                        )''')
+
+            # Schema migration for last_parse_duration
+            try:
+                c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_duration REAL")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_timestamp TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                c.execute("ALTER TABLE scan_config ADD COLUMN ignored_files_count INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
+            c.execute("INSERT OR IGNORE INTO scan_config (id) VALUES (1)")
+
+            conn.commit()
+            return conn
+        except Exception:
+            conn.close()
+            raise
 
     async def _async_scan_files(self, root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
         """
