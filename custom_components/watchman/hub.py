@@ -15,6 +15,7 @@ class WatchmanHub:
     def __init__(self, hass: HomeAssistant, db_path: str):
         self.hass = hass
         self.db_path = db_path
+        self._is_scanning = False
 
         # inject Home Assistant's executor to run process config files asynchronously
         async def ha_executor(func: Callable, *args: Any):
@@ -25,6 +26,11 @@ class WatchmanHub:
         
         # Verify DB integrity on startup
         self.hass.async_add_executor_job(self._parser.check_and_fix_db)
+
+    @property
+    def is_scanning(self) -> bool:
+        """Return True if a scan is currently in progress."""
+        return self._is_scanning
 
     async def async_get_parsed_entities(self) -> Dict[str, Any]:
         """Return a dictionary of parsed entities and their locations."""
@@ -89,17 +95,25 @@ class WatchmanHub:
         force: bool = False
     ) -> None:
         """Asynchronous wrapper for the parse method."""
-        custom_domains = get_domains(self.hass)
+        if self._is_scanning:
+            _LOGGER.debug("Scan already in progress, skipping request.")
+            return
 
-        await self._parser.async_parse(
-            self.hass.config.config_dir,
-            ignored_files,
-            force,
-            custom_domains,
-            base_path=self.hass.config.config_dir
-        )
+        self._is_scanning = True
+        try:
+            custom_domains = get_domains(self.hass)
 
-        self.cached_items = {}
+            await self._parser.async_parse(
+                self.hass.config.config_dir,
+                ignored_files,
+                force,
+                custom_domains,
+                base_path=self.hass.config.config_dir
+            )
+
+            self.cached_items = {}
+        finally:
+            self._is_scanning = False
 
     async def async_get_last_parse_info(self) -> Dict[str, Any]:
         """Return the duration and timestamp of the last successful scan."""

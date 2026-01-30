@@ -4,6 +4,17 @@ import os
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers import entity_registry as er
+from homeassistant.const import (
+    EVENT_SERVICE_REGISTERED,
+    EVENT_SERVICE_REMOVED,
+    EVENT_STATE_CHANGED,
+    EVENT_CALL_SERVICE,
+)
+from homeassistant.components.homeassistant import (
+    SERVICE_RELOAD_CORE_CONFIG,
+    SERVICE_RELOAD,
+    SERVICE_RELOAD_ALL,
+)
 import logging
 
 from .utils.report import fill
@@ -18,7 +29,6 @@ from .const import (
     COORD_DATA_PROCESSED_FILES,
     COORD_DATA_IGNORED_FILES,
     CONF_IGNORED_FILES,
-    CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
     STATE_WAITING_HA,
@@ -26,10 +36,13 @@ from .const import (
     STATE_IDLE,
     STATE_SAFE_MODE,
     LOCK_FILENAME,
+    EVENT_AUTOMATION_RELOADED,
+    EVENT_SCENE_RELOADED,
+    TRACKED_EVENT_DOMAINS,
+    MONITORED_STATES,
 )
 from .utils.utils import (
     get_entity_state,
-    get_entry,
     get_config,
     is_action,
 )
@@ -214,8 +227,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_PROCESSED_FILES: 0,
             COORD_DATA_IGNORED_FILES: 0,
         }
-        self.parser_rescan_requested = False
-        self.parser_rescan_reason = None
 
     @property
     def status(self):
@@ -240,45 +251,75 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         """Return a dictionary of parsed services and their locations."""
         return await self.hub.async_get_parsed_services()
 
-    async def _async_setup(self) -> None:
-        """Do initialization logic."""
-        _LOGGER.debug("::coordinator._async_setup::")
-        if self.hass.is_running:
-            # integration reloaded or options changed via UI
-            _LOGGER.debug(f"{INDENT} hass up and running, try to parse config")
-            #await self.async_parse_config(reason="changes in watchman configuration")
-            self.request_parser_rescan(reason="coordinator::async_setup")
-        else:
-            _LOGGER.debug(f"{INDENT} hass is still loading, do nothing yet")
-            # first run, home assistant still loading
-            # parse_config will be scheduled once HA is fully loaded
-            #
+    async def async_process_parsed_data(self, parsed_entity_list, parsed_service_list):
+        """
+        Process parsed data to calculate missing items and build sensor attributes.
+        This is separated to allow 'priming' the coordinator from cache without a full scan.
+        """
+        exclude_disabled_automations = get_config(
+            self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
+        )
+
+        services_missing = renew_missing_items_list(
+            self.hass, parsed_service_list, exclude_disabled_automations, self.ignored_labels, "action"
+        )
+        entities_missing = renew_missing_items_list(
+            self.hass, parsed_entity_list, exclude_disabled_automations, self.ignored_labels, "entity"
+        )
+
+        parse_info = await self.hub.async_get_last_parse_info()
+
+        last_parse_dt = None
+        if parse_info.get("timestamp"):
+                try:
+                    last_parse_dt = dt_util.parse_datetime(parse_info["timestamp"])
+                    if last_parse_dt and last_parse_dt.tzinfo is None:
+                        last_parse_dt = last_parse_dt.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+                except Exception:
+                    pass
+
+        # build entity attributes map for missing_entities sensor
+        entity_attrs = []
+        for entity in entities_missing:
+            state, name = get_entity_state(
+                self.hass, entity, friendly_names=True
+            )
+            entity_attrs.append(
+                {
+                    "id": entity,
+                    "state": state,
+                    "friendly_name": name or "",
+                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                }
+            )
+
+        # build service attributes map for missing_services sensor
+        service_attrs = []
+        for service in services_missing:
+            service_attrs.append(
+                {
+                    "id": service,
+                    "occurrences": fill(parsed_service_list[service]["locations"], 0),
+                }
+            )
+
+        return {
+            COORD_DATA_MISSING_ENTITIES: len(entities_missing),
+            COORD_DATA_MISSING_ACTIONS: len(services_missing),
+            COORD_DATA_LAST_UPDATE: dt_util.now(),
+            COORD_DATA_SERVICE_ATTRS: service_attrs,
+            COORD_DATA_ENTITY_ATTRS: entity_attrs,
+            COORD_DATA_PARSE_DURATION: parse_info.get("duration", 0.0),
+            COORD_DATA_LAST_PARSE: last_parse_dt,
+            COORD_DATA_PROCESSED_FILES: parse_info.get("processed_files_count", 0),
+            COORD_DATA_IGNORED_FILES: parse_info.get("ignored_files_count", 0),
+        }
+
+    # request_parser_rescan is removed as automatic mtime checking in Hub handles it.
+
     def request_parser_rescan(self, reason=None):
-        """
-        Used by watchman event handlers to force rescan of configuration files when they
-        might be changed by user
-        """
-        self.parser_rescan_requested = True
-        self.parser_rescan_reason = reason
-
-    def _cancel_parser_rescan(self):
-        self.parser_rescan_requested = False
-        self.parser_rescan_reason = None
-
-    async def async_parse_config(self, reason=None):
-        """Parse home assistant configuration files."""
-
-        ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
-
-        if _LOGGER.isEnabledFor(logging.DEBUG):
-            _LOGGER.debug(f"{INDENT}::parse_config:: called due to {reason}")
-            _LOGGER.debug(f"{INDENT}IGNORED_FILES={ignored_files}")
-
-        await self.hub.async_parse(ignored_files)
-
-        if _LOGGER.isEnabledFor(logging.DEBUG):
-            info = await self.hub.async_get_last_parse_info()
-            _LOGGER.debug(f"{INDENT}Parsing results: {info}")
+         # Stub for compatibility if anything external calls it
+         pass
 
     async def async_get_last_parse_duration(self):
         """Return duration of the last parsing."""
@@ -290,120 +331,104 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self.ignored_labels = set(labels)
         self.hass.async_create_task(self.async_request_refresh())
 
-    async def _async_update_data(self) -> dict[str, Any]:
-        """Update Watchman sensors.
+    def subscribe_to_events(self, entry):
+        """Subscribe to Home Assistant events."""
+        async def async_on_configuration_changed(event):
+            event_type = event.event_type
+            if event_type == EVENT_CALL_SERVICE:
+                domain = event.data.get("domain", None)
+                service = event.data.get("service", None)
+                if domain in TRACKED_EVENT_DOMAINS and service in [
+                    SERVICE_RELOAD_CORE_CONFIG,
+                    SERVICE_RELOAD,
+                    SERVICE_RELOAD_ALL,
+                ]:
+                    await self.async_request_refresh()
 
-        Update will trigger parsing of configuration files if rescan was requested beforehand (with request_parser_rescan)
-        """
+            elif event_type in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
+                await self.async_request_refresh()
+
+        async def async_on_service_changed(event):
+            service = f"{event.data['domain']}.{event.data['service']}"
+            parsed_services = await self.async_get_parsed_services()
+            if service in parsed_services:
+                _LOGGER.debug("Monitored service changed: %s", service)
+                await self.async_request_refresh()
+
+        async def async_on_state_changed(event):
+            """Refresh monitored entities on state change."""
+            def state_or_missing(state_id):
+                """Return missing state if entity not found."""
+                return "missing" if not event.data[state_id] else event.data[state_id].state
+
+            parsed_entities = await self.async_get_parsed_entities()
+            if event.data["entity_id"] in parsed_entities:
+                ignored_states: list[str] = get_config(self.hass, CONF_IGNORED_STATES, [])
+                old_state = state_or_missing("old_state")
+                new_state = state_or_missing("new_state")
+                checked_states = set(MONITORED_STATES) - set(ignored_states)
+                if new_state in checked_states or old_state in checked_states:
+                    _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
+                    await self.async_request_refresh()
+
+        entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
+        )
+        entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_AUTOMATION_RELOADED, async_on_configuration_changed)
+        )
+        entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_SCENE_RELOADED, async_on_configuration_changed)
+        )
+        entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_SERVICE_REGISTERED, async_on_service_changed)
+        )
+        entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed)
+        )
+        entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed)
+        )
+
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Update Watchman sensors."""
 
         if self.safe_mode:
             _LOGGER.warning("Watchman is in Safe Mode. Skipping update.")
             return {}
 
-        if not parser_lock.locked():
-            _LOGGER.debug("_async_update_data: update sensor data with actual state of entities and actions")
-            async with parser_lock:
-                self.update_status(STATE_PARSING)
-                try:
-                    if self.hass.is_running:
-                        if self.parser_rescan_requested:
-                            # Create lock file before parsing
-                            lock_path = self.hass.config.path(".storage", LOCK_FILENAME)
-                            def create_lock_file():
-                                with open(lock_path, "w") as f:
-                                    f.write("1")
-                            
-                            await self.hass.async_add_executor_job(create_lock_file)
+        # Check concurrency guard in Hub
+        if self.hub.is_scanning:
+            _LOGGER.debug("Hub is currently scanning. Skipping overlapping update request.")
+            # returning self.data ensures sensors don't go unavailable/empty.
+            return self.data
 
-                            try:
-                                await self.async_parse_config(
-                                    reason=self.parser_rescan_reason
-                                )
-                            finally:
-                                # Remove lock file after parsing (success or failure)
-                                def remove_lock_file():
-                                    if os.path.exists(lock_path):
-                                        os.remove(lock_path)
-                                await self.hass.async_add_executor_job(remove_lock_file)
+        _LOGGER.debug("_async_update_data: update sensor data with actual state of entities and actions")
 
-                            self._cancel_parser_rescan()
+        self.update_status(STATE_PARSING)
 
-                        start_time = time.time()
+        # Create lock file to signal parsing in progress (crash detection)
+        lock_path = self.hass.config.path(".storage", LOCK_FILENAME)
+        await self.hass.async_add_executor_job(lambda: open(lock_path, "w").write("1"))
 
-                        parsed_service_list = await self.async_get_parsed_services()
-                        parsed_entity_list = await self.async_get_parsed_entities()
+        try:
+            ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
 
-                        exclude_disabled_automations = get_config(
-                            self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
-                        )
+            # only parses if needed, handled by hub
+            await self.hub.async_parse(ignored_files)
+            parsed_service_list = await self.async_get_parsed_services()
+            parsed_entity_list = await self.async_get_parsed_entities()
 
-                        services_missing = renew_missing_items_list(
-                            self.hass, parsed_service_list, exclude_disabled_automations, self.ignored_labels, "action"
-                        )
-                        entities_missing = renew_missing_items_list(
-                            self.hass, parsed_entity_list, exclude_disabled_automations, self.ignored_labels, "entity"
-                        )
+            self.data = await self.async_process_parsed_data(parsed_entity_list, parsed_service_list)
 
-                        self.last_check_duration = (
-                            time.time() - start_time
-                        )
+            _LOGGER.debug(
+                f"Sensors updated, actions: {self.data[COORD_DATA_MISSING_ACTIONS]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"
+            )
 
-                        parse_info = await self.hub.async_get_last_parse_info()
-                        # parse_info = {'duration': float, 'timestamp': str iso, 'ignored_files_count': int, 'processed_files_count': int}
-                        
-                        last_parse_dt = None
-                        if parse_info.get("timestamp"):
-                             try:
-                                 last_parse_dt = dt_util.parse_datetime(parse_info["timestamp"])
-                                 if last_parse_dt and last_parse_dt.tzinfo is None:
-                                     last_parse_dt = last_parse_dt.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
-                             except Exception:
-                                 pass
+            return self.data
 
-                        # build entity attributes map for missing_entities sensor
-                        # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
-                        entity_attrs = []
-                        for entity in entities_missing:
-                            state, name = get_entity_state(
-                                self.hass, entity, friendly_names=True
-                            )
-                            entity_attrs.append(
-                                {
-                                    "id": entity,
-                                    "state": state,
-                                    "friendly_name": name or "",
-                                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
-                                }
-                            )
-
-                        # build service attributes map for missing_services sensor
-                        # FIXME: this may lead to enormous size of WM sensor attributes data and should be eventually removed
-                        service_attrs = []
-                        for service in services_missing:
-                            service_attrs.append(
-                                {
-                                    "id": service,
-                                    "occurrences": fill(parsed_service_list[service]["locations"], 0),
-                                }
-                            )
-
-                        self.data = {
-                            COORD_DATA_MISSING_ENTITIES: len(entities_missing),
-                            COORD_DATA_MISSING_ACTIONS: len(services_missing),
-                            COORD_DATA_LAST_UPDATE: dt_util.now(),
-                            COORD_DATA_SERVICE_ATTRS: service_attrs,
-                            COORD_DATA_ENTITY_ATTRS: entity_attrs,
-                            COORD_DATA_PARSE_DURATION: parse_info.get("duration", 0.0),
-                            COORD_DATA_LAST_PARSE: last_parse_dt,
-                            COORD_DATA_PROCESSED_FILES: parse_info.get("processed_files_count", 0),
-                            COORD_DATA_IGNORED_FILES: parse_info.get("ignored_files_count", 0),
-                        }
-                        _LOGGER.debug(
-                            f"Sensors updated, actions: {self.data[COORD_DATA_MISSING_ACTIONS]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"
-                        )
-
-                        return self.data
-                finally:
-                    self.update_status(STATE_IDLE)
-        _LOGGER.debug("_async_update_data is already in progress, skipping")
-        return {}
+        finally:
+            # Remove lock file
+            await self.hass.async_add_executor_job(lambda: os.remove(lock_path) if os.path.exists(lock_path) else None)
+            self.update_status(STATE_IDLE)

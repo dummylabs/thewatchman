@@ -3,6 +3,9 @@ from unittest.mock import patch
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from custom_components.watchman.const import CONF_INCLUDED_FOLDERS
 from tests import async_init_integration
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
+from homeassistant.util import dt as dt_util
+from datetime import timedelta
 
 @pytest.mark.asyncio
 async def test_startup_event_listener(hass, tmp_path):
@@ -16,25 +19,24 @@ async def test_startup_event_listener(hass, tmp_path):
     
     # Note: async_init_integration calls async_setup_entry.
     # Inside async_setup_entry, hass.is_running is checked.
-    
+
     with patch.object(type(hass), "is_running", property(lambda self: False)):
-        # We need to spy on add_event_handlers to see if it gets called
-        with patch("custom_components.watchman.add_event_handlers") as mock_add_handlers:
-            await async_init_integration(
-                hass,
-                add_params={CONF_INCLUDED_FOLDERS: str(config_dir)}
-            )
+        # We need to spy on subscribe_to_events to see if it gets called
+        with patch("custom_components.watchman.coordinator.WatchmanCoordinator.subscribe_to_events") as mock_add_handlers:
             
-            # At this point, setup is done, but startup event hasn't fired.
-            assert not mock_add_handlers.called
+            # Initialize integration
+            await async_init_integration(hass, add_params={CONF_INCLUDED_FOLDERS: [str(config_dir)]})
             
-            # Fire the startup event
+            # Since hass is NOT running, handlers should NOT be added yet
+            mock_add_handlers.assert_not_called()
+            
+            # Fire startup event
             hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
             await hass.async_block_till_done()
             
-            # If the signature of async_on_home_assistant_started is wrong, 
-            # the event bus will log an error and NOT execute the inner logic properly,
-            # or it might execute but crash.
-            # Ideally we want to verify it didn't crash and called the handler.
+            # Advance time to trigger delayed refresh
+            async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1))
+            await hass.async_block_till_done()
             
-            assert mock_add_handlers.called, "add_event_handlers should be called after EVENT_HOMEASSISTANT_STARTED"
+            # Now handlers SHOULD be added
+            mock_add_handlers.assert_called_once()

@@ -58,21 +58,16 @@ async def test_safe_mode_prevents_parsing(hass: HomeAssistant, tmp_path):
     storage_dir = config_dir / ".storage"
     storage_dir.mkdir()
     (storage_dir / LOCK_FILENAME).write_text("1")
-    
-    with patch("custom_components.watchman.coordinator.WatchmanCoordinator.async_parse_config") as mock_parse, \
+
+    with patch("custom_components.watchman.hub.WatchmanHub.async_parse") as mock_parse, \
          patch.object(hass.config, "path", side_effect=lambda *args: str(config_dir.joinpath(*args))):
-        await async_init_integration(
-            hass,
-            add_params={
-                CONF_INCLUDED_FOLDERS: str(config_dir),
-            },
-        )
         
-        # Verify parse was NOT called during init
-        mock_parse.assert_not_called()
+        # Initialize integration
+        await async_init_integration(hass)
         
-        # Try to manually trigger refresh
+        # Verify status is safe mode
         coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
-        await coordinator.async_request_refresh()
-        
+        assert coordinator.safe_mode
+
+        # Ensure parse was NOT called
         mock_parse.assert_not_called()

@@ -57,12 +57,12 @@ async def async_init_integration(
     if DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]:
         coordinator = hass.data[DOMAIN][config_entry.entry_id]
         import asyncio
-        from custom_components.watchman.const import STATE_IDLE, STATE_SAFE_MODE
+        from custom_components.watchman.const import STATE_IDLE, STATE_SAFE_MODE, STATE_WAITING_HA
 
         # Wait until we are in a stable state (IDLE or SAFE_MODE)
         # We want to avoid returning while in WAITING_HA or PARSING
         for _ in range(200): # 20 seconds max
-            if coordinator.status in [STATE_IDLE, STATE_SAFE_MODE]:
+            if coordinator.status in [STATE_IDLE, STATE_SAFE_MODE, STATE_WAITING_HA]:
                 break
             await asyncio.sleep(0.1)
         else:

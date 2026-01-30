@@ -45,7 +45,7 @@ async def test_coordinator_resilience_parse_timeout(hass, tmp_path):
     with patch.object(WatchmanParser, '_init_db', side_effect=sqlite3.OperationalError("database is locked")):
 
         # Request parsing
-        await coordinator.async_parse_config(reason="Test Timeout")
+        await coordinator._async_update_data()
         # Should not raise exception (test passes if no unhandled exception)
 
 @pytest.mark.asyncio
