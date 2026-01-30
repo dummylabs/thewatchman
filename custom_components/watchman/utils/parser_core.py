@@ -648,7 +648,7 @@ class WatchmanParser:
                 try:
                     stat_result = await path.stat()
                     mtime = stat_result.st_mtime
-                    scanned_files.append({'path': abs_path, 'mtime': mtime})
+                    scanned_files.append({'path': abs_path, 'mtime': mtime, 'size': stat_result.st_size})
                 except OSError as e:
                     if os.path.islink(abs_path):
                          _LOGGER.warning(f"Skipping broken symlink: {abs_path}")
@@ -666,7 +666,7 @@ class WatchmanParser:
                          try:
                             abs_path = str(file_path)
                             stat_result = await file_path.stat()
-                            scanned_files.append({'path': abs_path, 'mtime': stat_result.st_mtime})
+                            scanned_files.append({'path': abs_path, 'mtime': stat_result.st_mtime, 'size': stat_result.st_size})
                          except OSError as e:
                             _LOGGER.error(f"Error accessing whitelist file {abs_path}: {e}")
 
@@ -699,6 +699,7 @@ class WatchmanParser:
             # --- Phase 2: Reconciliation (DB Check) ---
             reconcile_time = time.monotonic()
 
+            fetch_time = time.monotonic()
             # Fetch all previously processed files metadata into memory cache
             processed_cache = {}
             with self._db_session() as conn:
@@ -709,10 +710,12 @@ class WatchmanParser:
             files_to_parse = []
             actual_file_ids = []
             skipped_count = 0
+            total_size_to_parse = 0
 
             for file_data in files_scanned:
                 filepath = file_data['path']
                 mtime = file_data['mtime']
+                size = file_data.get('size', 0)
 
                 # Determine path to store in DB
                 path_for_db = filepath
@@ -746,11 +749,12 @@ class WatchmanParser:
                         "scan_date": scan_date,
                         "file_id": file_id
                     })
+                    total_size_to_parse += size
                 else:
                     skipped_count += 1
                     actual_file_ids.append(file_id)
 
-            _LOGGER.debug(f"Phase 2 (Reconciliation): Identified {len(files_to_parse)} files to parse. Skipped {skipped_count}. Took {(time.monotonic() - reconcile_time):.3f} sec")
+            _LOGGER.debug(f"Phase 2 (Reconciliation): Identified {len(files_to_parse)} files to parse ({total_size_to_parse} bytes). Skipped {skipped_count}. Took {(time.monotonic() - reconcile_time):.3f} sec")
 
             # --- Phase 3: Sequential Parsing & Persistence ---
             parse_time = time.monotonic()
