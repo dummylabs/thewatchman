@@ -153,11 +153,12 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
     if config_entry.version > CONFIG_ENTRY_VERSION:
         # the user has downgraded from a future version
         _LOGGER.error(
-            "Unable to migratre Watchman entry from version %d.%d. If integration version was downgraded, use backup to restore its data.",
+            "Unable to migratre Watchman entry from version %d.%d. If integration version was downgraded, either reinstall or use backup to restore its data.",
             config_entry.version,
             config_entry.minor_version,
         )
         return False
+
     if config_entry.version == 1:
         # migrate from ConfigEntry.options to ConfigEntry.data
         _LOGGER.info(
@@ -217,31 +218,44 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
             version=CONFIG_ENTRY_VERSION,
         )
         return True
-    if config_entry.version == CONFIG_ENTRY_VERSION and (
-        config_entry.minor_version < CONFIG_ENTRY_MINOR_VERSION
-    ):
-        _LOGGER.info(
-            "Start Watchman configuration entry migration to minor version %d. Source data: %s",
-            CONFIG_ENTRY_MINOR_VERSION,
-            config_entry.data,
-        )
-        data = {**config_entry.data}
-        if CONF_IGNORED_LABELS not in data:
-            data[CONF_IGNORED_LABELS] = DEFAULT_OPTIONS[CONF_IGNORED_LABELS]
 
-        hass.config_entries.async_update_entry(
-            config_entry,
-            data=data,
-            options={**config_entry.options},
-            minor_version=CONFIG_ENTRY_MINOR_VERSION,
-            version=CONFIG_ENTRY_VERSION,
-        )
-        _LOGGER.info(
-            "Successfully migrated Watchman configuration entry to version %d.%d",
-            config_entry.version,
-            CONFIG_ENTRY_MINOR_VERSION,
-        )
-        return True
+    if config_entry.version == CONFIG_ENTRY_VERSION:
+        data = {**config_entry.data}
+        current_minor = config_entry.minor_version
+
+        # Sequential migration logic for minor versions
+        if current_minor < 2:
+            _LOGGER.info("Migrating Watchman entry to minor version 2")
+
+            if CONF_IGNORED_LABELS not in data:
+                data[CONF_IGNORED_LABELS] = DEFAULT_OPTIONS[CONF_IGNORED_LABELS]
+
+            # Enforce minimum startup delay
+            current_delay = data.get(CONF_STARTUP_DELAY, 0)
+            min_delay = DEFAULT_OPTIONS[CONF_STARTUP_DELAY]
+            if current_delay < min_delay:
+                _LOGGER.info(
+                    "Enforcing minimum startup delay of %ss (was %ss)",
+                    min_delay,
+                    current_delay,
+                )
+                data[CONF_STARTUP_DELAY] = min_delay
+
+            current_minor = 2
+
+        if current_minor != config_entry.minor_version:
+            hass.config_entries.async_update_entry(
+                config_entry,
+                data=data,
+                minor_version=current_minor,
+                version=CONFIG_ENTRY_VERSION,
+            )
+            _LOGGER.info(
+                "Successfully migrated Watchman configuration entry to version %d.%d",
+                config_entry.version,
+                current_minor,
+            )
+
     return True
 
 

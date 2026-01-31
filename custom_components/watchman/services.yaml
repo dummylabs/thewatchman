@@ -1,4 +1,5 @@
 report:
+  name: Report
   description: Run watchman report
   supports_response: optional
   fields:
