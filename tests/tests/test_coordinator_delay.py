@@ -130,59 +130,54 @@ async def test_force_rescan_during_cooldown(hass: HomeAssistant, mock_hub_parse)
     mock_hub_parse.assert_called_once()
 
 
-async def test_delay_and_cooldown(hass: HomeAssistant, mock_hub_parse):
-    """Test interaction between delay and cooldown."""
+
+
+async def test_smart_debounce_priority(hass: HomeAssistant, mock_hub_parse):
+    """Test that the longest delay takes precedence (Smart Debounce)."""
     config_entry = await async_init_integration(hass)
     coordinator: WatchmanCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     
-    # 1. Simulate a completed parse
     mock_hub_parse.reset_mock()
     if coordinator.safe_mode:
         coordinator.update_status(STATE_IDLE)
+    coordinator._last_parse_time = 0 
     
-    # We need to manually invoke what _execute_parse does because calling it directly
-    # will trigger the actual logic which we want, BUT we want to ensure it works
-    # even if we are in safe mode (which we cleared).
-    await coordinator._execute_parse()
+    # 1. Request rescan with LONG delay (e.g. startup)
+    long_delay = 10
+    coordinator.request_parser_rescan(reason="startup", delay=long_delay)
     
-    # Now _last_parse_time is set to approx current time
-    # Force _last_parse_time to be exactly now to simplify calc
-    coordinator._last_parse_time = time.time()
-    
-    mock_hub_parse.reset_mock()
-    
-    # 2. Request rescan with small delay
-    delay = 1
-    coordinator.request_parser_rescan(reason="test_cooldown", delay=delay)
-    
-    # 3. Advance time to pass the delay
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=delay + 0.1))
+    # 2. Advance time slightly (e.g. 1s)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1))
     await hass.async_block_till_done()
     
-    # At this point, delay expired. But cooldown (60s) is active.
-    # So it should NOT have parsed, but scheduled a cooldown wait.
-    mock_hub_parse.assert_not_called() 
+    # 3. Request rescan with SHORT delay (e.g. config change)
+    short_delay = 1
+    coordinator.request_parser_rescan(reason="config_change", delay=short_delay)
     
-    # Now check
-    assert coordinator._cooldown_unsub is not None
-    assert coordinator.status == STATE_PENDING
-    
-    
-    # 4. Advance time to past cooldown
-    # We are at T=1.1s. Cooldown is 60s. Need to wait ~59s.
-    # Instead of patching time.time, we artificially move the last parse time back
-    # so that the current real time satisfies the cooldown check.
-    coordinator._last_parse_time -= (PARSE_COOLDOWN + 5)
-
-    # We still need to fire time changed to trigger the pending call_later callback
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=PARSE_COOLDOWN + 5))
+    # 4. Advance time by short_delay + buffer (e.g. +2s total from step 3)
+    # Total time from start = 1 + 2 = 3s.
+    # Current naive implementation would fire here (1s after step 3).
+    # Desired logic: Should NOT fire yet, because we should respect the 10s delay.
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=3))
     await hass.async_block_till_done()
     
-    # Retry a few times to allow background task to complete
+    # Assert NOT called yet
+    assert mock_hub_parse.call_count == 0
+    
+    # 5. Advance time to cover the full long_delay relative to the LAST request?
+    # Requirement: "отложить парсинг ещё на 10 секунд с момента регистрации второго запроса"
+    # So we need to wait 10s from step 3.
+    # We are at T=3s (relative to start). Step 3 happened at T=1s.
+    # We need to reach T = 1s + 10s = 11s.
+    # So advance by another 8s + buffer.
+    
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=12))
+    await hass.async_block_till_done()
+    
     import asyncio
-    for _ in range(10):
+    for _ in range(5):
         if mock_hub_parse.call_count == 1:
             break
         await asyncio.sleep(0.1)
-    
+        
     mock_hub_parse.assert_called_once()

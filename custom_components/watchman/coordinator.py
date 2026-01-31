@@ -108,7 +108,7 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
     is_entity = item_type == "entity"
     type_label = "entity" if is_entity else "action"
 
-    _LOGGER.debug(f"## Triaging list of found {type_label}s. exclude_disabled_automations={exclude_disabled_automations}")
+    #_LOGGER.debug(f"## Triaging list of found {type_label}s. exclude_disabled_automations={exclude_disabled_automations}")
 
     ignored_states = []
     if is_entity:
@@ -118,9 +118,7 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
         ]
     elif "missing" in get_config(hass, CONF_IGNORED_STATES, []):
         # Specific check for actions if 'missing' is ignored
-        _LOGGER.debug(
-            f"{INDENT}MISSING state set as ignored in config, so final list of reported actions is empty."
-        )
+        _LOGGER.info("MISSING state set as ignored in config, so watchman ignores missing actions.")
         return missing_items
 
     disabled_automations = _get_disabled_automations(hass, exclude_disabled_automations)
@@ -225,6 +223,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._cooldown_unsub = None
         self._delay_unsub = None
         self._last_parse_time = 0.0
+        self._current_delay = 0
 
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
@@ -334,7 +333,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         _LOGGER.debug(f"Parser rescan requested. Reason: {reason}, Force: {force}, Delay: {delay}")
 
         if force:
-            # If forcing, cancel any pending cooldown and delay and execute immediately
+            # if forcing, cancel any pending cooldown and delay and execute immediately
             if self._cooldown_unsub:
                 self._cooldown_unsub.cancel()
                 self._cooldown_unsub = None
@@ -343,18 +342,31 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 self._delay_unsub.cancel()
                 self._delay_unsub = None
 
+            self._current_delay = 0
             self._schedule_parse(force_immediate=True)
             return
 
-        # Schedule the check (which calls _schedule_parse)
+        # if delayed parse already scheduled
+        if self._delay_unsub:
+            self._delay_unsub.cancel()
+            self._delay_unsub = None
+            _LOGGER.debug(f"Debouncing: previously scheduled parsing will be postponed for another {max(self._current_delay, delay)} sec")
+
+        if self._cooldown_unsub:
+            _LOGGER.debug("Debouncing: parser in cooldown, will be scheduled in 60 sec.")
+
+        # Smart Debounce: use the maximum of current pending delay or new delay
+        self._current_delay = max(self._current_delay, delay)
         self.update_status(STATE_PENDING)
-        self._delay_unsub = self.hass.loop.call_later(delay, self._on_timer_finished, "delay")
+        self._delay_unsub = self.hass.loop.call_later(self._current_delay, self._on_timer_finished, "delay")
 
     @callback
     def _on_timer_finished(self, timer_type: str):
         """Callback when a scheduled timer (delay or cooldown) finishes."""
+        # print(f"DEBUG: _on_timer_finished type={timer_type}")
         if timer_type == "delay":
             self._delay_unsub = None
+            self._current_delay = 0
         elif timer_type == "cooldown":
             self._cooldown_unsub = None
         self._schedule_parse()
@@ -378,7 +390,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 # Timer already running
                 return
 
-            _LOGGER.debug(f"Parser in cooldown. Scheduling in {remaining:.1f}s")
+            #_LOGGER.debug(f"Parser in cooldown. Scheduling in {remaining:.1f}s")
             self.update_status(STATE_PENDING)
             self._cooldown_unsub = self.hass.loop.call_later(
                 remaining, self._on_timer_finished, "cooldown"
@@ -408,7 +420,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         # If already running, return the running task
         if self._parse_task and not self._parse_task.done():
-            _LOGGER.debug("Force parse requested, but parser is already running. Waiting for it.")
+            _LOGGER.debug("Force parse requested, but parser is already running. Waiting to reuse its results.")
             return await self._parse_task
 
         # Otherwise, run immediately
@@ -417,6 +429,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     async def _execute_parse(self):
         """Execute the heavy parsing logic."""
+        print("DEBUG: _execute_parse running")
         if self.safe_mode:
             _LOGGER.warning("Watchman is in Safe Mode. Skipping parse.")
             return
@@ -529,10 +542,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         Update Watchman sensors.
         Reactive: Read from Hub/DB without triggering a parse.
         """
+        _LOGGER.debug("Coordinator: refresh watchman sensors requested")
         if self.safe_mode:
+            _LOGGER.debug("Watchman in safe mode, async_update_data will return {}")
             return {}
 
-        # 1. Concurrency Check: If writing to DB, use existing cache
+        # concurrency check
         if self.hub.is_scanning:
             _LOGGER.debug("Hub is scanning. Returning cached data to avoid race conditions.")
             return self.data
