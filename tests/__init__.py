@@ -8,6 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.watchman.const import (
     DOMAIN,
     CONF_INCLUDED_FOLDERS,
+    CONF_STARTUP_DELAY,
     DEFAULT_OPTIONS,
     CONFIG_ENTRY_MINOR_VERSION,
 )
@@ -26,6 +27,9 @@ async def async_init_integration(
     """Set up integration in Home Assistant."""
     config = deepcopy(DEFAULT_OPTIONS)
     config[CONF_INCLUDED_FOLDERS] = "/workspaces/thewatchman/tests/data"
+    # Disable startup delay for tests to speed up execution
+    config[CONF_STARTUP_DELAY] = 0
+
     if add_params:
         config = config | add_params
 
