@@ -22,6 +22,7 @@ from .const import (
     CONFIG_ENTRY_VERSION,
     DEFAULT_OPTIONS,
     DEFAULT_REPORT_FILENAME,
+    DEFAULT_DELAY,
     DB_FILENAME,
     LOCK_FILENAME,
     DOMAIN,
@@ -69,8 +70,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
         coordinator.subscribe_to_events(config_entry)
         _LOGGER.debug("Subscribed to HA events.")
 
-        startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
-        _LOGGER.info(f"Watchman started. Startup delay: {startup_delay}s.")
+        if event:
+            startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
+            _LOGGER.debug(f"Watchman started during HA startup). Initial parse in: {startup_delay}s.")
+        else:
+            startup_delay = DEFAULT_DELAY
+            _LOGGER.debug(f"Watchman installed (HA running). Initial parse in: {startup_delay}s.")
+
         coordinator.request_parser_rescan(reason="startup", delay=startup_delay)
 
     _LOGGER.info("Watchman integration started [%s]", VERSION)
