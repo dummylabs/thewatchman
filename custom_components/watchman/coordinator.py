@@ -348,12 +348,15 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         # Schedule the check (which calls _schedule_parse)
         self.update_status(STATE_PENDING)
-        self._delay_unsub = self.hass.loop.call_later(delay, self._on_delay_expired)
+        self._delay_unsub = self.hass.loop.call_later(delay, self._on_timer_finished, "delay")
 
     @callback
-    def _on_delay_expired(self):
-        """Callback when delay expires."""
-        self._delay_unsub = None
+    def _on_timer_finished(self, timer_type: str):
+        """Callback when a scheduled timer (delay or cooldown) finishes."""
+        if timer_type == "delay":
+            self._delay_unsub = None
+        elif timer_type == "cooldown":
+            self._cooldown_unsub = None
         self._schedule_parse()
 
     def _schedule_parse(self, force_immediate=False):
@@ -378,7 +381,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Parser in cooldown. Scheduling in {remaining:.1f}s")
             self.update_status(STATE_PENDING)
             self._cooldown_unsub = self.hass.loop.call_later(
-                remaining, self._schedule_parse_callback
+                remaining, self._on_timer_finished, "cooldown"
             )
             return
 
@@ -387,12 +390,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._parse_task = self.hass.async_create_background_task(
             self._execute_parse(), "watchman_parse"
         )
-
-    @callback
-    def _schedule_parse_callback(self):
-        """Callback from loop.call_later."""
-        self._cooldown_unsub = None
-        self._schedule_parse()
 
     async def async_force_parse(self):
         """
