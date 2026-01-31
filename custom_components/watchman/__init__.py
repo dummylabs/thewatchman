@@ -108,11 +108,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
     if hass.is_running:
         # HA is already up and running, don't need to wait until it is booted
-        _LOGGER.debug("Home assistant is up and running, proceed with async_on_home_assistant_started")
+        _LOGGER.debug("Home assistant is up, proceed with async_on_home_assistant_started")
         await async_on_home_assistant_started(None)
     else:
         # integration started during HA startup, wait until it is fully loaded
-        _LOGGER.debug("Home assistant is starting, waiting until it's up and running.")
+        _LOGGER.debug("Waiting for Home Assistant to be up and running...")
         if not coordinator.safe_mode:
             config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)

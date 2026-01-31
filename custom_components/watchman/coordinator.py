@@ -330,7 +330,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         If force=True, ignore cooldown and delay.
         """
         self._needs_parse = True
+        print(f"DEBUG: request_parser_rescan reason={reason} needs_parse={self._needs_parse}")
         _LOGGER.debug(f"Parser rescan requested. Reason: {reason}, Force: {force}, Delay: {delay}")
+
+        if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
+            _LOGGER.debug("Scan in progress, request queued.")
+            return
 
         if force:
             # if forcing, cancel any pending cooldown and delay and execute immediately
@@ -363,7 +368,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
     @callback
     def _on_timer_finished(self, timer_type: str):
         """Callback when a scheduled timer (delay or cooldown) finishes."""
-        # print(f"DEBUG: _on_timer_finished type={timer_type}")
         if timer_type == "delay":
             self._delay_unsub = None
             self._current_delay = 0
@@ -373,11 +377,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     def _schedule_parse(self, force_immediate=False):
         """Schedule the parse task based on state and cooldown."""
-        # 1. If currently parsing, just leave _needs_parse=True.
-        #    The current parser will pick it up if we loop or we can just rely on next state change.
-        #    Actually, if it's already parsing, we don't need to do anything else.
+
         if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
-            #_LOGGER.debug("Parser is currently running. Request queued.")
+            #  do nothing as parsing is already running
+            # _needs_parse=True will trigger next parsing request with cooldown
+            # after current parsing is finished
+            _LOGGER.debug("⏳ Scheduling parse: Scan in progress, parsing request queued.")
             return
 
         # 2. Check cooldown
@@ -388,9 +393,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             remaining = PARSE_COOLDOWN - time_since_last
             if self._cooldown_unsub:
                 # Timer already running
+                _LOGGER.debug(f"⏳ Scheduling parse: parser in cooldown and will run again in {remaining:.1f}s")
                 return
 
-            #_LOGGER.debug(f"Parser in cooldown. Scheduling in {remaining:.1f}s")
+            _LOGGER.debug(f"⏳ Scheduling parse: parser in cooldown. Scheduling in {remaining:.1f}s")
             self.update_status(STATE_PENDING)
             self._cooldown_unsub = self.hass.loop.call_later(
                 remaining, self._on_timer_finished, "cooldown"
@@ -398,6 +404,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             return
 
         # 3. Start background task
+        _LOGGER.debug(f"🚀 Start parse: force_immediate={force_immediate}")
         self._cooldown_unsub = None
         self._parse_task = self.hass.async_create_background_task(
             self._execute_parse(), "watchman_parse"
@@ -429,13 +436,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     async def _execute_parse(self):
         """Execute the heavy parsing logic."""
-        print("DEBUG: _execute_parse running")
         if self.safe_mode:
-            _LOGGER.warning("Watchman is in Safe Mode. Skipping parse.")
+            _LOGGER.warning("_execute_parse: Watchman is in Safe Mode. Skipping parse.")
             return
 
+        self._needs_parse = False
         self.update_status(STATE_PARSING)
-        _LOGGER.debug("Starting background parse...")
 
         # Create lock file
         lock_path = self.hass.config.path(".storage", LOCK_FILENAME)
@@ -448,7 +454,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             await self.hub.async_parse(ignored_files)
 
             self._last_parse_time = time.time()
-            self._needs_parse = False
 
             # Refresh data and notify sensors
             await self.async_refresh()
@@ -463,7 +468,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             )
             self.update_status(STATE_IDLE)
             self._parse_task = None
-            _LOGGER.debug("Background parse finished.")
+            _LOGGER.debug("🏁 Background parse finished.")
+
+            # Check if another parse was requested during execution
+            if self._needs_parse:
+                _LOGGER.debug(f"Another request occured during parser execution, will be repeated after cooldown ({PARSE_COOLDOWN} sec)")
+                self._schedule_parse()
 
     async def async_get_last_parse_duration(self):
         """Return duration of the last parsing."""
@@ -549,7 +559,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         # concurrency check
         if self.hub.is_scanning:
-            _LOGGER.debug("Hub is scanning. Returning cached data to avoid race conditions.")
+            _LOGGER.debug("Coordinator: Hub is scanning. Use cached data for sensors to avoid race conditions.")
             return self.data
 
         # 2. Read Phase
