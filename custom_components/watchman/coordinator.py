@@ -513,6 +513,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 self.request_parser_rescan(reason=event_type)
 
         async def async_on_service_changed(event):
+            if self.hub.is_scanning:
+                _LOGGER.debug("Scan in progress, skipping service change event.")
+                return
+
             service = f"{event.data['domain']}.{event.data['service']}"
             parsed_services = await self.async_get_parsed_services()
             if service in parsed_services:
@@ -521,6 +525,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         async def async_on_state_changed(event):
             """Refresh monitored entities on state change."""
+            if self.hub.is_scanning:
+                _LOGGER.debug("Scan in progress, skipping state change event.")
+                return
+
             def state_or_missing(state_id):
                 """Return missing state if entity not found."""
                 return "missing" if not event.data[state_id] else event.data[state_id].state

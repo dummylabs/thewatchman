@@ -55,10 +55,9 @@ async def test_diagnostic_sensors(hass: HomeAssistant):
     
     with patch.object(coordinator.hub, 'async_get_last_parse_info', return_value=mock_info):
         # Trigger update
-        coordinator.request_parser_rescan("Test")
+        coordinator.request_parser_rescan("Test", delay=0)
         
-        # Force debounce to fire
-        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=15))
+        await hass.async_block_till_done()
         await coordinator.async_request_refresh()
         await hass.async_block_till_done()
         

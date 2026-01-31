@@ -24,8 +24,10 @@ class WatchmanHub:
         self._parser = WatchmanParser(db_path, executor=ha_executor)
         self.cached_items = {}
         
+    async def async_init(self):
+        """Initialize the hub and verify DB."""
         # Verify DB integrity on startup
-        self.hass.async_add_executor_job(self._parser.check_and_fix_db)
+        await self.hass.async_add_executor_job(self._parser.check_and_fix_db)
 
     @property
     def is_scanning(self) -> bool:
