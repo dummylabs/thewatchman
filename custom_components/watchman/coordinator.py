@@ -336,7 +336,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         if force:
             # If forcing, cancel any pending cooldown and delay and execute immediately
             if self._cooldown_unsub:
-                self._cooldown_unsub()
+                self._cooldown_unsub.cancel()
                 self._cooldown_unsub = None
 
             if self._delay_unsub:
@@ -401,7 +401,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         """
         # Cancel pending cooldown
         if self._cooldown_unsub:
-            self._cooldown_unsub()
+            self._cooldown_unsub.cancel()
             self._cooldown_unsub = None
 
         # Cancel pending delay

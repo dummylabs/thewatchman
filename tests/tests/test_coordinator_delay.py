@@ -84,8 +84,49 @@ async def test_force_rescan(hass: HomeAssistant, mock_hub_parse):
     # Wait for background task
     await hass.async_block_till_done()
     import asyncio
-    await asyncio.sleep(0.1)
+    for _ in range(5):
+        if mock_hub_parse.call_count == 1:
+            break
+        await asyncio.sleep(0.1)
     
+    mock_hub_parse.assert_called_once()
+
+async def test_force_rescan_during_cooldown(hass: HomeAssistant, mock_hub_parse):
+    """Test that force=True correctly cancels a pending cooldown timer."""
+    config_entry = await async_init_integration(hass)
+    coordinator: WatchmanCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    
+    mock_hub_parse.reset_mock()
+    if coordinator.safe_mode:
+        coordinator.update_status(STATE_IDLE)
+    
+    # 1. Simulate a completed parse recently
+    coordinator._last_parse_time = time.time()
+    
+    # 2. Request rescan. It should hit cooldown logic.
+    coordinator.request_parser_rescan(reason="test_trigger_cooldown", delay=1)
+    
+    # Advance time to expire the delay (1s) so it moves to cooldown state
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1.1))
+    await hass.async_block_till_done()
+    
+    # Cooldown timer should be active now
+    assert coordinator._cooldown_unsub is not None
+    assert coordinator.status == STATE_PENDING
+    
+    # 3. Request force rescan. This should CANCEL the cooldown timer.
+    # If the bug exists (trying to call the handle), this will raise TypeError.
+    coordinator.request_parser_rescan(reason="test_force_cooldown", force=True)
+    
+    assert coordinator._cooldown_unsub is None
+    await hass.async_block_till_done()
+    
+    import asyncio
+    for _ in range(5):
+        if mock_hub_parse.call_count == 1:
+            break
+        await asyncio.sleep(0.1)
+
     mock_hub_parse.assert_called_once()
 
 
