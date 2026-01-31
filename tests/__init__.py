@@ -1,6 +1,7 @@
 """Tests for watchman integration."""
 
 from copy import deepcopy
+from unittest.mock import patch
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -53,8 +54,9 @@ async def async_init_integration(
         )
     config_entry.add_to_hass(hass)
 
-    await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
+    with patch("custom_components.watchman.DEFAULT_DELAY", 0):
+        await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
 
     # Wait for initial parse to complete (restore deterministic behavior for tests)
     # The integration now starts in background, but tests expect data to be ready.
