@@ -11,6 +11,7 @@ from .const import (
     DOMAIN,
     REPORT_SERVICE_NAME,
 )
+from .utils.logger import _LOGGER
 from .utils.report import async_report_to_file, async_report_to_notification
 from .utils.utils import get_config
 
@@ -65,9 +66,13 @@ class WatchmanServicesSetup:
                 f"in conjunction with [{CONF_ACTION_NAME}] parameter."
             )
 
+        _LOGGER.debug(f"User requested report params={call.data}")
+
         if call.data.get(CONF_PARSE_CONFIG, False):
-            #await self.coordinator.async_parse_config(reason="service call")
-            self.coordinator.request_parser_rescan(reason="service call")
+            # Blocking wait for a fresh scan
+            await self.coordinator.async_force_parse()
+        else:
+            # Just refresh sensors from existing DB (in case something changed externally)
             await self.coordinator.async_request_refresh()
 
         # call notification action even when send notification = False

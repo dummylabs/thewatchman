@@ -475,6 +475,72 @@ async def default_async_executor(func: Callable, *args: Any) -> Any:
     """Default executor that runs the synchronous function in a thread."""
     return await asyncio.to_thread(func, *args)
 
+def _scan_files_sync(root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
+    """
+    Synchronous, blocking file scanner using os.walk.
+    Executed as a single job in the executor.
+    """
+    scanned_files = []
+    ignored_count = 0
+    cwd = os.getcwd()
+
+    # 1. Main recursive scan (os.walk)
+    for root, dirs, files in os.walk(root_path, topdown=True):
+        # Prune ignored directories
+        # Remove ignored dirs and hidden dirs from traversal
+        dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS and not d.startswith('.')]
+
+        for file in files:
+            abs_path = os.path.join(root, file)
+            # Extension check
+            _, ext = os.path.splitext(file)
+            if ext.lower() not in _YAML_FILE_EXTS:
+                continue
+
+            # User ignore patterns
+            rel_path_cwd = os.path.relpath(abs_path, cwd)
+            is_ignored = False
+            for pattern in ignored_patterns:
+                if fnmatch.fnmatch(abs_path, pattern) or fnmatch.fnmatch(rel_path_cwd, pattern):
+                    is_ignored = True
+                    break
+
+            if is_ignored:
+                ignored_count += 1
+                continue
+
+            # Stat
+            try:
+                stat_res = os.stat(abs_path)
+                scanned_files.append({
+                    'path': abs_path,
+                    'mtime': stat_res.st_mtime,
+                    'size': stat_res.st_size
+                })
+            except OSError as e:
+                if os.path.islink(abs_path):
+                    _LOGGER.warning(f"Skipping broken symlink: {abs_path}")
+                else:
+                    _LOGGER.error(f"Error accessing file {abs_path}: {e}")
+
+    # 2. Targeted scan of .storage
+    storage_path = os.path.join(root_path, '.storage')
+    if os.path.isdir(storage_path):
+        for filename in _STORAGE_WHITELIST:
+            file_path = os.path.join(storage_path, filename)
+            if os.path.isfile(file_path):
+                try:
+                    stat_res = os.stat(file_path)
+                    scanned_files.append({
+                        'path': file_path,
+                        'mtime': stat_res.st_mtime,
+                        'size': stat_res.st_size
+                    })
+                except OSError as e:
+                    _LOGGER.error(f"Error accessing whitelist file {file_path}: {e}")
+
+    return scanned_files, ignored_count
+
 
 # --- WatchmanParser ---
 
@@ -599,7 +665,7 @@ class WatchmanParser:
             conn.close()
             raise
 
-    async def _async_scan_files(self, root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
+    async def _async_scan_files_legacy(self, root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
         """
         Phase 1: Asynchronous file scanning using anyio.
         Returns a list of file metadata and a count of ignored files.
@@ -609,7 +675,7 @@ class WatchmanParser:
         cwd = os.getcwd()
         root = anyio.Path(root_path)
 
-        _LOGGER.debug(f"Starting scan of {root_path} with patterns {ignored_patterns}")
+
 
         # rglob("**/*.yaml") iterates recursively
         # also need to filter against _IGNORED_DIRS and ignored_patterns
@@ -675,6 +741,13 @@ class WatchmanParser:
 
         return scanned_files, ignored_count
 
+    async def _async_scan_files(self, root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
+        """
+        Phase 1: Synchronous file scanning (offloaded to thread).
+        Calls _scan_files_sync in executor.
+        """
+        return await self.executor(_scan_files_sync, root_path, ignored_patterns)
+
     async def async_scan(self, root_path: str, ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> None:
         """
         Orchestrates the scanning process.
@@ -692,6 +765,7 @@ class WatchmanParser:
                 )
 
             # --- Phase 1: Async File Scanning ---
+            _LOGGER.debug(f"Phase 1 (Scan): Starting scan of {root_path} with patterns {ignored_files}")
             scan_time = time.monotonic()
             files_scanned, ignored_count = await self._async_scan_files(root_path, ignored_files)
             _LOGGER.debug(f"Phase 1 (Scan): Found {len(files_scanned)} files in {(time.monotonic() - scan_time):.3f} sec")
@@ -699,7 +773,6 @@ class WatchmanParser:
             # --- Phase 2: Reconciliation (DB Check) ---
             reconcile_time = time.monotonic()
 
-            fetch_time = time.monotonic()
             # Fetch all previously processed files metadata into memory cache
             processed_cache = {}
             with self._db_session() as conn:
@@ -813,7 +886,7 @@ class WatchmanParser:
 
                 # Update last parse stats
                 duration = time.monotonic() - start_time
-                _LOGGER.debug(f"Phase 3 (Parse) finished in {(time.monotonic() - parse_time):.3f} sec")
+                _LOGGER.debug(f"Phase 3 (Parse): finished in {(time.monotonic() - parse_time):.3f} sec")
                 _LOGGER.debug(f"Total Scan finished in {duration:.3f} sec")
 
                 current_timestamp = datetime.datetime.now().isoformat()

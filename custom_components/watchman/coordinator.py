@@ -1,9 +1,11 @@
 import asyncio
 from typing import Any
 import os
+from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.const import (
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
@@ -15,7 +17,6 @@ from homeassistant.components.homeassistant import (
     SERVICE_RELOAD,
     SERVICE_RELOAD_ALL,
 )
-import logging
 
 from .utils.report import fill
 from .const import (
@@ -33,13 +34,16 @@ from .const import (
     CONF_EXCLUDE_DISABLED_AUTOMATION,
     STATE_WAITING_HA,
     STATE_PARSING,
+    STATE_PENDING,
     STATE_IDLE,
     STATE_SAFE_MODE,
+    PARSE_COOLDOWN,
     LOCK_FILENAME,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
     TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
+    DEFAULT_DELAY,
 )
 from .utils.utils import (
     get_entity_state,
@@ -104,7 +108,7 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
     is_entity = item_type == "entity"
     type_label = "entity" if is_entity else "action"
 
-    _LOGGER.debug(f"## Triaging list of found {type_label}s. exclude_disabled_automations={exclude_disabled_automations}")
+    #_LOGGER.debug(f"## Triaging list of found {type_label}s. exclude_disabled_automations={exclude_disabled_automations}")
 
     ignored_states = []
     if is_entity:
@@ -114,9 +118,7 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
         ]
     elif "missing" in get_config(hass, CONF_IGNORED_STATES, []):
         # Specific check for actions if 'missing' is ignored
-        _LOGGER.debug(
-            f"{INDENT}MISSING state set as ignored in config, so final list of reported actions is empty."
-        )
+        _LOGGER.info("MISSING state set as ignored in config, so watchman ignores missing actions.")
         return missing_items
 
     disabled_automations = _get_disabled_automations(hass, exclude_disabled_automations)
@@ -131,7 +133,7 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
         if is_entity:
             # Check if this is a valid HA action misidentified as a sensor/other entity
             if is_action(hass, entry):
-                _LOGGER.debug(f"{INDENT}⚪ {entry} is a HA action, skipped ({occurrences})")
+#                _LOGGER.debug(f"{INDENT}⚪ {entry} is a HA action, skipped ({occurrences})")
                 continue
 
             # Check ignored labels
@@ -142,16 +144,16 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
                     and hasattr(reg_entry, "labels")
                     and set(reg_entry.labels) & ignored_labels
                 ):
-                    _LOGGER.debug(
-                        f"{INDENT}⚪ {entry} has ignored label(s), skipped ({occurrences})"
-                    )
+                    # _LOGGER.debug(
+                    #     f"{INDENT}⚪ {entry} has ignored label(s), skipped ({occurrences})"
+                    # )
                     continue
 
             state, _ = get_entity_state(hass, entry)
             if state in ignored_states:
-                _LOGGER.debug(
-                    f"{INDENT}⚪ {entry} has ignored state {state}, skipped ({occurrences})"
-                )
+                # _LOGGER.debug(
+                #     f"{INDENT}⚪ {entry} has ignored state {state}, skipped ({occurrences})"
+                # )
                 continue
 
             # Entities are reported if they are missing/unknown/etc.
@@ -171,12 +173,12 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
 
                 if all_parents_disabled:
                     _LOGGER.debug(
-                        f"{INDENT}⚪ {type_label} {entry} is only used by disabled automations {automations}, skipped ({occurrences})"
+                        f"{INDENT} {type_label} {entry} is only used by disabled automations {automations}, skipped ({occurrences})"
                     )
                     continue
                 else:
                     _LOGGER.debug(
-                        f"{INDENT}🔴 {type_label} {entry} is used both by enabled and disabled automations {automations}, added to the report ({occurrences})"
+                        f"{INDENT} {type_label} {entry} is used both by enabled and disabled automations {automations}, added to the report ({occurrences})"
                     )
 
             missing_items[entry] = occurrences
@@ -190,11 +192,11 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
                     "" if auto_state else "❌: automation not found"
                 )
 
-            log_msg = f"{INDENT}🔴 {type_label} {entry} added to the report"
-            if is_entity:
-                log_msg += f" {missing_auto_warning}"
-            log_msg += f" ({occurrences})"
-            _LOGGER.debug(log_msg)
+            # log_msg = f"{INDENT}🔴 {type_label} {entry} added to the report"
+            # if is_entity:
+            #     log_msg += f" {missing_auto_warning}"
+            # log_msg += f" ({occurrences})"
+            # _LOGGER.debug(log_msg)
 
     return missing_items
 
@@ -204,11 +206,19 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, logger, name, hub):
         """Initialize watchmman coordinator."""
+        debouncer = Debouncer(
+                    hass,
+                    _LOGGER,
+                    cooldown=5.0,
+                    immediate=False
+                )
+
         super().__init__(
             hass,
             _LOGGER,
             name=name,  # Name of the data. For logging purposes.
             always_update=False,
+            request_refresh_debouncer=debouncer
         )
 
         self.hass = hass
@@ -216,6 +226,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self.last_check_duration = 0.0
         self.ignored_labels = set()
         self._status = STATE_WAITING_HA
+        self._needs_parse = False
+        self._parse_task: asyncio.Task | None = None
+        self._cooldown_unsub = None
+        self._delay_unsub = None
+        self._last_parse_time = 0.0
+        self._current_delay = 0
+
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
             COORD_DATA_MISSING_ACTIONS: 0,
@@ -315,11 +332,156 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_IGNORED_FILES: parse_info.get("ignored_files_count", 0),
         }
 
-    # request_parser_rescan is removed as automatic mtime checking in Hub handles it.
+    def request_parser_rescan(self, reason=None, force=False, delay=DEFAULT_DELAY):
+        """
+        Request a background scan.
+        If force=True, ignore cooldown and delay.
+        """
+        self._needs_parse = True
+        print(f"DEBUG: request_parser_rescan reason={reason} needs_parse={self._needs_parse}")
+        _LOGGER.debug(f"Parser rescan requested. Reason: {reason}, Force: {force}, Delay: {delay}")
 
-    def request_parser_rescan(self, reason=None):
-         # Stub for compatibility if anything external calls it
-         pass
+        if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
+            _LOGGER.debug("Scan in progress, request queued.")
+            return
+
+        if force:
+            # if forcing, cancel any pending cooldown and delay and execute immediately
+            if self._cooldown_unsub:
+                self._cooldown_unsub.cancel()
+                self._cooldown_unsub = None
+
+            if self._delay_unsub:
+                self._delay_unsub.cancel()
+                self._delay_unsub = None
+
+            self._current_delay = 0
+            self._schedule_parse(force_immediate=True)
+            return
+
+        # if delayed parse already scheduled
+        if self._delay_unsub:
+            self._delay_unsub.cancel()
+            self._delay_unsub = None
+            _LOGGER.debug(f"Debouncing: previously scheduled parsing will be postponed for another {max(self._current_delay, delay)} sec")
+
+        if self._cooldown_unsub:
+            _LOGGER.debug("Debouncing: parser in cooldown, will be scheduled in 60 sec.")
+
+        # Smart Debounce: use the maximum of current pending delay or new delay
+        self._current_delay = max(self._current_delay, delay)
+        self.update_status(STATE_PENDING)
+        self._delay_unsub = self.hass.loop.call_later(self._current_delay, self._on_timer_finished, "delay")
+
+    @callback
+    def _on_timer_finished(self, timer_type: str):
+        """Callback when a scheduled timer (delay or cooldown) finishes."""
+        if timer_type == "delay":
+            self._delay_unsub = None
+            self._current_delay = 0
+        elif timer_type == "cooldown":
+            self._cooldown_unsub = None
+        self._schedule_parse()
+
+    def _schedule_parse(self, force_immediate=False):
+        """Schedule the parse task based on state and cooldown."""
+
+        if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
+            #  do nothing as parsing is already running
+            # _needs_parse=True will trigger next parsing request with cooldown
+            # after current parsing is finished
+            _LOGGER.debug("⏳ Scheduling parse: Scan in progress, parsing request queued.")
+            return
+
+        # 2. Check cooldown
+        now = time.time()
+        time_since_last = now - self._last_parse_time
+
+        if not force_immediate and time_since_last < PARSE_COOLDOWN:
+            remaining = PARSE_COOLDOWN - time_since_last
+            if self._cooldown_unsub:
+                # Timer already running
+                _LOGGER.debug(f"⏳ Scheduling parse: parser in cooldown and will run again in {remaining:.1f}s")
+                return
+
+            _LOGGER.debug(f"⏳ Scheduling parse: parser in cooldown. Scheduling in {remaining:.1f}s")
+            self.update_status(STATE_PENDING)
+            self._cooldown_unsub = self.hass.loop.call_later(
+                remaining, self._on_timer_finished, "cooldown"
+            )
+            return
+
+        # 3. Start background task
+        _LOGGER.debug(f"🚀 Start parse: force_immediate={force_immediate}")
+        self._cooldown_unsub = None
+        self._parse_task = self.hass.async_create_background_task(
+            self._execute_parse(), "watchman_parse"
+        )
+
+    async def async_force_parse(self):
+        """
+        Execute a blocking parse for the report service.
+        Returns a Task/Coroutine that finishes when parsing is complete.
+        """
+        # Cancel pending cooldown
+        if self._cooldown_unsub:
+            self._cooldown_unsub.cancel()
+            self._cooldown_unsub = None
+
+        # Cancel pending delay
+            if self._delay_unsub:
+                self._delay_unsub.cancel()
+                self._delay_unsub = None
+
+        # If already running, return the running task
+        if self._parse_task and not self._parse_task.done():
+            _LOGGER.debug("Force parse requested, but parser is already running. Waiting to reuse its results.")
+            return await self._parse_task
+
+        # Otherwise, run immediately
+        _LOGGER.debug("Force parse requested. Starting immediately.")
+        return await self._execute_parse()
+
+    async def _execute_parse(self):
+        """Execute the heavy parsing logic."""
+        if self.safe_mode:
+            _LOGGER.warning("_execute_parse: Watchman is in Safe Mode. Skipping parse.")
+            return
+
+        self._needs_parse = False
+        self.update_status(STATE_PARSING)
+
+        # Create lock file
+        lock_path = self.hass.config.path(".storage", LOCK_FILENAME)
+        await self.hass.async_add_executor_job(lambda: open(lock_path, "w").write("1"))
+
+        try:
+            ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
+
+            # Perform the scan
+            await self.hub.async_parse(ignored_files)
+
+            self._last_parse_time = time.time()
+
+            # Refresh data and notify sensors
+            await self.async_refresh()
+
+        except Exception as err:
+            _LOGGER.exception(f"Error during watchman parse: {err}")
+
+        finally:
+            # Cleanup
+            await self.hass.async_add_executor_job(
+                lambda: os.remove(lock_path) if os.path.exists(lock_path) else None
+            )
+            self.update_status(STATE_IDLE)
+            self._parse_task = None
+            _LOGGER.debug("🏁 Background parse finished.")
+
+            # Check if another parse was requested during execution
+            if self._needs_parse:
+                _LOGGER.debug(f"Another request occured during parser execution, will be repeated after cooldown ({PARSE_COOLDOWN} sec)")
+                self._schedule_parse()
 
     async def async_get_last_parse_duration(self):
         """Return duration of the last parsing."""
@@ -345,10 +507,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     SERVICE_RELOAD,
                     SERVICE_RELOAD_ALL,
                 ]:
-                    await self.async_request_refresh()
+                    self.request_parser_rescan(reason=f"service_call: {service}")
 
             elif event_type in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
-                await self.async_request_refresh()
+                self.request_parser_rescan(reason=event_type)
 
         async def async_on_service_changed(event):
             service = f"{event.data['domain']}.{event.data['service']}"
@@ -394,43 +556,35 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Update Watchman sensors."""
-
+        """
+        Update Watchman sensors.
+        Reactive: Read from Hub/DB without triggering a parse.
+        """
+        _LOGGER.debug("Coordinator: refresh watchman sensors requested")
         if self.safe_mode:
-            _LOGGER.warning("Watchman is in Safe Mode. Skipping update.")
+            _LOGGER.debug("Watchman in safe mode, async_update_data will return {}")
             return {}
 
-        # Check concurrency guard in Hub
+        # concurrency check
         if self.hub.is_scanning:
-            _LOGGER.debug("Hub is currently scanning. Skipping overlapping update request.")
-            # returning self.data ensures sensors don't go unavailable/empty.
+            _LOGGER.debug("Coordinator: Hub is scanning. Use cached data for sensors to avoid race conditions.")
             return self.data
 
-        _LOGGER.debug("_async_update_data: update sensor data with actual state of entities and actions")
-
-        self.update_status(STATE_PARSING)
-
-        # Create lock file to signal parsing in progress (crash detection)
-        lock_path = self.hass.config.path(".storage", LOCK_FILENAME)
-        await self.hass.async_add_executor_job(lambda: open(lock_path, "w").write("1"))
-
+        # 2. Read Phase
         try:
-            ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
-
-            # only parses if needed, handled by hub
-            await self.hub.async_parse(ignored_files)
             parsed_service_list = await self.async_get_parsed_services()
             parsed_entity_list = await self.async_get_parsed_entities()
 
-            self.data = await self.async_process_parsed_data(parsed_entity_list, parsed_service_list)
-
-            _LOGGER.debug(
-                f"Sensors updated, actions: {self.data[COORD_DATA_MISSING_ACTIONS]}, entities: {self.data[COORD_DATA_MISSING_ENTITIES]}"
+            new_data = await self.async_process_parsed_data(
+                parsed_entity_list, parsed_service_list
             )
+            self.data = new_data
+            _LOGGER.debug(
+                f"Sensors refreshed from DB. Actions: {new_data[COORD_DATA_MISSING_ACTIONS]}, "
+                f"Entities: {new_data[COORD_DATA_MISSING_ENTITIES]}"
+            )
+            return new_data
 
+        except Exception as err:
+            _LOGGER.error(f"Error reading watchman data: {err}")
             return self.data
-
-        finally:
-            # Remove lock file
-            await self.hass.async_add_executor_job(lambda: os.remove(lock_path) if os.path.exists(lock_path) else None)
-            self.update_status(STATE_IDLE)

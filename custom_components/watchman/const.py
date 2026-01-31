@@ -15,6 +15,8 @@ LOCK_FILENAME = f"{DOMAIN}.lock"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
 DB_TIMEOUT = 5
+PARSE_COOLDOWN = 60
+DEFAULT_DELAY = 5
 
 PACKAGE_NAME = f"custom_components.{DOMAIN}"
 REPORT_SERVICE_NAME = "report"
@@ -82,6 +84,7 @@ MONITORED_STATES = ["unavailable", "unknown", "missing", "disabled"]
 
 STATE_WAITING_HA = "waiting_for_ha"
 STATE_PARSING = "parsing"
+STATE_PENDING = "pending"
 STATE_IDLE = "idle"
 STATE_SAFE_MODE = "safe_mode"
 
