@@ -31,6 +31,12 @@ jobs:
                   # --- 4. Rename the folder ---
                   mv custom_components/watchman custom_components/watchman_dev
 
+                  # --- 5. Clean up unwanted workflows ---
+                  rm -f .github/workflows/hacs.yaml
+                  rm -f .github/workflows/upload_release.yaml
+                  rm -f .github/workflows/hassfest.yaml
+                  rm -f .github/workflows/deploy_to_dev.yml
+
             - name: Push to Dev Repository (Manual Force)
               env:
                   # Pass the token as an environment variable
