@@ -223,7 +223,7 @@ async def async_report_to_file(hass, path):
                 report_file.write(chunk)
 
     await hass.async_add_executor_job(write, path)
-    _LOGGER.debug(f"::async_report_to_file:: Repost saved to {path}")
+    _LOGGER.debug(f"Report saved to {path}")
 
 
 async def async_report_to_notification(

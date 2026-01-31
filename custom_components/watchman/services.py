@@ -11,6 +11,7 @@ from .const import (
     DOMAIN,
     REPORT_SERVICE_NAME,
 )
+from .utils.logger import _LOGGER
 from .utils.report import async_report_to_file, async_report_to_notification
 from .utils.utils import get_config
 
@@ -64,6 +65,8 @@ class WatchmanServicesSetup:
                 f"Missing [{CONF_ACTION_NAME}] parameter. The [{CONF_SERVICE_DATA}] parameter can only be used "
                 f"in conjunction with [{CONF_ACTION_NAME}] parameter."
             )
+
+        _LOGGER.debug(f"User requested report params={call.data}")
 
         if call.data.get(CONF_PARSE_CONFIG, False):
             # Blocking wait for a fresh scan
