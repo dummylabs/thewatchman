@@ -66,8 +66,10 @@ class WatchmanServicesSetup:
             )
 
         if call.data.get(CONF_PARSE_CONFIG, False):
-            #await self.coordinator.async_parse_config(reason="service call")
-            self.coordinator.request_parser_rescan(reason="service call")
+            # Blocking wait for a fresh scan
+            await self.coordinator.async_force_parse()
+        else:
+            # Just refresh sensors from existing DB (in case something changed externally)
             await self.coordinator.async_request_refresh()
 
         # call notification action even when send notification = False

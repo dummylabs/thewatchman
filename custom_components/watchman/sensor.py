@@ -35,6 +35,7 @@ from .const import (
     SENSOR_IGNORED_FILES,
     STATE_WAITING_HA,
     STATE_PARSING,
+    STATE_PENDING,
     STATE_IDLE,
     STATE_SAFE_MODE,
 )
@@ -68,7 +69,7 @@ SENSORS_CONFIGURATION = [
         translation_key="status",
         device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
-        options=[STATE_WAITING_HA, STATE_PARSING, STATE_IDLE, STATE_SAFE_MODE],
+        options=[STATE_WAITING_HA, STATE_PARSING, STATE_PENDING, STATE_IDLE, STATE_SAFE_MODE],
     ),
     SensorEntityDescription(
         key=SENSOR_PARSE_DURATION,
@@ -262,6 +263,8 @@ class StatusSensor(WatchmanEntity, SensorEntity):
         """Return dynamic icon based on status."""
         if self.coordinator.status == STATE_PARSING:
             return "mdi:progress-clock"
+        if self.coordinator.status == STATE_PENDING:
+            return "mdi:timer-sand"
         if self.coordinator.status == STATE_IDLE:
             return "mdi:sleep"
         if self.coordinator.status == STATE_SAFE_MODE:
