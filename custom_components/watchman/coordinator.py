@@ -332,6 +332,62 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_IGNORED_FILES: parse_info.get("ignored_files_count", 0),
         }
 
+    async def async_get_detailed_report_data(self):
+        """Return detailed report data with missing items lists."""
+        parsed_services = await self.async_get_parsed_services()
+        parsed_entities = await self.async_get_parsed_entities()
+        exclude_disabled = get_config(
+            self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
+        )
+
+        missing_services = renew_missing_items_list(
+            self.hass,
+            parsed_services,
+            exclude_disabled,
+            self.ignored_labels,
+            "action",
+        )
+        missing_entities = renew_missing_items_list(
+            self.hass,
+            parsed_entities,
+            exclude_disabled,
+            self.ignored_labels,
+            "entity",
+        )
+
+        def flatten_locations(item_id, locations, state):
+            results = []
+            for file_path, lines in locations.items():
+                for line in lines:
+                    results.append(
+                        {
+                            "id": item_id,
+                            "state": state,
+                            "file": file_path,
+                            "line": line,
+                        }
+                    )
+            return results
+
+        entities_list = []
+        for entity_id, locations in missing_entities.items():
+            state, _ = get_entity_state(self.hass, entity_id)
+            entities_list.extend(flatten_locations(entity_id, locations, state))
+
+        actions_list = []
+        for service_id, locations in missing_services.items():
+            actions_list.extend(flatten_locations(service_id, locations, "missing"))
+
+        parse_info = await self.hub.async_get_last_parse_info()
+        info = {}
+        info["last_parse_date"] = parse_info["timestamp"]
+        info["parse_duration"] = parse_info["duration"]
+        info["ignored_files_count"] = parse_info["ignored_files_count"]
+        info["processed_files_count"] = parse_info["processed_files_count"]
+        info["missing_entities"] = entities_list
+        info["missing_actions"] = actions_list
+        return info
+
     def request_parser_rescan(self, reason=None, force=False, delay=DEFAULT_DELAY):
         """
         Request a background scan.
