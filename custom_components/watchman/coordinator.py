@@ -5,6 +5,7 @@ from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.const import (
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
@@ -16,7 +17,6 @@ from homeassistant.components.homeassistant import (
     SERVICE_RELOAD,
     SERVICE_RELOAD_ALL,
 )
-import logging
 
 from .utils.report import fill
 from .const import (
@@ -206,11 +206,19 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, logger, name, hub):
         """Initialize watchmman coordinator."""
+        debouncer = Debouncer(
+                    hass,
+                    _LOGGER,
+                    cooldown=5.0,
+                    immediate=False
+                )
+
         super().__init__(
             hass,
             _LOGGER,
             name=name,  # Name of the data. For logging purposes.
             always_update=False,
+            request_refresh_debouncer=debouncer
         )
 
         self.hass = hass
