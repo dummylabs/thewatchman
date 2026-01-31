@@ -1,6 +1,8 @@
 report:
+  name: Report
   description: Run watchman report
-  supports_response: optional
+  response:
+    optional: true
   fields:
     parse_config:
       example: true
