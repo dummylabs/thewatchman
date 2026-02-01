@@ -112,7 +112,7 @@ async def update_or_cleanup_entity(ent_reg, old_uid, new_uid):
             _LOGGER.debug(f"async_setup_entry: 2 entities found in registry. Will remove {old_uid} in favor of {new_uid}.")
         else:
             _LOGGER.debug(f"async_setup_entry: Entity with old uid {old_uid} was migrated to {new_uid}.")
-            ent_reg.async_update_entity(entity_id, new_unique_id=new_uid)
+            ent_reg.async_update_entity(old_entity_id, new_unique_id=new_uid)
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up sensor platform."""
