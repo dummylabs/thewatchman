@@ -15,8 +15,10 @@ LOCK_FILENAME = f"{DOMAIN}.lock"
 DEFAULT_HEADER = "-== WATCHMAN REPORT ==- "
 DEFAULT_CHUNK_SIZE = 3500
 DB_TIMEOUT = 5
+# parsing runs at most once per interval.
 PARSE_COOLDOWN = 60
-DEFAULT_DELAY = 5
+# delay before start parsing
+DEFAULT_DELAY = 10
 
 PACKAGE_NAME = f"custom_components.{DOMAIN}"
 REPORT_SERVICE_NAME = "report"

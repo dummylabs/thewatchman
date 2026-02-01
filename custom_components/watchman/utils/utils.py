@@ -181,3 +181,28 @@ def get_entity_state(hass, entry, friendly_names=False):
             state = "available"
 
     return state, name
+
+
+def obfuscate_id(item_id: str) -> str:
+    """Obfuscate entity or action ID for logging."""
+    if not isinstance(item_id, str) or "." not in item_id:
+        return item_id
+
+    parts = item_id.split(".", 1)
+    domain = parts[0]
+    name = parts[1]
+
+    if len(name) <= 3:
+        return f"{domain}.{name}"
+
+    prefix = name[:3]
+    suffix = name[3:]
+
+    masked_suffix = ""
+    for char in suffix:
+        if char.isalnum():
+            masked_suffix += "*"
+        else:
+            masked_suffix += char
+
+    return f"{domain}.{prefix}{masked_suffix}"
