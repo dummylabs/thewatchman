@@ -4,7 +4,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "watchman"
 DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "0.8.3-dev7"
+VERSION = "0.8.3-dev8"
 
 CONFIG_ENTRY_VERSION = 2
 CONFIG_ENTRY_MINOR_VERSION = 2
