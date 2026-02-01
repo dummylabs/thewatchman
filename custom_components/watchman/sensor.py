@@ -126,7 +126,7 @@ async def async_setup_entry(hass, entry, async_add_devices):
         # fixing the bug in WM prior to 8.x where sensor uids were generated using entry uid
         # which led to duplication of entities after integration reinstall
         # e.g. 0A3F1123_watchman_status -> watchman_status
-        old_uid = f"{entry.entry_id}_{description.key}"
+        old_uid = f"{entry.entry_id}_{DOMAIN}_{description.key}"
         new_uid = f"{DOMAIN}_{description.key}"
         await update_or_cleanup_entity(ent_reg, old_uid, new_uid)
 
