@@ -116,6 +116,7 @@ async def update_or_cleanup_entity(ent_reg, old_uid, new_uid):
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up sensor platform."""
+    _LOGGER.debug("async_setup_entry called")
     coordinator = hass.data[DOMAIN][entry.entry_id]
     ent_reg = er.async_get(hass)
     entities = []
@@ -134,7 +135,6 @@ async def async_setup_entry(hass, entry, async_add_devices):
         # e.g. watchman_watchman_status -> watchman_status
         # FIXME: for development versions only, remove this code after 0.8.3 is released
         dub_uid = f"{DOMAIN}_{DOMAIN}_{description.key}"
-        _LOGGER.debug(f"Migration: looking for {dub_uid}")
         await update_or_cleanup_entity(ent_reg, dub_uid, new_uid)
 
         # if entity_id := ent_reg.async_get_entity_id("sensor", DOMAIN, dub_uid):
