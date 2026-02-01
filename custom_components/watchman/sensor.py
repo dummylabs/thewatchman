@@ -104,6 +104,15 @@ SENSORS_CONFIGURATION = [
     ),
 ]
 
+async def update_or_cleanup_entity(ent_reg, old_uid, new_uid):
+    if old_entity_id := ent_reg.async_get_entity_id("sensor", DOMAIN, old_uid):
+        # we found entities with old-style uid in registry, apply migration logic
+        if ent_reg.async_get_entity_id("sensor", DOMAIN, new_uid):
+            ent_reg.async_remove(old_entity_id)
+            _LOGGER.debug(f"async_setup_entry: 2 entities found in registry. Will remove {old_uid} in favor of {new_uid}.")
+        else:
+            _LOGGER.debug(f"async_setup_entry: Entity with old uid {old_uid} was migrated to {new_uid}.")
+            ent_reg.async_update_entity(entity_id, new_unique_id=new_uid)
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Set up sensor platform."""
@@ -118,18 +127,19 @@ async def async_setup_entry(hass, entry, async_add_devices):
         # e.g. 0A3F1123_watchman_status -> watchman_status
         old_uid = f"{entry.entry_id}_{description.key}"
         new_uid = f"{DOMAIN}_{description.key}"
+        await update_or_cleanup_entity(ent_reg, old_uid, new_uid)
 
-        if entity_id := ent_reg.async_get_entity_id("sensor", DOMAIN, old_uid):
-            _LOGGER.debug(f"async_setup_entry: Entity with old uid {old_uid} was migrated to {new_uid}.")
-            ent_reg.async_update_entity(entity_id, new_unique_id=new_uid)
 
         # fix for duplicated domain uid, introduced by first dev versions of 0.8
         # e.g. watchman_watchman_status -> watchman_status
         # FIXME: for development versions only, remove this code after 0.8.3 is released
         dub_uid = f"{DOMAIN}_{DOMAIN}_{description.key}"
-        if entity_id := ent_reg.async_get_entity_id("sensor", DOMAIN, dub_uid):
-            _LOGGER.debug(f"async_setup_entry: Entity with dub uid {dub_uid} was migrated to {new_uid}.")
-            ent_reg.async_update_entity(entity_id, new_unique_id=new_uid)
+        _LOGGER.debug(f"Migration: looking for {dub_uid}")
+        await update_or_cleanup_entity(ent_reg, dub_uid, new_uid)
+
+        # if entity_id := ent_reg.async_get_entity_id("sensor", DOMAIN, dub_uid):
+        #     _LOGGER.debug(f"async_setup_entry: Entity with dub uid {dub_uid} was migrated to {new_uid}.")
+        #     ent_reg.async_update_entity(entity_id, new_unique_id=new_uid)
 
         # Instantiate sensor classes
         if description.key == SENSOR_LAST_UPDATE:
