@@ -23,7 +23,9 @@ class WatchmanHub:
 
         self._parser = WatchmanParser(db_path, executor=ha_executor)
         self.cached_items = {}
-        
+        self._monitored_entities = None
+        self._monitored_services = None
+
     async def async_init(self):
         """Initialize the hub and verify DB."""
         # Verify DB integrity on startup
@@ -33,6 +35,18 @@ class WatchmanHub:
     def is_scanning(self) -> bool:
         """Return True if a scan is currently in progress."""
         return self._is_scanning
+
+    def is_monitored_entity(self, entity_id: str) -> bool:
+        """Check if entity is monitored (fast cache check)."""
+        if self._monitored_entities is None:
+            return False
+        return entity_id in self._monitored_entities
+
+    def is_monitored_service(self, service_id: str) -> bool:
+        """Check if service is monitored (fast cache check)."""
+        if self._monitored_services is None:
+            return False
+        return service_id in self._monitored_services
 
     async def async_get_parsed_entities(self) -> Dict[str, Any]:
         """Return a dictionary of parsed entities and their locations."""
@@ -89,6 +103,12 @@ class WatchmanHub:
             if parent_id:
                 result_dict[entity_id]["automations"].add(parent_id)
 
+        # Update fast lookups
+        if item_type == 'entity':
+            self._monitored_entities = set(result_dict.keys())
+        elif item_type == 'service':
+            self._monitored_services = set(result_dict.keys())
+
         return result_dict
 
     async def async_parse(
@@ -114,6 +134,9 @@ class WatchmanHub:
             )
 
             self.cached_items = {}
+            # Reset fast cache so it's rebuilt on next access
+            self._monitored_entities = None
+            self._monitored_services = None
         finally:
             self._is_scanning = False
 

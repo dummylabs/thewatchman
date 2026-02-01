@@ -1,15 +1,16 @@
 import asyncio
 from typing import Any
 import os
-from homeassistant.core import callback
+import logging
+from homeassistant.core import callback, CALLBACK_TYPE
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.const import (
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
-    EVENT_STATE_CHANGED,
     EVENT_CALL_SERVICE,
 )
 from homeassistant.components.homeassistant import (
@@ -49,6 +50,7 @@ from .utils.utils import (
     get_entity_state,
     get_config,
     is_action,
+    obfuscate_id,
 )
 from .utils.logger import _LOGGER, INDENT
 import time
@@ -209,7 +211,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         debouncer = Debouncer(
                     hass,
                     _LOGGER,
-                    cooldown=5.0,
+                    cooldown=15.0,
                     immediate=False
                 )
 
@@ -225,11 +227,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self.hub = hub
         self.last_check_duration = 0.0
         self.ignored_labels = set()
+        self.checked_states = set()
         self._status = STATE_WAITING_HA
         self._needs_parse = False
         self._parse_task: asyncio.Task | None = None
         self._cooldown_unsub = None
         self._delay_unsub = None
+        self._unsub_state_listener: CALLBACK_TYPE | None = None
         self._last_parse_time = 0.0
         self._current_delay = 0
 
@@ -259,6 +263,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         """Update the status and notify listeners."""
         self._status = new_status
         self.async_update_listeners()
+
+    def _update_checked_states(self):
+        """Update the set of states that trigger a refresh."""
+        ignored_states = get_config(self.hass, CONF_IGNORED_STATES, [])
+        self.checked_states = set(MONITORED_STATES) - set(ignored_states)
+        _LOGGER.debug(f"Checked states updated: {self.checked_states}")
 
     async def async_get_parsed_entities(self):
         """Return a dictionary of parsed entities and their locations."""
@@ -521,6 +531,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
             # Refresh data and notify sensors
             await self.async_refresh()
+            self.async_update_entity_tracking()
 
         except Exception as err:
             _LOGGER.exception(f"Error during watchman parse: {err}")
@@ -551,6 +562,41 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         if self._status != STATE_WAITING_HA:
             self.hass.async_create_task(self.async_request_refresh())
 
+    @callback
+    def _handle_state_change_event(self, event):
+        """Handle state change event for monitored entities."""
+        if self.hub.is_scanning:
+            _LOGGER.debug("Scan in progress, skipping state change event.")
+            return
+
+        def state_or_missing(state_id):
+            """Return missing state if entity not found."""
+            return "missing" if not event.data[state_id] else event.data[state_id].state
+
+        old_state = state_or_missing("old_state")
+        new_state = state_or_missing("new_state")
+
+        if new_state in self.checked_states or old_state in self.checked_states:
+            if _LOGGER.isEnabledFor(logging.DEBUG):
+                _LOGGER.debug(f"Monitored entity changed: {obfuscate_id(event.data['entity_id'])} from {old_state} to {new_state}")
+            self.hass.async_create_task(self.async_request_refresh())
+
+    @callback
+    def async_update_entity_tracking(self):
+        """Update the state change listener with the current list of monitored entities."""
+        self._update_checked_states()
+        if self._unsub_state_listener:
+            self._unsub_state_listener()
+            self._unsub_state_listener = None
+
+        if self.hub._monitored_entities:
+            _LOGGER.debug("Updating monitored entities listener with %s entities", len(self.hub._monitored_entities))
+            self._unsub_state_listener = async_track_state_change_event(
+                self.hass, list(self.hub._monitored_entities), self._handle_state_change_event
+            )
+        else:
+            _LOGGER.debug("No entities to monitor.")
+
     def subscribe_to_events(self, entry):
         """Subscribe to Home Assistant events."""
         async def async_on_configuration_changed(event):
@@ -563,7 +609,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     SERVICE_RELOAD,
                     SERVICE_RELOAD_ALL,
                 ]:
-                    self.request_parser_rescan(reason=f"service_call: {service}")
+                    self.request_parser_rescan(reason=f"{domain}.{service}")
 
             elif event_type in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
                 self.request_parser_rescan(reason=event_type)
@@ -574,30 +620,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 return
 
             service = f"{event.data['domain']}.{event.data['service']}"
-            parsed_services = await self.async_get_parsed_services()
-            if service in parsed_services:
-                _LOGGER.debug("Monitored service changed: %s", service)
+            if self.hub.is_monitored_service(service):
+                if _LOGGER.isEnabledFor(logging.DEBUG):
+                    _LOGGER.debug("Monitored service changed: %s", obfuscate_id(service))
                 await self.async_request_refresh()
-
-        async def async_on_state_changed(event):
-            """Refresh monitored entities on state change."""
-            if self.hub.is_scanning:
-                _LOGGER.debug("Scan in progress, skipping state change event.")
-                return
-
-            def state_or_missing(state_id):
-                """Return missing state if entity not found."""
-                return "missing" if not event.data[state_id] else event.data[state_id].state
-
-            parsed_entities = await self.async_get_parsed_entities()
-            if event.data["entity_id"] in parsed_entities:
-                ignored_states: list[str] = get_config(self.hass, CONF_IGNORED_STATES, [])
-                old_state = state_or_missing("old_state")
-                new_state = state_or_missing("new_state")
-                checked_states = set(MONITORED_STATES) - set(ignored_states)
-                if new_state in checked_states or old_state in checked_states:
-                    _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
-                    await self.async_request_refresh()
 
         entry.async_on_unload(
             self.hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
@@ -614,9 +640,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         entry.async_on_unload(
             self.hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed)
         )
-        entry.async_on_unload(
-            self.hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed)
-        )
+        # Entity state change monitoring is now handled by async_track_state_change_event
+        # triggered via async_update_entity_tracking in _execute_parse
 
 
     async def _async_update_data(self) -> dict[str, Any]:
