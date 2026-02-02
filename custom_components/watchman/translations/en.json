@@ -110,6 +110,16 @@
       "ignored_files": {
         "name": "Ignored Files"
       }
+    },
+    "button": {
+      "create_report_file": {
+        "name": "Create Report File"
+      }
+    },
+    "text": {
+      "ignored_labels": {
+        "name": "Ignored Labels"
+      }
     }
   }
 }

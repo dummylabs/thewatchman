@@ -11,8 +11,8 @@ from .coordinator import WatchmanCoordinator
 class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
     """Text entity to manage ignored labels."""
 
-    _attr_has_entity_name = False
-    _attr_name = "Watchman Ignored Labels"
+    _attr_has_entity_name = True
+    _attr_translation_key = "ignored_labels"
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:label-off"
 
