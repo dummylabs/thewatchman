@@ -1,7 +1,7 @@
 {
     "name": "Watchman",
     "render_readme": true,
-    "homeassistant": "2025.1.1",
+    "homeassistant": "2025.2.0",
     "zip_release": true,
     "filename": "watchman.zip"
 }
