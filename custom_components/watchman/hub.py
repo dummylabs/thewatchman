@@ -36,12 +36,6 @@ class WatchmanHub:
         """Return True if a scan is currently in progress."""
         return self._is_scanning
 
-    def is_monitored_entity(self, entity_id: str) -> bool:
-        """Check if entity is monitored (fast cache check)."""
-        if self._monitored_entities is None:
-            return False
-        return entity_id in self._monitored_entities
-
     def is_monitored_service(self, service_id: str) -> bool:
         """Check if service is monitored (fast cache check)."""
         if self._monitored_services is None:
