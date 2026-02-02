@@ -63,6 +63,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
         """
         coordinator = config_entry.runtime_data.coordinator
 
+        # prime the coordinator with cached data immediately to minimize startup delay
+        try:
+            _LOGGER.debug("HA is ready. Prime coordinator with cached data.")
+            parsed_entities = await hub.async_get_parsed_entities()
+            parsed_services = await hub.async_get_parsed_services()
+            initial_data = await coordinator.async_process_parsed_data(parsed_entities, parsed_services)
+            coordinator.async_set_updated_data(initial_data)
+        except Exception as e:
+            _LOGGER.error(f"Failed to prime coordinator with cached data: {e}")
+
         if coordinator.safe_mode:
             _LOGGER.info("Watchman is in Safe Mode. Skipping event subscriptions and initial scan.")
             return
@@ -96,17 +106,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
     hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
-
-
-    # prime the coordinator with cached data immediately to minimize startup delay
-    try:
-        _LOGGER.debug("Prime coordinator with cached data.")
-        parsed_entities = await hub.async_get_parsed_entities()
-        parsed_services = await hub.async_get_parsed_services()
-        initial_data = await coordinator.async_process_parsed_data(parsed_entities, parsed_services)
-        coordinator.async_set_updated_data(initial_data)
-    except Exception as e:
-        _LOGGER.error(f"Failed to prime coordinator with cached data: {e}")
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
