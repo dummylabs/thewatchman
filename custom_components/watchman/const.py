@@ -1,6 +1,13 @@
 """Definition of constants."""
 
-from homeassistant.const import Platform
+from homeassistant.const import Platform, SERVICE_RELOAD
+from homeassistant.components.homeassistant import (
+    SERVICE_RELOAD_CORE_CONFIG,
+    SERVICE_RELOAD_ALL,
+    SERVICE_RELOAD_CUSTOM_TEMPLATES
+)
+from homeassistant.components.automation import EVENT_AUTOMATION_RELOADED
+from homeassistant.components.homeassistant.scene import EVENT_SCENE_RELOADED
 
 DOMAIN = "watchman"
 DOMAIN_DATA = f"{DOMAIN}_data"
@@ -68,11 +75,26 @@ CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SERVICE_DATA,
 ]
 
+
+
 CONF_SECTION_APPEARANCE_LOCATION = "appearance_location_options"
 CONF_SECTION_NOTIFY_ACTION = "notify_action_options"
 
-EVENT_AUTOMATION_RELOADED = "automation_reloaded"
-EVENT_SCENE_RELOADED = "scene_reloaded"
+
+# events and service calls monitored by Watchman
+# these events indicate that configuration files
+# changed on disk that requires re-parsing
+WATCHED_EVENTS =[
+    EVENT_AUTOMATION_RELOADED,
+    EVENT_SCENE_RELOADED
+]
+
+WATCHED_SERVICES = [
+    SERVICE_RELOAD_CORE_CONFIG,
+    SERVICE_RELOAD,
+    SERVICE_RELOAD_ALL,
+    SERVICE_RELOAD_CUSTOM_TEMPLATES
+]
 
 SENSOR_LAST_UPDATE = "last_updated"
 SENSOR_MISSING_ENTITIES = "missing_entities"
@@ -89,20 +111,6 @@ STATE_PARSING = "parsing"
 STATE_PENDING = "pending"
 STATE_IDLE = "idle"
 STATE_SAFE_MODE = "safe_mode"
-
-TRACKED_EVENT_DOMAINS = [
-    "homeassistant",
-    "input_boolean",
-    "input_button",
-    "input_select",
-    "input_number",
-    "input_datetime",
-    "person",
-    "input_text",
-    "script",
-    "timer",
-    "zone",
-]
 
 BUNDLED_IGNORED_ITEMS = [
     "timer.cancelled",

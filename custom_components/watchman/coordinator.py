@@ -13,11 +13,6 @@ from homeassistant.const import (
     EVENT_SERVICE_REMOVED,
     EVENT_CALL_SERVICE,
 )
-from homeassistant.components.homeassistant import (
-    SERVICE_RELOAD_CORE_CONFIG,
-    SERVICE_RELOAD,
-    SERVICE_RELOAD_ALL,
-)
 
 from .utils.report import fill
 from .const import (
@@ -42,9 +37,10 @@ from .const import (
     LOCK_FILENAME,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
-    TRACKED_EVENT_DOMAINS,
     MONITORED_STATES,
     DEFAULT_DELAY,
+    WATCHED_EVENTS,
+    WATCHED_SERVICES
 )
 from .utils.utils import (
     get_entity_state,
@@ -429,10 +425,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         if self._delay_unsub:
             self._delay_unsub.cancel()
             self._delay_unsub = None
-            _LOGGER.debug(f"Debouncing: previously scheduled parsing will be postponed for another {max(self._current_delay, delay)} sec")
+            _LOGGER.debug(f"⏳ Debouncing: previously scheduled parsing will be postponed for another {max(self._current_delay, delay)} sec")
 
         if self._cooldown_unsub:
-            _LOGGER.debug("Debouncing: parser in cooldown, will be scheduled in 60 sec.")
+            _LOGGER.debug("⏳ Debouncing: parser in cooldown, will be scheduled in 60 sec.")
 
         # Smart Debounce: use the maximum of current pending delay or new delay
         self._current_delay = max(self._current_delay, delay)
@@ -478,7 +474,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             return
 
         # 3. Start background task
-        _LOGGER.debug(f"🚀 Start parse: force_immediate={force_immediate}")
+        _LOGGER.debug(f"🚀 Background parse started: force_immediate={force_immediate}")
         self._cooldown_unsub = None
         self._parse_task = self.hass.async_create_background_task(
             self._execute_parse(), "watchman_parse"
@@ -547,7 +543,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
             # Check if another parse was requested during execution
             if self._needs_parse:
-                _LOGGER.debug(f"Another request occured during parser execution, will be repeated after cooldown ({PARSE_COOLDOWN} sec)")
+                _LOGGER.debug(f"⏳ Another request occured during parser execution, will be repeated after cooldown ({PARSE_COOLDOWN} sec)")
                 self._schedule_parse()
 
     async def async_get_last_parse_duration(self):
@@ -602,16 +598,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         async def async_on_configuration_changed(event):
             event_type = event.event_type
             if event_type == EVENT_CALL_SERVICE:
-                domain = event.data.get("domain", None)
+
                 service = event.data.get("service", None)
-                if domain in TRACKED_EVENT_DOMAINS and service in [
-                    SERVICE_RELOAD_CORE_CONFIG,
-                    SERVICE_RELOAD,
-                    SERVICE_RELOAD_ALL,
-                ]:
+                if service in WATCHED_SERVICES:
+                    domain = event.data.get("domain", None)
                     self.request_parser_rescan(reason=f"{domain}.{service}")
 
-            elif event_type in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
+            elif event_type in WATCHED_EVENTS:
                 self.request_parser_rescan(reason=event_type)
 
         async def async_on_service_changed(event):
@@ -640,9 +633,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         entry.async_on_unload(
             self.hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed)
         )
-        # Entity state change monitoring is now handled by async_track_state_change_event
-        # triggered via async_update_entity_tracking in _execute_parse
-
 
     async def _async_update_data(self) -> dict[str, Any]:
         """
