@@ -49,7 +49,6 @@ CONF_IGNORED_FILES = "ignored_files"
 CONF_HEADER = "report_header"
 CONF_REPORT_PATH = "report_path"
 CONF_IGNORED_ITEMS = "ignored_items"
-CONF_IGNORED_LABELS = "ignored_labels"
 CONF_SERVICE_NAME = "service"
 CONF_ACTION_NAME = "action"
 CONF_SERVICE_DATA = "data"
@@ -127,7 +126,6 @@ PLATFORMS = [Platform.SENSOR, Platform.TEXT, Platform.BUTTON]
 
 DEFAULT_OPTIONS = {
     CONF_IGNORED_ITEMS: "",
-    CONF_IGNORED_LABELS: "",
     CONF_IGNORED_STATES: [],
     CONF_EXCLUDE_DISABLED_AUTOMATION: False,
     CONF_IGNORED_FILES: "*.cache*, */custom_components/*, *.git*",

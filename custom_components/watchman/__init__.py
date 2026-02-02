@@ -31,7 +31,6 @@ from .const import (
     CONF_HEADER,
     CONF_REPORT_PATH,
     CONF_IGNORED_ITEMS,
-    CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     CONF_COLUMNS_WIDTH,
     CONF_STARTUP_DELAY,
@@ -231,9 +230,6 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         # Sequential migration logic for minor versions
         if current_minor < 2:
             _LOGGER.info("Migrating Watchman entry to minor version 2")
-
-            if CONF_IGNORED_LABELS not in data:
-                data[CONF_IGNORED_LABELS] = DEFAULT_OPTIONS[CONF_IGNORED_LABELS]
 
             # Enforce minimum startup delay
             current_delay = data.get(CONF_STARTUP_DELAY, 0)
