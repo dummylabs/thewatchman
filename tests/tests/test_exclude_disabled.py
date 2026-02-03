@@ -65,7 +65,7 @@ async def test_exclude_disabled_automations(hass):
     entry.runtime_data.force_parsing = False
     
     # Setup Coordinator
-    coordinator = WatchmanCoordinator(hass, None, "test_coordinator", hub)
+    coordinator = WatchmanCoordinator(hass, None, "test_coordinator", hub, version="0.0.0")
     
     # Step 1: Flag is FALSE
     # Mock get_config to return False for CONF_EXCLUDE_DISABLED_AUTOMATION
