@@ -2,7 +2,9 @@
 .vscode
 sync_repo.sh
 deploy.sh
+deploy_ha.sh
 watchman.db
+test_config
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
