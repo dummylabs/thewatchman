@@ -9,4 +9,5 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN ln -sf /usr/local/bin/python /bin/python3
+RUN rm -f /etc/apt/sources.list.d/yarn.list
 RUN pip install --upgrade pip
