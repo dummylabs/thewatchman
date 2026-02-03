@@ -89,10 +89,10 @@ data:
 Besides of the report, integration provides a few diagnostic sensors which can be used within automations or dashboards:
 Sensor                             | Meaning
 ---------------------------------- | -------------
-`sensor.watchman_status`           | See "Status meanings" below
+`sensor.watchman_status`           | See "Status meanings" below.
 `sensor.watchman_last_parse`       | Date and time of last parse. Usually it only occurs during HA restart or when HA configuration is reloaded.
-`sensor.watchman_missing_entities` | Number of flagged entities in the report
-`sensor.watchman_missing_actions`  | Number of flagged actions in the report
+`sensor.watchman_missing_entities` | Number of flagged entities in the report.
+`sensor.watchman_missing_actions`  | Number of flagged actions in the report.
 `sensor.watchman_last_updated`     | Date and time of the last update for the sensors above. Watchman sensors update whenever a configured entity changes status (e.g., becomes unavailable, goes missing, or returns to a functional state).
 `sensor.watchman_parse_duration`   | Time taken for the last parse attempt. This value helps monitor system performance to ensure that Watchman operates efficiently without over-consuming system resources.
 `sensor.watchman_processed_files`  | The number of configuration files processed by Wathcman. 
