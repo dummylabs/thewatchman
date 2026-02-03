@@ -1,5 +1,6 @@
 """Tests for watchman integration."""
 
+import os
 from copy import deepcopy
 from unittest.mock import patch
 from homeassistant.core import HomeAssistant
@@ -27,7 +28,9 @@ async def async_init_integration(
 ) -> MockConfigEntry:
     """Set up integration in Home Assistant."""
     config = deepcopy(DEFAULT_OPTIONS)
-    config[CONF_INCLUDED_FOLDERS] = "/workspaces/thewatchman/tests/data"
+    # Use absolute path for test data based on current working directory
+    test_data_dir = os.path.join(os.getcwd(), "tests/data")
+    config[CONF_INCLUDED_FOLDERS] = test_data_dir
     # Disable startup delay for tests to speed up execution
     config[CONF_STARTUP_DELAY] = 0
 

@@ -1,0 +1,24 @@
+[project]
+name = "thewatchman"
+version = "0.8.3"
+description = "thewatchman"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "homeassistant==2025.4.4",
+    "prettytable>=3.17.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-homeassistant-custom-component>=0.13.236",
+]
+
+[tool.pytest.ini_options]
+# add current folder to modules path
+pythonpath = "."
+testpaths = [
+    "tests",
+]
+asyncio_mode = "auto"
