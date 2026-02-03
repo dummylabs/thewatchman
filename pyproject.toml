@@ -1,6 +1,6 @@
 [project]
 name = "thewatchman"
-version = "0.8.3"
+version = "0.0.0"
 description = "thewatchman"
 readme = "README.md"
 requires-python = ">=3.13"
