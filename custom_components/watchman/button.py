@@ -4,7 +4,8 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, REPORT_SERVICE_NAME
+from .const import DOMAIN, REPORT_SERVICE_NAME, CONF_REPORT_PATH
+from .utils.utils import get_config
 
 
 class WatchmanReportButton(ButtonEntity):
@@ -31,7 +32,21 @@ class WatchmanReportButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle the button press."""
-        await self.hass.services.async_call(DOMAIN, REPORT_SERVICE_NAME, {})
+        await self.hass.services.async_call(
+            DOMAIN,
+            REPORT_SERVICE_NAME,
+            {"parse_config": True},
+            blocking=True
+        )
+        report_path = get_config(self.hass, CONF_REPORT_PATH)
+        await self.hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "🛡️Watchman",
+                "message": f"Watchman Report is ready: {report_path}"
+            }
+        )
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
