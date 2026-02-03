@@ -11,7 +11,7 @@ from homeassistant.components.homeassistant.scene import EVENT_SCENE_RELOADED
 
 DOMAIN = "watchman"
 DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "0.8.3"
+
 
 CONFIG_ENTRY_VERSION = 2
 CONFIG_ENTRY_MINOR_VERSION = 2

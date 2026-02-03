@@ -6,7 +6,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
-from .const import DOMAIN, VERSION
+from .const import DOMAIN
 
 
 class WatchmanEntity(CoordinatorEntity):
@@ -27,7 +27,7 @@ class WatchmanEntity(CoordinatorEntity):
             manufacturer="dummylabs",
             model="Watchman",
             name="Watchman",
-            sw_version=VERSION,
+            sw_version=coordinator.version,
             entry_type=DeviceEntryType.SERVICE,
             configuration_url="https://github.com/dummylabs/thewatchman",
         )

@@ -2,6 +2,7 @@ import asyncio
 from typing import Any
 import os
 import logging
+from unittest.mock import PropertyMock
 from homeassistant.core import callback, CALLBACK_TYPE
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -200,9 +201,9 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
 
 
 class WatchmanCoordinator(DataUpdateCoordinator):
-    """My custom coordinator."""
+    """Watchman coordinator."""
 
-    def __init__(self, hass, logger, name, hub):
+    def __init__(self, hass, logger, name, hub, version):
         """Initialize watchmman coordinator."""
         debouncer = Debouncer(
                     hass,
@@ -232,6 +233,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._unsub_state_listener: CALLBACK_TYPE | None = None
         self._last_parse_time = 0.0
         self._current_delay = 0
+        self._version = version
 
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
@@ -244,6 +246,11 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_PROCESSED_FILES: 0,
             COORD_DATA_IGNORED_FILES: 0,
         }
+
+    @property
+    def version(self):
+        """Return version of the integration from manifest file."""
+        return self._version
 
     @property
     def status(self):

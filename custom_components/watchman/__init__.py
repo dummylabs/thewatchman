@@ -2,13 +2,13 @@
 
 import os
 from dataclasses import dataclass
-from homeassistant.util import dt as dt_util
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
 )
+from homeassistant.loader import async_get_integration
 
 from .services import WatchmanServicesSetup
 from .coordinator import WatchmanCoordinator
@@ -39,8 +39,7 @@ from .const import (
     REPORT_SERVICE_NAME,
     STATE_WAITING_HA,
     STATE_SAFE_MODE,
-    PLATFORMS,
-    VERSION
+    PLATFORMS
 )
 
 type WMConfigEntry = ConfigEntry[WMData]
@@ -88,12 +87,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
         coordinator.request_parser_rescan(reason="startup", delay=startup_delay)
 
-    _LOGGER.info("Watchman integration started [%s]", VERSION)
     db_path = hass.config.path(".storage", DB_FILENAME)
+    integration = await async_get_integration(hass, DOMAIN)
     hub = WatchmanHub(hass, db_path)
     await hub.async_init()
-    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title, hub=hub)
+    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title.lower(), hub=hub, version=integration.version)
     config_entry.runtime_data = WMData(coordinator, hub)
+    _LOGGER.info("Watchman integration started [%s]", coordinator.version)
 
     # Check for previous crash
     lock_path = hass.config.path(".storage", LOCK_FILENAME)
@@ -105,7 +105,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
     hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
-
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
@@ -160,7 +159,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
     if config_entry.version > CONFIG_ENTRY_VERSION:
         # the user has downgraded from a future version
         _LOGGER.error(
-            "Unable to migratre Watchman entry from version %d.%d. If integration version was downgraded, either reinstall or use backup to restore its data.",
+            "Unable to migrate Watchman entry from version %d.%d. If integration version was downgraded, either reinstall or use backup to restore its data.",
             config_entry.version,
             config_entry.minor_version,
         )
