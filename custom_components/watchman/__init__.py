@@ -91,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     integration = await async_get_integration(hass, DOMAIN)
     hub = WatchmanHub(hass, db_path)
     await hub.async_init()
-    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title.lower(), hub=hub, version=integration.version)
+    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title.lower(), hub=hub, version=str(integration.version))
     config_entry.runtime_data = WMData(coordinator, hub)
     _LOGGER.info("Watchman integration started [%s]", coordinator.version)
 
