@@ -5,7 +5,7 @@ from homeassistant.helpers import label_registry as lr
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-from .const import DOMAIN, VERSION
+from .const import DOMAIN
 from .coordinator import WatchmanCoordinator
 
 class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
@@ -20,14 +20,14 @@ class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
         """Initialize the entity."""
         self.hass = hass
         self.coordinator = coordinator
-        self._attr_unique_id = f"{coordinator.name}_ignored_labels"
+        self._attr_unique_id = f"{DOMAIN}_ignored_labels"
         self._attr_native_value = ""
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "watchman_unique_id")},
             manufacturer="dummylabs",
             model="Watchman",
             name="Watchman",
-            sw_version=VERSION,
+            sw_version=coordinator.version,
             entry_type=DeviceEntryType.SERVICE,
             configuration_url="https://github.com/dummylabs/thewatchman",
         )
@@ -43,7 +43,7 @@ class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
     async def async_set_value(self, value: str) -> None:
         """Set the text value."""
         valid_labels, invalid_labels = self._validate_labels(value)
-        
+
         if invalid_labels:
             await self.hass.services.async_call(
                 "persistent_notification",
@@ -59,7 +59,7 @@ class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
         clean_value = ", ".join(valid_labels)
         self._attr_native_value = clean_value
         self.async_write_ha_state()
-        
+
         # Update coordinator
         self.coordinator.update_ignored_labels(valid_labels)
 
@@ -73,20 +73,21 @@ class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
         """Validate labels against registry."""
         registry = lr.async_get(self.hass)
         existing_labels = {l.label_id for l in registry.async_list_labels()}
-        
+
         input_labels = self._parse_labels(value)
         valid = []
         invalid = []
-        
+
         for label in input_labels:
             if label in existing_labels:
                 valid.append(label)
             else:
                 invalid.append(label)
-                
+
         return valid, invalid
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the text platform."""
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    #coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator = config_entry.runtime_data.coordinator
     async_add_entities([WatchmanIgnoredLabelsText(hass, coordinator)])

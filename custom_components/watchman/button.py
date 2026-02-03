@@ -3,7 +3,8 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.core import HomeAssistant
-from .const import DOMAIN, VERSION, REPORT_SERVICE_NAME
+
+from .const import DOMAIN, REPORT_SERVICE_NAME
 
 
 class WatchmanReportButton(ButtonEntity):
@@ -14,16 +15,16 @@ class WatchmanReportButton(ButtonEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:file-document-outline"
 
-    def __init__(self, hass: HomeAssistant, entry_id: str):
+    def __init__(self, hass: HomeAssistant, config_entry: str):
         """Initialize the entity."""
         self.hass = hass
-        self._attr_unique_id = f"{entry_id}_report_button"
+        self._attr_unique_id = f"{DOMAIN}_report_button"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "watchman_unique_id")},
             manufacturer="dummylabs",
             model="Watchman",
             name="Watchman",
-            sw_version=VERSION,
+            sw_version=config_entry.runtime_data.coordinator.version,
             entry_type=DeviceEntryType.SERVICE,
             configuration_url="https://github.com/dummylabs/thewatchman",
         )
@@ -35,4 +36,4 @@ class WatchmanReportButton(ButtonEntity):
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the button platform."""
-    async_add_entities([WatchmanReportButton(hass, config_entry.entry_id)])
+    async_add_entities([WatchmanReportButton(hass, config_entry)])
