@@ -5,14 +5,12 @@ on:
     types: 
       - published
 
-permissions: {}
-
 jobs:
   release:
     name: "Upload release"
     runs-on: "ubuntu-latest"
     permissions:
-      contents: write
+      contents: write # Этого достаточно для загрузки ассетов
     steps:
       - name: "Checkout the repository"
         uses: "actions/checkout@v4.2.2"
@@ -27,3 +25,4 @@ jobs:
         uses: "softprops/action-gh-release@v2.0.9"
         with:
           files: ${{ github.workspace }}/custom_components/watchman/watchman.zip
+          token: ${{ secrets.GITHUB_TOKEN }} 
