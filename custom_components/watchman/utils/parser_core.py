@@ -75,7 +75,7 @@ _ESPHOME_ALLOWED_KEYS = {'service', 'action', 'entity_id'}
 
 # Regex patterns to identify entitites definitions
 _ENTITY_PATTERN = re.compile(
-    r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?((" + "|".join(_ALL_DOMAINS) + r")\.[a-z0-9_]+)",
+    r"(?:^|[^a-zA-Z0-9_./\\])(?:states\.)?((" + "|".join(_ALL_DOMAINS) + r")\.[a-z0-9_]+)",
     re.IGNORECASE
 )
 

@@ -14,5 +14,7 @@
 12. **Custom Tags:** Custom YAML tags (like `!secret`, `!include`) are handled by a custom loader that treats them as strings or skips them to prevent parsing errors.
 13. **Valid Domains:** Extracted strings are only considered entities if they start with a valid Home Assistant domain (based on a comprehensive internal list).
 14. **File Type Detection:** The parser detects the file structure (Home Assistant YAML, JSON, or ESPHome YAML) to apply the correct parsing logic. Files with .json extension are ignored to prevent false positives (e.g., settings.json) as they are not Home Assistant configuration files
-15. **Bundled Ignores:** A predefined list of specific patterns (e.g., `timer.cancelled`, `date.*`, `event.*`) is used to filter out known system strings that look like entities but aren't.
-16. **States Prefix:** The parser automatically handles and strips the `states.` prefix (e.g., converting `states.light.living_room` to `light.living_room`) ensuring correct entity identification in templates.
+15. Bundled Ignores: A predefined list of specific patterns (e.g., `timer.cancelled`, `date.*`, `event.*`) is used to filter out known system strings that look like entities but aren't.
+16. States Prefix: The parser automatically handles and strips the `states.` prefix (e.g., converting `states.light.living_room` to `light.living_room`) ensuring correct entity identification in templates.
+17. Path Separation: To avoid false positives with file paths (e.g., `/local/images/person.jpg`), the parser ensures that the character immediately preceding a potential entity ID is not a path separator (`/` or `\`).
+
