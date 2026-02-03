@@ -1,9 +1,0 @@
--== Watchman Report ==-
-
--== Congratulations, all 3 actions from your config are available!
-
--== Congratulations, all 4 entities from your config are available!
-
--== Report created on 01 Jan 1970 00:00:00
--== Parsed 3 files in 0.01s., ignored 0 files
--== Generated in: 0.00s. Validated in: 0.10s.
