@@ -207,7 +207,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         debouncer = Debouncer(
                     hass,
                     _LOGGER,
-                    cooldown=15.0,
+                    cooldown=5.0,
                     immediate=False
                 )
 
@@ -634,22 +634,35 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self.hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed)
         )
 
+    async def async_shutdown(self):
+        """Cancel any scheduled tasks and listeners."""
+        await super().async_shutdown()
+        if self._cooldown_unsub:
+            self._cooldown_unsub.cancel()
+            self._cooldown_unsub = None
+
+        if self._delay_unsub:
+            self._delay_unsub.cancel()
+            self._delay_unsub = None
+
+        if self._unsub_state_listener:
+            self._unsub_state_listener()
+            self._unsub_state_listener = None
+
     async def _async_update_data(self) -> dict[str, Any]:
         """
         Update Watchman sensors.
-        Reactive: Read from Hub/DB without triggering a parse.
+        Read from Hub/DB without triggering a parse.
         """
         _LOGGER.debug("Coordinator: refresh watchman sensors requested")
         if self.safe_mode:
             _LOGGER.debug("Watchman in safe mode, async_update_data will return {}")
             return {}
 
-        # concurrency check
         if self.hub.is_scanning:
             _LOGGER.debug("Coordinator: Hub is scanning. Use cached data for sensors to avoid race conditions.")
             return self.data
 
-        # 2. Read Phase
         try:
             parsed_service_list = await self.async_get_parsed_services()
             parsed_entity_list = await self.async_get_parsed_entities()

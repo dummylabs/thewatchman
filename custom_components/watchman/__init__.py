@@ -132,6 +132,9 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
 async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disable=unused-argument
     """Handle integration unload."""
 
+    if hasattr(config_entry, "runtime_data") and config_entry.runtime_data:
+        await config_entry.runtime_data.coordinator.async_shutdown()
+
     if hass.services.has_service(DOMAIN, REPORT_SERVICE_NAME):
         hass.services.async_remove(DOMAIN, REPORT_SERVICE_NAME)
 
