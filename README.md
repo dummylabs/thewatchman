@@ -87,9 +87,26 @@ data:
 > Existing users who upgraded from previous versions will have old sensor name to preserve compatibilty with their scripts and dashboards. They can rename sensor themselves or just remove integration and install it again.
 
 Besides of the report, integration provides a few sensors which can be used within automations or dashboards:
-- sensor.watchman_missing_entities
-- sensor.watchman_missing_actions
-- sensor.watchman_last_updated
+Sensor                           | Meaning
+-------------------------------- | -------------
+`sensor.watchman_status`           | See "Status meanings" below
+`sensor.watchman_last_parse`       | Date and time of last parse. Usually it only occurs during HA restart or when HA configuration is reloaded.
+`sensor.watchman_missing_entities` | Number of missing entities in the report
+`sensor.watchman_missing_actions`  | Number of missing actions in the report
+`sensor.watchman_last_updated`     | Date and time of the last update for the sensors above. Watchman sensors update whenever a configured entity changes status (e.g., becomes unavailable, goes missing, or returns to a functional state).
+`sensor.watchman_parse_duration`   | Time taken for the last parse attempt. This value helps monitor system performance to ensure that Watchman operates efficiently without over-consuming system resources.
+`sensor.watchman_processed_files`  | The number of configuration files processed by Wathcman. 
+`sensor.watchman_ignored_files`    | The number of ignored configuration files.
+
+## Status Meanings
+The status indicates what Watchman is currently doing:
+
+- **Idle**: Doing nothing; everything is working fine.
+- **Waiting for HA**: Occurs after a reboot. Watchman waits for HA to fully load before starting monitoring.
+- **Parsing**: Watchman is parsing your configuration. The first run may take some time, but subsequent runs use cached results and should take only fractions of a second.
+- **Pending**: Parser will start parsing soon.
+- **Safe Mode**: Watchman detected that Home Assistant restarted during an unfinished parse, which might indicate a freezing problem. It will not process events, sensors, or files.
+Tip: Safe Mode can be disabled by deleting the watchman.lock (or watchman_dev.lock) file in the .storage folder, or simply by reinstalling the integration.
 
 
 ## Example of a watchman report
