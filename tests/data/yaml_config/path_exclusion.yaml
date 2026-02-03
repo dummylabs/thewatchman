@@ -1,0 +1,14 @@
+# Test for Heuristic 17: Path Separation
+# Entities that look like paths should be ignored
+
+# 1. Path with forward slash (ignored)
+entity_picture: /local/images/person.jpg
+
+# 2. Path with backslash (ignored)
+win_path: 'C:\images\person.jpg'
+
+# 3. Valid entities
+entity: person.valid_entity
+other: person.space_preceded
+key: person.colon_preceded
+quoted: "person.quoted_entity"
