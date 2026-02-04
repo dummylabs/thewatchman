@@ -1,56 +1,56 @@
 import asyncio
-from typing import Any
-import os
 import logging
-from unittest.mock import PropertyMock
-from homeassistant.core import callback, CALLBACK_TYPE
-from homeassistant.util import dt as dt_util
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+import os
+import time
+from typing import Any
+
+from homeassistant.const import (
+    EVENT_CALL_SERVICE,
+    EVENT_SERVICE_REGISTERED,
+    EVENT_SERVICE_REMOVED,
+)
+from homeassistant.core import CALLBACK_TYPE, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.const import (
-    EVENT_SERVICE_REGISTERED,
-    EVENT_SERVICE_REMOVED,
-    EVENT_CALL_SERVICE,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
-from .utils.report import fill
 from .const import (
-    COORD_DATA_ENTITY_ATTRS,
-    COORD_DATA_LAST_UPDATE,
-    COORD_DATA_MISSING_ENTITIES,
-    COORD_DATA_MISSING_ACTIONS,
-    COORD_DATA_SERVICE_ATTRS,
-    COORD_DATA_PARSE_DURATION,
-    COORD_DATA_LAST_PARSE,
-    COORD_DATA_PROCESSED_FILES,
-    COORD_DATA_IGNORED_FILES,
+    CONF_EXCLUDE_DISABLED_AUTOMATION,
     CONF_IGNORED_FILES,
     CONF_IGNORED_STATES,
-    CONF_EXCLUDE_DISABLED_AUTOMATION,
-    STATE_WAITING_HA,
-    STATE_PARSING,
-    STATE_PENDING,
-    STATE_IDLE,
-    STATE_SAFE_MODE,
-    PARSE_COOLDOWN,
-    LOCK_FILENAME,
+    COORD_DATA_ENTITY_ATTRS,
+    COORD_DATA_IGNORED_FILES,
+    COORD_DATA_LAST_PARSE,
+    COORD_DATA_LAST_UPDATE,
+    COORD_DATA_MISSING_ACTIONS,
+    COORD_DATA_MISSING_ENTITIES,
+    COORD_DATA_PARSE_DURATION,
+    COORD_DATA_PROCESSED_FILES,
+    COORD_DATA_SERVICE_ATTRS,
+    DEFAULT_DELAY,
     EVENT_AUTOMATION_RELOADED,
     EVENT_SCENE_RELOADED,
+    LOCK_FILENAME,
     MONITORED_STATES,
-    DEFAULT_DELAY,
+    PARSE_COOLDOWN,
+    STATE_IDLE,
+    STATE_PARSING,
+    STATE_PENDING,
+    STATE_SAFE_MODE,
+    STATE_WAITING_HA,
     WATCHED_EVENTS,
-    WATCHED_SERVICES
+    WATCHED_SERVICES,
 )
+from .utils.logger import _LOGGER, INDENT
+from .utils.report import fill
 from .utils.utils import (
-    get_entity_state,
     get_config,
+    get_entity_state,
     is_action,
     obfuscate_id,
 )
-from .utils.logger import _LOGGER, INDENT
-import time
 
 parser_lock = asyncio.Lock()
 
@@ -175,10 +175,9 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
                         f"{INDENT} {type_label} {entry} is only used by disabled automations {automations}, skipped ({occurrences})"
                     )
                     continue
-                else:
-                    _LOGGER.debug(
-                        f"{INDENT} {type_label} {entry} is used both by enabled and disabled automations {automations}, added to the report ({occurrences})"
-                    )
+                _LOGGER.debug(
+                    f"{INDENT} {type_label} {entry} is used both by enabled and disabled automations {automations}, added to the report ({occurrences})"
+                )
 
             missing_items[entry] = occurrences
 
@@ -282,8 +281,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         return await self.hub.async_get_parsed_services()
 
     async def async_process_parsed_data(self, parsed_entity_list, parsed_service_list):
-        """
-        Process parsed data to calculate missing items and build sensor attributes.
+        """Process parsed data to calculate missing items and build sensor attributes.
         This is separated to allow 'priming' the coordinator from cache without a full scan.
         """
         exclude_disabled_automations = get_config(
@@ -402,8 +400,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         return info
 
     def request_parser_rescan(self, reason=None, force=False, delay=DEFAULT_DELAY):
-        """
-        Request a background scan.
+        """Request a background scan.
         If force=True, ignore cooldown and delay.
         """
         self._needs_parse = True
@@ -454,7 +451,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     def _schedule_parse(self, force_immediate=False):
         """Schedule the parse task based on state and cooldown."""
-
         if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
             #  do nothing as parsing is already running
             # _needs_parse=True will trigger next parsing request with cooldown
@@ -488,8 +484,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         )
 
     async def async_force_parse(self):
-        """
-        Execute a blocking parse for the report service.
+        """Execute a blocking parse for the report service.
         Returns a Task/Coroutine that finishes when parsing is complete.
         """
         # Cancel pending cooldown
@@ -657,8 +652,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self._unsub_state_listener = None
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """
-        Update Watchman sensors.
+        """Update Watchman sensors.
         Read from Hub/DB without triggering a parse.
         """
         _LOGGER.debug("Coordinator: refresh watchman sensors requested")

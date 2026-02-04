@@ -1,19 +1,20 @@
 """Test report service response."""
 import os
-import pytest
 from unittest.mock import MagicMock
+
 from custom_components.watchman.const import (
-    DOMAIN,
     CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
+    DOMAIN,
 )
+import pytest
 from tests import async_init_integration
+
 
 @pytest.mark.asyncio
 async def test_report_service_response(hass, new_test_data_dir, tmp_path):
     """Test that the report service returns parsing statistics."""
-
     # Define source config directory (can be minimal)
     config_dir = os.path.join(new_test_data_dir, "reports", "test_report_generation")
 

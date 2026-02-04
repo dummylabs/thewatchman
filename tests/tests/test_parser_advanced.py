@@ -1,17 +1,20 @@
 """Tests for advanced parser heuristics."""
-import os
-import pytest
 import asyncio
+import os
+
 from custom_components.watchman.utils.parser_core import WatchmanParser
+import pytest
+
 
 @pytest.fixture
 def parser_client(tmp_path):
     """Create a WatchmanParser instance with a temporary database."""
     db_path = tmp_path / "watchman.db"
     client = WatchmanParser(str(db_path))
-    yield client
+    return client
 
 import shutil
+
 
 def test_ignored_patterns(parser_client, new_test_data_dir, tmp_path):
     """Test ignoring of variables, function calls, concatenation, and wildcards."""
@@ -22,7 +25,7 @@ def test_ignored_patterns(parser_client, new_test_data_dir, tmp_path):
     dest_dir.mkdir()
     dest_file = dest_dir / "patterns_ignored.yaml"
     shutil.copy(source_file, dest_file)
-    
+
     # Scan the temp directory which contains ONLY the file we want to test
     entities, _, _, _, _ = asyncio.run(parser_client.async_parse(str(dest_dir), []))
 

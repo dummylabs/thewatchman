@@ -1,19 +1,20 @@
 """Tests for watchman integration."""
 
-import os
 from copy import deepcopy
+import os
 from unittest.mock import patch
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.watchman.const import (
-    DOMAIN,
     CONF_INCLUDED_FOLDERS,
     CONF_STARTUP_DELAY,
-    DEFAULT_OPTIONS,
     CONFIG_ENTRY_MINOR_VERSION,
+    DEFAULT_OPTIONS,
+    DOMAIN,
 )
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
 
 def from_list(list):
@@ -66,7 +67,12 @@ async def async_init_integration(
     if DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]:
         coordinator = hass.data[DOMAIN][config_entry.entry_id]
         import asyncio
-        from custom_components.watchman.const import STATE_IDLE, STATE_SAFE_MODE, STATE_WAITING_HA
+
+        from custom_components.watchman.const import (
+            STATE_IDLE,
+            STATE_SAFE_MODE,
+            STATE_WAITING_HA,
+        )
 
         # Wait until we are in a stable state (IDLE or SAFE_MODE)
         # We want to avoid returning while in WAITING_HA or PARSING

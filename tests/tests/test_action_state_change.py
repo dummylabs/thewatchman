@@ -1,20 +1,22 @@
 """Test Watchman reaction to action state changes."""
-import pytest
 from datetime import timedelta
-from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
 from custom_components.watchman.const import (
-    DOMAIN,
-    CONF_INCLUDED_FOLDERS,
     CONF_IGNORED_STATES,
+    CONF_INCLUDED_FOLDERS,
+    DOMAIN,
     SENSOR_MISSING_ACTIONS,
 )
+import pytest
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from tests import async_init_integration
+
+from homeassistant.util import dt as dt_util
+
 
 @pytest.mark.asyncio
 async def test_action_state_change_tracking(hass, tmp_path):
     """Test that Watchman updates missing services sensor when a tracked service is registered/removed."""
-
     # 1. Setup: Create a config file with a monitored service
     config_dir = tmp_path / "config"
     config_dir.mkdir()

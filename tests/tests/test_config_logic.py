@@ -1,7 +1,8 @@
 """Unit tests for configuration logic helper functions."""
 from unittest.mock import patch
+
 from custom_components.watchman.utils.utils import get_included_folders
-from custom_components.watchman.const import CONF_INCLUDED_FOLDERS
+
 
 def test_get_included_folders_default(hass):
     """Test fallback to config dir when no folders specified."""

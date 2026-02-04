@@ -1,7 +1,7 @@
-import sys
 import argparse
 import logging
 import os
+import sys
 
 CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*"
 
@@ -73,8 +73,8 @@ def main():
     parser.add_argument("--debug", action='store_true', help="Enable debug logging to debug.log")
 
     if len(sys.argv) == 1 and sys.stdin.isatty():
-        # Only print help if no args and interactive, but here we have defaults so maybe not? 
-        # The original code exited if len(sys.argv) == 1. 
+        # Only print help if no args and interactive, but here we have defaults so maybe not?
+        # The original code exited if len(sys.argv) == 1.
         # If I have a default arg, len(sys.argv) is 1 if I run without args.
         # But 'path' is optional. So running `python parser.py` should work and scan cwd.
         pass
@@ -87,7 +87,7 @@ def main():
     # Configure logging
     log_level = logging.DEBUG if args.debug else logging.ERROR
     handlers = [logging.StreamHandler(sys.stderr)]
-    
+
     if args.debug:
         handlers.append(logging.FileHandler("debug.log", mode='w'))
 

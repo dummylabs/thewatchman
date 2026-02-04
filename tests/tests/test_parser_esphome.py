@@ -1,15 +1,17 @@
 """Tests for ESPHome configuration parsing."""
-import os
-import pytest
 import asyncio
+import os
+
 from custom_components.watchman.utils.parser_core import WatchmanParser
+import pytest
+
 
 @pytest.fixture
 def parser_client(tmp_path):
     """Create a WatchmanParser instance with a temporary database."""
     db_path = tmp_path / "watchman.db"
     client = WatchmanParser(str(db_path))
-    yield client
+    return client
 
 def test_esphome_context(parser_client, new_test_data_dir):
     """Test strict parsing for ESPHome files."""

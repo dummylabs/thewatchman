@@ -1,3 +1,7 @@
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, SupportsResponse
+from homeassistant.exceptions import ServiceValidationError
+
 from .const import (
     CONF_ACTION_NAME,
     CONF_ALLOWED_SERVICE_PARAMS,
@@ -15,10 +19,6 @@ from .utils.logger import _LOGGER
 from .utils.report import async_report_to_file, async_report_to_notification
 from .utils.utils import get_config
 
-from homeassistant.exceptions import ServiceValidationError
-from homeassistant.core import HomeAssistant, SupportsResponse
-from homeassistant.config_entries import ConfigEntry
-
 
 class WatchmanServicesSetup:
     """Class to handle Integration Services."""
@@ -33,10 +33,9 @@ class WatchmanServicesSetup:
 
     def setup_services(self):
         """Initialise the services in Hass."""
-
         self.hass.services.async_register(
-            DOMAIN, 
-            REPORT_SERVICE_NAME, 
+            DOMAIN,
+            REPORT_SERVICE_NAME,
             self.async_handle_report,
             supports_response=SupportsResponse.OPTIONAL
         )

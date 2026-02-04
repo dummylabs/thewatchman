@@ -1,15 +1,17 @@
 """Test report generation using snapshots."""
 import os
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from custom_components.watchman.const import (
-    DOMAIN,
+    CONF_IGNORED_STATES,
     CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
-    CONF_IGNORED_STATES,
     CONF_SECTION_APPEARANCE_LOCATION,
+    DOMAIN,
 )
+import pytest
 from tests import async_init_integration
+
 
 # Mock stats to ensure deterministic output for snapshots
 async def mock_stats(hass, start_time):
@@ -20,21 +22,20 @@ async def mock_stats(hass, start_time):
 @pytest.mark.asyncio
 async def test_report_generation_snapshot(hass, new_test_data_dir, tmp_path, snapshot):
     """Test full report generation matching a snapshot."""
-    
     # Define source config directory
     config_dir = os.path.join(new_test_data_dir, "reports", "test_report_generation")
-    
+
     # Mock hass.config.config_dir to the source dir so relative paths are calculated correctly
     hass.config.config_dir = config_dir
 
     # Mock hass.config.path to redirect .storage/watchman.db to tmp_path
     def mock_path_side_effect(*args):
         return str(tmp_path / os.path.join(*args))
-    
+
     hass.config.path = MagicMock(side_effect=mock_path_side_effect)
 
     report_file = tmp_path / "watchman_report.txt"
-    
+
     # Initialize integration pointing to our dedicated folder
     await async_init_integration(
         hass,
@@ -53,7 +54,7 @@ async def test_report_generation_snapshot(hass, new_test_data_dir, tmp_path, sna
     hass.states.async_set("light.living_room", "on") # Exists
     hass.states.async_set("binary_sensor.motion_sensor", "unavailable") # Unavailable
     hass.states.async_set("input_boolean.unknown_boolean", "unknown") # Unknown
-    
+
     # Register dummy services for standard domains so they are detected as "available"
     # This mimics a real HA instance where these integrations are loaded.
     for domain in ["light", "switch", "alarm_control_panel", "vacuum", "script", "notify", "automation"]:

@@ -1,10 +1,10 @@
 """ConfigFlow definition for Watchman."""
 
 from types import MappingProxyType
-from typing import Any, Dict
+from typing import Any
 
-import anyio
 import voluptuous as vol
+
 from homeassistant import data_entry_flow
 from homeassistant.config_entries import (
     ConfigFlow,
@@ -12,8 +12,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import selector
+from homeassistant.helpers import config_validation as cv, selector
 
 from .const import (
     CONF_COLUMNS_WIDTH,
@@ -23,7 +22,6 @@ from .const import (
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
-    CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_STARTUP_DELAY,
@@ -90,8 +88,8 @@ async def _async_validate_input(
     hass: HomeAssistant,
     user_input: dict[str, Any],
 ) -> tuple[MappingProxyType[str, str], MappingProxyType[str, str]]:
-    errors: Dict[str, str] = {}
-    placeholders: Dict[str, str] = {}
+    errors: dict[str, str] = {}
+    placeholders: dict[str, str] = {}
 
     columns_width = get_val(
         user_input, CONF_COLUMNS_WIDTH, CONF_SECTION_APPEARANCE_LOCATION
@@ -100,7 +98,7 @@ async def _async_validate_input(
         try:
             columns_width = [int(x) for x in columns_width.split(",") if x.strip()]
             if len(columns_width) != 3:
-                raise ValueError()
+                raise ValueError
             columns_width = COLUMNS_WIDTH_SCHEMA(columns_width)
         except (ValueError, vol.Invalid):
             errors["base"] = "invalid_columns_width"
@@ -162,7 +160,6 @@ class OptionsFlowHandler(OptionsFlow):
         2. To validate values entered by user (user_imput = {user_data})
            If no errors found, it should return creates_entry
         """
-
         _LOGGER.debug(
             f"-======::OptionsFlowHandler.async_step_init::======- \nuser_input= {user_input},\nentry_data={self.config_entry.data}"
         )
@@ -191,24 +188,23 @@ class OptionsFlowHandler(OptionsFlow):
                 )
                 # await self.hass.config_entries.async_reload(self.config_entry.entry_id)
                 return self.async_create_entry(title="", data={})
-            else:
-                # in case of errors in user_input, display them in the form
-                # use previous user input as suggested values
-                _LOGGER.debug(
-                    "::OptionsFlowHandler.async_step_init:: validation results errors:[%s] placehoders:[%s]",
-                    errors,
-                    placeholders,
-                )
-                placeholders["url"] = "https://github.com/dummylabs/thewatchman#configuration"
-                return self.async_show_form(
-                    step_id="init",
-                    data_schema=self.add_suggested_values_to_schema(
-                        _get_data_schema(),
-                        user_input,
-                    ),
-                    errors=dict(errors),
-                    description_placeholders=dict(placeholders),
-                )
+            # in case of errors in user_input, display them in the form
+            # use previous user input as suggested values
+            _LOGGER.debug(
+                "::OptionsFlowHandler.async_step_init:: validation results errors:[%s] placehoders:[%s]",
+                errors,
+                placeholders,
+            )
+            placeholders["url"] = "https://github.com/dummylabs/thewatchman#configuration"
+            return self.async_show_form(
+                step_id="init",
+                data_schema=self.add_suggested_values_to_schema(
+                    _get_data_schema(),
+                    user_input,
+                ),
+                errors=dict(errors),
+                description_placeholders=dict(placeholders),
+            )
         # we asked to provide default values for the form
         return self.async_show_form(
             step_id="init",

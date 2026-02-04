@@ -1,13 +1,13 @@
 """Definition of constants."""
 
-from homeassistant.const import Platform, SERVICE_RELOAD
-from homeassistant.components.homeassistant import (
-    SERVICE_RELOAD_CORE_CONFIG,
-    SERVICE_RELOAD_ALL,
-    SERVICE_RELOAD_CUSTOM_TEMPLATES
-)
 from homeassistant.components.automation import EVENT_AUTOMATION_RELOADED
+from homeassistant.components.homeassistant import (
+    SERVICE_RELOAD_ALL,
+    SERVICE_RELOAD_CORE_CONFIG,
+    SERVICE_RELOAD_CUSTOM_TEMPLATES,
+)
 from homeassistant.components.homeassistant.scene import EVENT_SCENE_RELOADED
+from homeassistant.const import SERVICE_RELOAD, Platform
 
 DOMAIN = "watchman"
 DOMAIN_DATA = f"{DOMAIN}_data"

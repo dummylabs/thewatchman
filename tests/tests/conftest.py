@@ -1,15 +1,17 @@
 """Test configuration for parser tests."""
-import pytest
 import os
-
 from unittest.mock import patch
+
+import pytest
+
 from homeassistant.helpers.debounce import Debouncer
+
 
 # Enable custom component loading
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Automatically enable loading custom integrations in all tests."""
-    yield
+    return
 
 @pytest.fixture(autouse=True)
 def patch_debouncer():

@@ -1,19 +1,20 @@
 """Tests for Home Assistant specific domains parsing."""
-import os
-import pytest
 import asyncio
+import os
+
 from custom_components.watchman.utils.parser_core import WatchmanParser
+import pytest
+
 
 @pytest.fixture
 def parser_client(tmp_path):
     """Create a WatchmanParser instance with a temporary database."""
     db_path = tmp_path / "watchman.db"
     client = WatchmanParser(str(db_path))
-    yield client
+    return client
 
 def test_ha_domains_parsing(parser_client, new_test_data_dir):
     """Test parsing of Home Assistant specific domains."""
-    
     yaml_file = os.path.join(new_test_data_dir, "yaml_config", "ha_domains.yaml")
     yaml_dir = os.path.dirname(yaml_file)
 
@@ -46,13 +47,13 @@ def test_ha_domains_parsing(parser_client, new_test_data_dir):
         # We expect to find at least one entity starting with "domain."
         # For 'sun', it is 'sun.sun'
         # For others, like 'input_boolean', it is 'input_boolean.test_bool'
-        
+
         found = False
         for entity in entities:
             if entity.startswith(f"{domain}."):
                 found = True
                 break
-        
+
         assert found, f"Should detect entity for domain '{domain}'"
 
     # Specific assertions for clarity

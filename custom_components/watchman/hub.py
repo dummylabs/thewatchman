@@ -1,13 +1,15 @@
 """Watchman Hub - Asynchronous wrapper for WatchmanParser."""
-import os
+from collections.abc import Callable
 import fnmatch
 import sqlite3
-from typing import List, Dict, Any, Tuple, Callable
+from typing import Any
 
 from homeassistant.core import HomeAssistant
-from .utils.parser_core import WatchmanParser, get_domains
-from .utils.logger import _LOGGER
+
 from .const import BUNDLED_IGNORED_ITEMS
+from .utils.logger import _LOGGER
+from .utils.parser_core import WatchmanParser, get_domains
+
 
 class WatchmanHub:
     """Asynchronous wrapper (Adapter) for the synchronous parser."""
@@ -42,22 +44,22 @@ class WatchmanHub:
             return False
         return service_id in self._monitored_services
 
-    async def async_get_parsed_entities(self) -> Dict[str, Any]:
+    async def async_get_parsed_entities(self) -> dict[str, Any]:
         """Return a dictionary of parsed entities and their locations."""
         return await self.hass.async_add_executor_job(
             self._get_parsed_items_sync, 'entity'
         )
 
-    async def async_get_parsed_services(self) -> Dict[str, Any]:
+    async def async_get_parsed_services(self) -> dict[str, Any]:
         """Return a dictionary of parsed services and their locations."""
         return await self.hass.async_add_executor_job(
             self._get_parsed_items_sync, 'service'
         )
 
-    def _get_parsed_items_sync(self, item_type: str) -> Dict[str, Any]:
+    def _get_parsed_items_sync(self, item_type: str) -> dict[str, Any]:
         """Fetch and filter parsed items from the database."""
-        from .utils.utils import get_config
         from .const import CONF_IGNORED_ITEMS
+        from .utils.utils import get_config
 
         ignored_items = get_config(self.hass, CONF_IGNORED_ITEMS, [])
         final_ignored_items = list(set((ignored_items or []) + BUNDLED_IGNORED_ITEMS))
@@ -107,7 +109,7 @@ class WatchmanHub:
 
     async def async_parse(
         self,
-        ignored_files: List[str],
+        ignored_files: list[str],
         force: bool = False
     ) -> None:
         """Asynchronous wrapper for the parse method."""
@@ -134,11 +136,11 @@ class WatchmanHub:
         finally:
             self._is_scanning = False
 
-    async def async_get_last_parse_info(self) -> Dict[str, Any]:
+    async def async_get_last_parse_info(self) -> dict[str, Any]:
         """Return the duration and timestamp of the last successful scan."""
         return await self.hass.async_add_executor_job(self._get_last_parse_info_sync)
 
-    def _get_last_parse_info_sync(self) -> Dict[str, Any]:
+    def _get_last_parse_info_sync(self) -> dict[str, Any]:
         """Return the duration and timestamp of the last successful scan."""
         try:
             return self._parser.get_last_parse_info()

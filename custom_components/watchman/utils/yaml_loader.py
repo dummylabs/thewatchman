@@ -5,6 +5,7 @@ import yaml
 
 class StringWithLine(str):
     """String subclass that holds the line number and tag info."""
+
     def __new__(cls, value, line, is_tag=False):
         obj = str.__new__(cls, value)
         obj.line = line
@@ -13,6 +14,7 @@ class StringWithLine(str):
 
 class LineLoader(yaml.SafeLoader):
     """Custom YAML loader that attaches line numbers to scalars."""
+
     def construct_scalar(self, node):
         value = super().construct_scalar(node)
         if isinstance(value, str):
@@ -20,8 +22,7 @@ class LineLoader(yaml.SafeLoader):
         return value
 
     def flatten_mapping(self, node):
-        """
-        Override flatten_mapping to handle merge keys ('<<') safely.
+        """Override flatten_mapping to handle merge keys ('<<') safely.
         """
         merge = []
         index = 0

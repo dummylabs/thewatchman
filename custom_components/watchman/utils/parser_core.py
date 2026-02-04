@@ -1,45 +1,50 @@
-import os
-import sqlite3
+import asyncio
+from collections.abc import Awaitable, Callable
+import contextlib
 import datetime
-import time
 import fnmatch
 import logging
+import os
 import re
-import yaml
-import contextlib
-import asyncio
+import sqlite3
+import time
+from typing import Any, TypedDict
+
 import anyio
-from typing import List, Tuple, Dict, Any, Callable, Awaitable, Optional, TypedDict
-from .logger import _LOGGER
+import yaml
+
 from ..const import DB_TIMEOUT
+from .logger import _LOGGER
 from .parser_const import (
-    YAML_FILE_EXTS,
+    BUNDLED_IGNORED_ITEMS,
+    ESPHOME_ALLOWED_KEYS,
+    ESPHOME_PATH_SEGMENT,
+    HA_DOMAINS,
+    IGNORED_DIRS,
+    IGNORED_KEYS,
     JSON_FILE_EXTS,
-    STORAGE_WHITELIST,
     MAX_FILE_SIZE,
     PLATFORMS,
-    HA_DOMAINS,
-    BUNDLED_IGNORED_ITEMS,
-    ESPHOME_PATH_SEGMENT,
-    ESPHOME_ALLOWED_KEYS,
-    IGNORED_KEYS,
-    IGNORED_DIRS,
+    STORAGE_WHITELIST,
+    YAML_FILE_EXTS,
 )
 from .yaml_loader import LineLoader
 
+
 class FoundItem(TypedDict):
     """Structure of an item found by the parser."""
+
     line: int
     entity_id: str
     item_type: str
     is_key: bool
-    key_name: Optional[str]
+    key_name: str | None
     is_automation_context: bool
-    parent_type: Optional[str]
-    parent_id: Optional[str]
-    parent_alias: Optional[str]
+    parent_type: str | None
+    parent_id: str | None
+    parent_alias: str | None
 
-def get_domains(hass=None) -> List[str]:
+def get_domains(hass=None) -> list[str]:
     """Return a list of valid domains."""
     platforms = PLATFORMS
     try:
@@ -104,7 +109,7 @@ def _detect_file_type(filepath: str) -> str:
 
     return 'unknown'
 
-def _is_automation(node: Dict) -> bool:
+def _is_automation(node: dict) -> bool:
     """Check if a node looks like an automation definition."""
     has_trigger = "trigger" in node or "triggers" in node
     has_action = "action" in node or "actions" in node
@@ -120,13 +125,12 @@ def _is_automation(node: Dict) -> bool:
         return True
     return False
 
-def _is_script(node: Dict) -> bool:
+def _is_script(node: dict) -> bool:
     """Check if a node looks like a script definition."""
     return "sequence" in node
 
-def _derive_context(node: Dict, parent_context: Dict[str, Any], parent_key: str = None) -> Dict[str, Any]:
-    """
-    Derive the context for a node based on its content and parent key.
+def _derive_context(node: dict, parent_context: dict[str, Any], parent_key: str = None) -> dict[str, Any]:
+    """Derive the context for a node based on its content and parent key.
     If the node defines an automation or script, return a new context.
     Otherwise, return the parent context.
     """
@@ -135,7 +139,7 @@ def _derive_context(node: Dict, parent_context: Dict[str, Any], parent_key: str 
 
     c_id = node.get("id")
     c_alias = node.get("alias")
-    
+
     # Heuristic: use parent key as ID if no explicit ID is present
     # This is common in named scripts: `script_name: { sequence: ... }`
     if not c_id and parent_key:
@@ -172,8 +176,7 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
             pre_quote = char
             pre_quote_idx = i
             break
-        else:
-            break
+        break
 
     if not pre_quote:
         return False
@@ -188,8 +191,7 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
             post_quote = char
             post_quote_idx = i
             break
-        else:
-            break
+        break
 
     if not post_quote:
         return False
@@ -216,9 +218,8 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
 
     return False
 
-def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[FoundItem], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: Dict[str, Any] = None, expected_item_type: str = 'entity', parent_key: str = None):
-    """
-    Recursively searches for entities and services.
+def _recursive_search(data: Any, breadcrumbs: list[Any], results: list[FoundItem], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: dict[str, Any] = None, expected_item_type: str = 'entity', parent_key: str = None):
+    """Recursively searches for entities and services.
     """
     if current_context is None:
         current_context = DEFAULT_CONTEXT
@@ -360,9 +361,8 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[FoundItem
             })
 
 
-def _parse_content(content: str, file_type: str, filepath: str = None, logger: logging.Logger = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> List[FoundItem]:
-    """
-    Parses YAML/JSON content and extracts entities.
+def _parse_content(content: str, file_type: str, filepath: str = None, logger: logging.Logger = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> list[FoundItem]:
+    """Parses YAML/JSON content and extracts entities.
 
     Returns a list of FoundItem dictionaries.
     """
@@ -381,16 +381,15 @@ def _parse_content(content: str, file_type: str, filepath: str = None, logger: l
              logger.error(f"Critical error parsing content in {filepath or 'unknown'}: {e}")
         return []
 
-    results: List[FoundItem] = []
+    results: list[FoundItem] = []
     if data:
         # Pass DEFAULT_CONTEXT explicitly if needed, or let it default to None -> DEFAULT_CONTEXT inside
         _recursive_search(data, [], results, file_type, entity_pattern)
 
     return results
 
-def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> Tuple[int, List[FoundItem], str]:
-    """
-    Process a single file synchronously.
+def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> tuple[int, list[FoundItem], str]:
+    """Process a single file synchronously.
     This function is intended to be run in an executor.
 
     Returns a tuple of (count, items, detected_file_type).
@@ -406,7 +405,7 @@ def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTER
             _LOGGER.error(f"File {filepath} is too large ({file_size} bytes), skipping. Max size: {MAX_FILE_SIZE} bytes.")
             return 0, [], file_type
 
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8') as f:
             content = f.read()
 
         # Call the engine
@@ -423,9 +422,8 @@ async def default_async_executor(func: Callable, *args: Any) -> Any:
     """Default executor that runs the synchronous function in a thread."""
     return await asyncio.to_thread(func, *args)
 
-def _scan_files_sync(root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
-    """
-    Synchronous, blocking file scanner using os.walk.
+def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
+    """Synchronous, blocking file scanner using os.walk.
     Executed as a single job in the executor.
     """
     scanned_files = []
@@ -613,9 +611,8 @@ class WatchmanParser:
             conn.close()
             raise
 
-    async def _async_scan_files_legacy(self, root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
-        """
-        Phase 1: Asynchronous file scanning using anyio.
+    async def _async_scan_files_legacy(self, root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
+        """Phase 1: Asynchronous file scanning using anyio.
         Returns a list of file metadata and a count of ignored files.
         """
         scanned_files = []
@@ -689,16 +686,14 @@ class WatchmanParser:
 
         return scanned_files, ignored_count
 
-    async def _async_scan_files(self, root_path: str, ignored_patterns: List[str]) -> Tuple[List[Dict[str, Any]], int]:
-        """
-        Phase 1: Synchronous file scanning (offloaded to thread).
+    async def _async_scan_files(self, root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
+        """Phase 1: Synchronous file scanning (offloaded to thread).
         Calls _scan_files_sync in executor.
         """
         return await self.executor(_scan_files_sync, root_path, ignored_patterns)
 
-    async def async_scan(self, root_path: str, ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> None:
-        """
-        Orchestrates the scanning process.
+    async def async_scan(self, root_path: str, ignored_files: list[str], force: bool = False, custom_domains: list[str] = None, base_path: str = None) -> None:
+        """Orchestrates the scanning process.
         If force = True, unmodified files will be scanned again
         """
         start_time = time.monotonic()
@@ -850,7 +845,7 @@ class WatchmanParser:
                 return
             raise
 
-    def get_last_parse_info(self) -> Dict[str, Any]:
+    def get_last_parse_info(self) -> dict[str, Any]:
         """Return the duration, timestamp, ignored files count and processed files count of the last successful scan."""
         with self._db_session() as conn:
             cursor = conn.cursor()
@@ -869,7 +864,7 @@ class WatchmanParser:
                 }
         return {"duration": 0.0, "timestamp": None, "ignored_files_count": 0, "processed_files_count": 0}
 
-    def get_processed_files(self) -> List[Tuple]:
+    def get_processed_files(self) -> list[tuple]:
         """Fetch all processed files from the database."""
         with self._db_session() as conn:
             cursor = conn.cursor()
@@ -880,15 +875,15 @@ class WatchmanParser:
             """,)
             return cursor.fetchall()
 
-    def get_found_items(self, item_type: str = None) -> List[Tuple]:
-        """
-        Fetch found items from the database.
+    def get_found_items(self, item_type: str = None) -> list[tuple]:
+        """Fetch found items from the database.
 
         Args:
             item_type: 'entity', 'service', or 'all' (default).
 
         Returns:
             List of tuples: (entity_id, path, line, item_type, parent_type, parent_alias, parent_id)
+
         """
         query = """
             SELECT fi.entity_id, pf.path, fi.line, fi.item_type, fi.parent_type, fi.parent_alias, fi.parent_id
@@ -907,9 +902,8 @@ class WatchmanParser:
             cursor.execute(query, params)
             return cursor.fetchall()
 
-    def get_automation_context(self, entity_id: str) -> Dict[str, Any]:
-        """
-        Get automation/script context for a specific entity or service.
+    def get_automation_context(self, entity_id: str) -> dict[str, Any]:
+        """Get automation/script context for a specific entity or service.
         Returns the first match found.
         """
         with self._db_session() as conn:
@@ -931,9 +925,8 @@ class WatchmanParser:
                 }
             return None
 
-    async def async_parse(self, root_path: str, ignored_files: List[str], force: bool = False, custom_domains: List[str] = None, base_path: str = None) -> Tuple[List[str], List[str], int, int, Dict]:
-        """
-        Params:
+    async def async_parse(self, root_path: str, ignored_files: list[str], force: bool = False, custom_domains: list[str] = None, base_path: str = None) -> tuple[list[str], list[str], int, int, dict]:
+        """Params:
             root_path: where to scan
             ignored_files: file paths which should be ignored during scan
             force (bool): if false, files witch unchanged modification time will be not be parsed
@@ -946,6 +939,7 @@ class WatchmanParser:
             parsed_files_count (int): Number of entries in processed_files.
             ignored_files_count (int): Always 0 (stub).
             entity_to_automations (dict): Empty dictionary (stub).
+
         """
         await self.async_scan(root_path, ignored_files, force, custom_domains, base_path)
 

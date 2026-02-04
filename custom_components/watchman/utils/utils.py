@@ -7,6 +7,7 @@ from types import MappingProxyType
 from typing import Any
 
 import anyio
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, split_entity_id
 from homeassistant.helpers import entity_registry as er
@@ -102,8 +103,7 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
         section_name = CONF_SECTION_APPEARANCE_LOCATION
         if key == CONF_COLUMNS_WIDTH:
             return to_listi(entry.data, CONF_COLUMNS_WIDTH, section_name)
-        else:
-            return get_val(entry.data, key, section_name)
+        return get_val(entry.data, key, section_name)
 
     return default
 

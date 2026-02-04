@@ -1,46 +1,44 @@
 """The Watchman integration."""
 
-import os
 from dataclasses import dataclass
+import os
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
 )
+from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 
-from .services import WatchmanServicesSetup
-from .coordinator import WatchmanCoordinator
-from .utils.logger import _LOGGER
-from .utils.utils import get_config
-from .hub import WatchmanHub
-
-
 from .const import (
-    CONFIG_ENTRY_MINOR_VERSION,
-    CONFIG_ENTRY_VERSION,
-    DEFAULT_OPTIONS,
-    DEFAULT_REPORT_FILENAME,
-    DEFAULT_DELAY,
-    DB_FILENAME,
-    LOCK_FILENAME,
-    DOMAIN,
-    DOMAIN_DATA,
-    CONF_IGNORED_FILES,
+    CONF_COLUMNS_WIDTH,
+    CONF_FRIENDLY_NAMES,
     CONF_HEADER,
-    CONF_REPORT_PATH,
+    CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
-    CONF_COLUMNS_WIDTH,
-    CONF_STARTUP_DELAY,
-    CONF_FRIENDLY_NAMES,
+    CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
+    CONF_STARTUP_DELAY,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
+    DB_FILENAME,
+    DEFAULT_DELAY,
+    DEFAULT_OPTIONS,
+    DEFAULT_REPORT_FILENAME,
+    DOMAIN,
+    DOMAIN_DATA,
+    LOCK_FILENAME,
+    PLATFORMS,
     REPORT_SERVICE_NAME,
-    STATE_WAITING_HA,
     STATE_SAFE_MODE,
-    PLATFORMS
+    STATE_WAITING_HA,
 )
+from .coordinator import WatchmanCoordinator
+from .hub import WatchmanHub
+from .services import WatchmanServicesSetup
+from .utils.logger import _LOGGER
+from .utils.utils import get_config
 
 type WMConfigEntry = ConfigEntry[WMData]
 
@@ -56,8 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     """Set up this integration using UI."""
 
     async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
-        """
-        Update watchman sensors and start listening to HA events when Home Assistant started.
+        """Update watchman sensors and start listening to HA events when Home Assistant started.
         """
         coordinator = config_entry.runtime_data.coordinator
 
@@ -130,7 +127,6 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disable=unused-argument
     """Handle integration unload."""
-
     if hasattr(config_entry, "runtime_data") and config_entry.runtime_data:
         await config_entry.runtime_data.coordinator.async_shutdown()
 

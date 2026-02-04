@@ -8,38 +8,37 @@ from homeassistant.components.sensor.const import (
     SensorDeviceClass,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory
-from homeassistant.helpers import entity_registry as er
+from homeassistant.const import MATCH_ALL, EntityCategory
 from homeassistant.core import callback
-from homeassistant.const import MATCH_ALL
-from .entity import WatchmanEntity
-from .utils.logger import _LOGGER
+from homeassistant.helpers import entity_registry as er
 
 from .const import (
     COORD_DATA_ENTITY_ATTRS,
-    COORD_DATA_LAST_UPDATE,
-    COORD_DATA_MISSING_ENTITIES,
-    COORD_DATA_MISSING_ACTIONS,
-    COORD_DATA_SERVICE_ATTRS,
-    COORD_DATA_PARSE_DURATION,
-    COORD_DATA_LAST_PARSE,
-    COORD_DATA_PROCESSED_FILES,
     COORD_DATA_IGNORED_FILES,
+    COORD_DATA_LAST_PARSE,
+    COORD_DATA_LAST_UPDATE,
+    COORD_DATA_MISSING_ACTIONS,
+    COORD_DATA_MISSING_ENTITIES,
+    COORD_DATA_PARSE_DURATION,
+    COORD_DATA_PROCESSED_FILES,
+    COORD_DATA_SERVICE_ATTRS,
     DOMAIN,
+    SENSOR_IGNORED_FILES,
+    SENSOR_LAST_PARSE,
     SENSOR_LAST_UPDATE,
     SENSOR_MISSING_ACTIONS,
     SENSOR_MISSING_ENTITIES,
-    SENSOR_STATUS,
     SENSOR_PARSE_DURATION,
-    SENSOR_LAST_PARSE,
     SENSOR_PROCESSED_FILES,
-    SENSOR_IGNORED_FILES,
-    STATE_WAITING_HA,
+    SENSOR_STATUS,
+    STATE_IDLE,
     STATE_PARSING,
     STATE_PENDING,
-    STATE_IDLE,
     STATE_SAFE_MODE,
+    STATE_WAITING_HA,
 )
+from .entity import WatchmanEntity
+from .utils.logger import _LOGGER
 
 SENSORS_CONFIGURATION = [
     SensorEntityDescription(

@@ -1,12 +1,14 @@
 """Text entity for Watchman ignored labels."""
 from homeassistant.components.text import TextEntity
-from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers import label_registry as lr
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.restore_state import RestoreEntity
+
 from .const import DOMAIN
 from .coordinator import WatchmanCoordinator
+
 
 class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
     """Text entity to manage ignored labels."""

@@ -1,17 +1,20 @@
 """Integration test for report exclusion logic."""
-import pytest
 import os
-from unittest.mock import patch, MagicMock
-from homeassistant.helpers import entity_registry as er
+from unittest.mock import MagicMock, patch
+
 from custom_components.watchman.const import (
-    DOMAIN,
+    CONF_EXCLUDE_DISABLED_AUTOMATION,
+    CONF_IGNORED_STATES,
     CONF_INCLUDED_FOLDERS,
     CONF_REPORT_PATH,
-    CONF_IGNORED_STATES,
     CONF_SECTION_APPEARANCE_LOCATION,
-    CONF_EXCLUDE_DISABLED_AUTOMATION,
+    DOMAIN,
 )
+import pytest
 from tests import async_init_integration
+
+from homeassistant.helpers import entity_registry as er
+
 
 # Mock stats to ensure deterministic output for snapshots
 async def mock_stats(hass, start_time):
@@ -22,11 +25,10 @@ async def mock_stats(hass, start_time):
 @pytest.mark.asyncio
 async def test_report_exclusion_integration(hass, tmp_path, snapshot, new_test_data_dir):
     """Test report generation with disabled automation exclusion."""
-    
     # Define source config directory
     # We point directly to the test data folder
     config_dir = os.path.join(new_test_data_dir, "reports", "test_report_exclusion")
-    
+
     # Mock hass.config.config_dir to the source dir so relative paths are calculated correctly
     hass.config.config_dir = config_dir
 
@@ -34,9 +36,9 @@ async def test_report_exclusion_integration(hass, tmp_path, snapshot, new_test_d
     # This prevents creating .storage folder in tests/data
     def mock_path_side_effect(*args):
         return str(tmp_path / os.path.join(*args))
-    
+
     hass.config.path = MagicMock(side_effect=mock_path_side_effect)
-    
+
     report_file = tmp_path / "report.txt"
 
 

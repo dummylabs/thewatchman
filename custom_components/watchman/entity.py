@@ -1,11 +1,12 @@
 """Represents Watchman service in the device registry of Home Assistant."""
 
-from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
+
 from .const import DOMAIN
 
 

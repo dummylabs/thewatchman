@@ -1,14 +1,15 @@
-import pytest
 import sqlite3
-from unittest.mock import MagicMock, patch
-from custom_components.watchman.const import DOMAIN, COORD_DATA_MISSING_ENTITIES
+from unittest.mock import patch
+
+from custom_components.watchman.const import COORD_DATA_MISSING_ENTITIES, DOMAIN
 from custom_components.watchman.utils.parser_core import WatchmanParser
+import pytest
 from tests import async_init_integration
+
 
 @pytest.mark.asyncio
 async def test_coordinator_resilience_read_timeout(hass, tmp_path):
     """Test coordinator handles DB read timeout (locking) gracefully."""
-
     # Setup integration normally first
     config_dir = tmp_path / "config"
     config_dir.mkdir()
@@ -33,7 +34,6 @@ async def test_coordinator_resilience_read_timeout(hass, tmp_path):
 @pytest.mark.asyncio
 async def test_coordinator_resilience_parse_timeout(hass, tmp_path):
     """Test coordinator handles DB write timeout during parsing gracefully."""
-
     config_dir = tmp_path / "config"
     config_dir.mkdir()
 
@@ -51,7 +51,6 @@ async def test_coordinator_resilience_parse_timeout(hass, tmp_path):
 @pytest.mark.asyncio
 async def test_coordinator_resilience_info_timeout(hass, tmp_path):
     """Test coordinator handles DB timeout when fetching last parse info."""
-
     config_dir = tmp_path / "config"
     config_dir.mkdir()
 

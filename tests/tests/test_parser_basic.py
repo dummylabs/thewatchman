@@ -1,15 +1,17 @@
 """Tests for basic parser functionality."""
-import os
-import pytest
 import asyncio
+import os
+
 from custom_components.watchman.utils.parser_core import WatchmanParser
+import pytest
+
 
 @pytest.fixture
 def parser_client(tmp_path):
     """Create a WatchmanParser instance with a temporary database."""
     db_path = tmp_path / "watchman.db"
     client = WatchmanParser(str(db_path))
-    yield client
+    return client
 
 def test_basic_yaml_parsing(parser_client, new_test_data_dir):
     """Test parsing of a standard YAML file with valid and invalid domains."""
@@ -54,20 +56,20 @@ def test_json_files_ignored(parser_client, new_test_data_dir):
     # I should adjust the test expectation or use a directory that really has only ignored files.
     # Since I cannot easily isolate, I will accept that files_parsed > 0 if lovelace_dashboards is found.
     # However, dashboard.json MUST be ignored.
-    
+
     # assert files_parsed == 0  <-- This might fail now.
     # assert "sensor.dashboard_sensor" not in entities
     # assert "light.dashboard_toggle" not in services
-    
+
     # Let's see. If I renamed the file, it will be found.
     # I should separate dashboard.json test from storage test if possible.
     # But they are in the same tree.
     # I will remove the assertion on files_parsed count being 0, or check specifically for dashboard.json being ignored.
     # But async_parse returns aggregates.
-    
+
     # If I want to verify dashboard.json is ignored, I check entities from it.
     # "sensor.dashboard_sensor" comes from dashboard.json.
-    
+
     assert "sensor.dashboard_sensor" not in entities, "Should not parse entities from ignored .json file"
     assert "light.dashboard_toggle" not in services
 

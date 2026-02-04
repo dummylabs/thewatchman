@@ -1,10 +1,10 @@
 """Button entity for Watchman."""
 from homeassistant.components.button import ButtonEntity
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 
-from .const import DOMAIN, REPORT_SERVICE_NAME, CONF_REPORT_PATH
+from .const import CONF_REPORT_PATH, DOMAIN, REPORT_SERVICE_NAME
 from .utils.utils import get_config
 
 

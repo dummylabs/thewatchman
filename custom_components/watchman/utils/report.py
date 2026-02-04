@@ -1,24 +1,27 @@
-"Reporting function of Watchman."
+"""Reporting function of Watchman."""
 
 from datetime import datetime
-from typing import Any
-import pytz
 from textwrap import wrap
 import time
+from typing import Any
+
+from prettytable import PrettyTable
+import pytz
+
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from prettytable import PrettyTable
-from .utils import get_config, get_entity_state, get_entry, is_action
-from .logger import _LOGGER
+
 from ..const import (
     CONF_ACTION_NAME,
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
-    DEFAULT_HEADER,
     CONF_HEADER,
+    DEFAULT_HEADER,
     REPORT_ENTRY_TYPE_ENTITY,
     REPORT_ENTRY_TYPE_SERVICE,
 )
+from .logger import _LOGGER
+from .utils import get_config, get_entity_state, get_entry, is_action
 
 
 async def parsing_stats(hass, start_time):
@@ -45,9 +48,8 @@ async def report(
     parse_config=None,
 ):
     """Generate a report of missing entities and services."""
-    from ..coordinator import renew_missing_items_list
-
     from ..const import CONF_EXCLUDE_DISABLED_AUTOMATION
+    from ..coordinator import renew_missing_items_list
 
     start_time = time.time()
     entry = get_entry(hass)
@@ -145,7 +147,7 @@ def table_renderer(hass, entry_type, missing_items, parsed_list):
             table.add_row(row)
         table.align = "l"
         return table.get_string()
-    elif entry_type == REPORT_ENTRY_TYPE_ENTITY:
+    if entry_type == REPORT_ENTRY_TYPE_ENTITY:
         friendly_names = get_config(hass, CONF_FRIENDLY_NAMES, False)
         header = ["Entity ID", "State", "Location"]
         table.field_names = header
@@ -162,8 +164,7 @@ def table_renderer(hass, entry_type, missing_items, parsed_list):
         table.align = "l"
         return table.get_string()
 
-    else:
-        return f"Table render error: unknown entry type: {entry_type}"
+    return f"Table render error: unknown entry type: {entry_type}"
 
 
 def text_renderer(hass, entry_type, missing_items, parsed_list):
@@ -173,7 +174,7 @@ def text_renderer(hass, entry_type, missing_items, parsed_list):
         for service in missing_items:
             result += f"{service} in {fill(parsed_list[service]['locations'], 0)}\n"
         return result
-    elif entry_type == REPORT_ENTRY_TYPE_ENTITY:
+    if entry_type == REPORT_ENTRY_TYPE_ENTITY:
         friendly_names = get_config(hass, CONF_FRIENDLY_NAMES, False)
         for entity in missing_items:
             state, name = get_entity_state(hass, entity, friendly_names)
@@ -181,8 +182,7 @@ def text_renderer(hass, entry_type, missing_items, parsed_list):
             result += f"{entity_col} [{state}] in: {fill(parsed_list[entity]['locations'], 0)}\n"
 
         return result
-    else:
-        return f"Text render error: unknown entry type: {entry_type}"
+    return f"Text render error: unknown entry type: {entry_type}"
 
 
 def fill(data, width, extra=None):
@@ -204,7 +204,7 @@ def get_columns_width(user_width):
     if not user_width:
         return default_width
     try:
-        return [7 if user_width[i] < 7 else user_width[i] for i in range(3)]
+        return [max(user_width[i], 7) for i in range(3)]
     except (TypeError, IndexError):
         _LOGGER.error(
             "Invalid configuration for table column widths, default values" " used %s",
@@ -219,8 +219,7 @@ async def async_report_to_file(hass, path):
 
     def write(path):
         with open(path, "w", encoding="utf-8") as report_file:
-            for chunk in report_chunks:
-                report_file.write(chunk)
+            report_file.writelines(report_chunks)
 
     await hass.async_add_executor_job(write, path)
     _LOGGER.debug(f"Report saved to {path}")
@@ -230,7 +229,6 @@ async def async_report_to_notification(
     hass: HomeAssistant, action_str: str, service_data: dict[str, Any], chunk_size: int
 ):
     """Send report via notification action."""
-
     if not action_str:
         raise HomeAssistantError(f"Missing `{CONF_ACTION_NAME}` parameter.")
 
@@ -242,7 +240,7 @@ async def async_report_to_notification(
     if not is_action(hass, action_str):
         raise HomeAssistantError(f"{action_str} is not a valid action for notification")
 
-    domain = action_str.split(".")[0]
+    domain = action_str.split(".", maxsplit=1)[0]
     action = ".".join(action_str.split(".")[1:])
 
     data = {} if service_data is None else service_data
