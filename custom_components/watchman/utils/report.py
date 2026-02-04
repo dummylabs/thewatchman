@@ -25,10 +25,10 @@ from .logger import _LOGGER
 from .utils import get_config, get_entity_state, get_entry, is_action
 
 
-async def parsing_stats(hass: HomeAssistant, start_time: float):
+async def parsing_stats(hass: HomeAssistant, start_time: float) -> tuple[str, float, float, float]:
     """Separate func for test mocking."""
 
-    def get_timezone(hass: HomeAssistant):
+    def get_timezone(hass: HomeAssistant) -> Any:
         return pytz.timezone(hass.config.time_zone)
 
     timezone = await hass.async_add_executor_job(get_timezone, hass)
@@ -47,7 +47,7 @@ async def report(
     render: Callable[[HomeAssistant, str, dict[str, Any], dict[str, Any]], str] | None = None,
     chunk_size: int | None = None,
     parse_config: bool | None = None,
-):
+) -> list[str]:
     """Generate a report of missing entities and services."""
     from ..const import CONF_EXCLUDE_DISABLED_AUTOMATION
     from ..coordinator import renew_missing_items_list
@@ -237,7 +237,7 @@ async def async_report_to_file(hass: HomeAssistant, path: str) -> None:
 
 async def async_report_to_notification(
     hass: HomeAssistant, action_str: str, service_data: dict[str, Any], chunk_size: int
-):
+) -> None:
     """Send report via notification action."""
     if not action_str:
         raise HomeAssistantError(f"Missing `{CONF_ACTION_NAME}` parameter.")

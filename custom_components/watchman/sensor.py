@@ -1,5 +1,6 @@
 """Watchman sensors definition."""
 
+from typing import Any
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
@@ -175,7 +176,7 @@ class LastUpdateSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data.get(COORD_DATA_LAST_UPDATE)
@@ -203,14 +204,14 @@ class MissingEntitiesSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data.get(COORD_DATA_MISSING_ENTITIES)
         return None
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         if self.coordinator.data:
             return {"entities": self.coordinator.data.get(COORD_DATA_ENTITY_ATTRS, [])}
@@ -241,14 +242,14 @@ class MissingActionsSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data.get(COORD_DATA_MISSING_ACTIONS)
         return None
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         if self.coordinator.data:
             return {"entities": self.coordinator.data.get(COORD_DATA_SERVICE_ATTRS, [])}
@@ -278,12 +279,12 @@ class StatusSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the native value of the sensor."""
         return self.coordinator.status
 
     @property
-    def icon(self):
+    def icon(self) -> str:
         """Return dynamic icon based on status."""
         if self.coordinator.status == STATE_PARSING:
             return "mdi:progress-clock"
@@ -315,7 +316,7 @@ class ParseDurationSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data.get(COORD_DATA_PARSE_DURATION)
@@ -342,7 +343,7 @@ class LastParseSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data.get(COORD_DATA_LAST_PARSE)
@@ -369,7 +370,7 @@ class ProcessedFilesSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data.get(COORD_DATA_PROCESSED_FILES)
@@ -396,7 +397,7 @@ class IgnoredFilesSensor(WatchmanEntity, SensorEntity):
         return False
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the native value of the sensor."""
         if self.coordinator.data:
             return self.coordinator.data.get(COORD_DATA_IGNORED_FILES)

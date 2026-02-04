@@ -50,10 +50,10 @@ class WMData:
     coordinator: WatchmanCoordinator
     hub: WatchmanHub
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) -> bool:
     """Set up this integration using UI."""
 
-    async def async_on_home_assistant_started(event: Event | None):  # pylint: disable=unused-argument
+    async def async_on_home_assistant_started(event: Event | None) -> None:  # pylint: disable=unused-argument
         """Update watchman sensors and start listening to HA events when Home Assistant started.
         """
         coordinator = config_entry.runtime_data.coordinator
@@ -120,12 +120,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
 
     return True
 
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload integration when options changed."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: WMConfigEntry):  # pylint: disable=unused-argument
+async def async_unload_entry(hass: HomeAssistant, config_entry: WMConfigEntry) -> bool:  # pylint: disable=unused-argument
     """Handle integration unload."""
     if hasattr(config_entry, "runtime_data") and config_entry.runtime_data:
         await config_entry.runtime_data.coordinator.async_shutdown()
@@ -150,7 +150,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: WMConfigEntry): 
     return unload_ok
 
 
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Migrate ConfigEntry persistent data to a new version."""
     if config_entry.version > CONFIG_ENTRY_VERSION:
         # the user has downgraded from a future version
@@ -263,7 +263,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     db_path = hass.config.path(".storage", DB_FILENAME)
     lock_path = hass.config.path(".storage", LOCK_FILENAME)
 
-    def remove_files():
+    def remove_files() -> None:
         if os.path.exists(db_path):
             os.remove(db_path)
         if os.path.exists(lock_path):

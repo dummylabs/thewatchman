@@ -251,36 +251,36 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         }
 
     @property
-    def version(self):
+    def version(self) -> str:
         """Return version of the integration from manifest file."""
         return self._version
 
     @property
-    def status(self):
+    def status(self) -> str:
         """Return the current status of the integration."""
         return self._status
 
     @property
-    def safe_mode(self):
+    def safe_mode(self) -> bool:
         """Return True if integration is in safe mode."""
         return self._status == STATE_SAFE_MODE
 
-    def update_status(self, new_status: str):
+    def update_status(self, new_status: str) -> None:
         """Update the status and notify listeners."""
         self._status = new_status
         self.async_update_listeners()
 
-    def _update_checked_states(self):
+    def _update_checked_states(self) -> None:
         """Update the set of states that trigger a refresh."""
         ignored_states = get_config(self.hass, CONF_IGNORED_STATES, [])
         self.checked_states = set(MONITORED_STATES) - set(ignored_states)
         _LOGGER.debug(f"Checked states updated: {self.checked_states}")
 
-    async def async_get_parsed_entities(self):
+    async def async_get_parsed_entities(self) -> dict[str, Any]:
         """Return a dictionary of parsed entities and their locations."""
         return await self.hub.async_get_parsed_entities()
 
-    async def async_get_parsed_services(self):
+    async def async_get_parsed_services(self) -> dict[str, Any]:
         """Return a dictionary of parsed services and their locations."""
         return await self.hub.async_get_parsed_services()
 
@@ -350,7 +350,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_IGNORED_FILES: parse_info.get("ignored_files_count", 0),
         }
 
-    async def async_get_detailed_report_data(self):
+    async def async_get_detailed_report_data(self) -> dict[str, Any]:
         """Return detailed report data with missing items lists."""
         parsed_services = await self.async_get_parsed_services()
         parsed_entities = await self.async_get_parsed_entities()
@@ -413,7 +413,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         reason: str | None = None,
         force: bool = False,
         delay: int | float = DEFAULT_DELAY,
-    ):
+    ) -> None:
         """Request a background scan.
 
         If force=True, ignore cooldown and delay.
@@ -454,7 +454,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._delay_unsub = self.hass.loop.call_later(self._current_delay, self._on_timer_finished, "delay")
 
     @callback
-    def _on_timer_finished(self, timer_type: str):
+    def _on_timer_finished(self, timer_type: str) -> None:
         """Callback when a scheduled timer (delay or cooldown) finishes."""
         if timer_type == "delay":
             self._delay_unsub = None
@@ -463,7 +463,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self._cooldown_unsub = None
         self._schedule_parse()
 
-    def _schedule_parse(self, force_immediate: bool = False):
+    def _schedule_parse(self, force_immediate: bool = False) -> None:
         """Schedule the parse task based on state and cooldown."""
         if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
             #  do nothing as parsing is already running
@@ -497,7 +497,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self._execute_parse(), "watchman_parse"
         )
 
-    async def async_force_parse(self):
+    async def async_force_parse(self) -> Any:
         """Execute a blocking parse for the report service.
 
         Returns a Task/Coroutine that finishes when parsing is complete.
@@ -521,7 +521,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Force parse requested. Starting immediately.")
         return await self._execute_parse()
 
-    async def _execute_parse(self):
+    async def _execute_parse(self) -> None:
         """Execute the heavy parsing logic."""
         if self.safe_mode:
             _LOGGER.warning("_execute_parse: Watchman is in Safe Mode. Skipping parse.")
@@ -563,7 +563,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug(f"⏳ Another request occured during parser execution, will be repeated after cooldown ({PARSE_COOLDOWN} sec)")
                 self._schedule_parse()
 
-    async def async_get_last_parse_duration(self):
+    async def async_get_last_parse_duration(self) -> float:
         """Return duration of the last parsing."""
         info = await self.hub.async_get_last_parse_info()
         return info.get("duration", 0.0)
@@ -576,7 +576,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self.hass.async_create_task(self.async_request_refresh())
 
     @callback
-    def _handle_state_change_event(self, event: Event):
+    def _handle_state_change_event(self, event: Event) -> None:
         """Handle state change event for monitored entities."""
         if self.hub.is_scanning:
             _LOGGER.debug("Scan in progress, skipping state change event.")
@@ -595,7 +595,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self.hass.async_create_task(self.async_request_refresh())
 
     @callback
-    def async_update_entity_tracking(self):
+    def async_update_entity_tracking(self) -> None:
         """Update the state change listener with the current list of monitored entities."""
         self._update_checked_states()
         if self._unsub_state_listener:
@@ -610,10 +610,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         else:
             _LOGGER.debug("No entities to monitor.")
 
-    def subscribe_to_events(self, entry: ConfigEntry):
+    def subscribe_to_events(self, entry: ConfigEntry) -> None:
         """Subscribe to Home Assistant events."""
 
-        async def async_on_configuration_changed(event: Event):
+        async def async_on_configuration_changed(event: Event) -> None:
             event_type = event.event_type
             if event_type == EVENT_CALL_SERVICE:
 
@@ -625,7 +625,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             elif event_type in WATCHED_EVENTS:
                 self.request_parser_rescan(reason=event_type)
 
-        async def async_on_service_changed(event: Event):
+        async def async_on_service_changed(event: Event) -> None:
             if self.hub.is_scanning:
                 _LOGGER.debug("Scan in progress, skipping service change event.")
                 return
@@ -652,7 +652,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self.hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed)
         )
 
-    async def async_shutdown(self):
+    async def async_shutdown(self) -> None:
         """Cancel any scheduled tasks and listeners."""
         await super().async_shutdown()
         if self._cooldown_unsub:

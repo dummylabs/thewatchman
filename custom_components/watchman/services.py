@@ -1,3 +1,4 @@
+from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
@@ -31,7 +32,7 @@ class WatchmanServicesSetup:
 
         self.setup_services()
 
-    def setup_services(self):
+    def setup_services(self) -> None:
         """Initialise the services in Hass."""
         self.hass.services.async_register(
             DOMAIN,
@@ -40,7 +41,7 @@ class WatchmanServicesSetup:
             supports_response=SupportsResponse.OPTIONAL
         )
 
-    async def async_handle_report(self, call: ServiceCall):
+    async def async_handle_report(self, call: ServiceCall) -> dict[str, Any]:
         """Handle the action call."""
         path = get_config(self.hass, CONF_REPORT_PATH)
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)

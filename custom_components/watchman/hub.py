@@ -14,13 +14,13 @@ from .utils.parser_core import WatchmanParser, get_domains
 class WatchmanHub:
     """Asynchronous wrapper (Adapter) for the synchronous parser."""
 
-    def __init__(self, hass: HomeAssistant, db_path: str):
+    def __init__(self, hass: HomeAssistant, db_path: str) -> None:
         self.hass = hass
         self.db_path = db_path
         self._is_scanning = False
 
         # inject Home Assistant's executor to run process config files asynchronously
-        async def ha_executor(func: Callable, *args: Any):
+        async def ha_executor(func: Callable, *args: Any) -> Any:
             return await self.hass.async_add_executor_job(func, *args)
 
         self._parser = WatchmanParser(db_path, executor=ha_executor)
@@ -28,7 +28,7 @@ class WatchmanHub:
         self._monitored_entities = None
         self._monitored_services = None
 
-    async def async_init(self):
+    async def async_init(self) -> None:
         """Initialize the hub and verify DB."""
         # Verify DB integrity on startup
         await self.hass.async_add_executor_job(self._parser.check_and_fix_db)

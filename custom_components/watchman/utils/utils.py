@@ -4,7 +4,7 @@ import fnmatch
 import os
 import re
 from types import MappingProxyType
-from typing import Any
+from typing import Any, AsyncGenerator
 
 import anyio
 
@@ -122,7 +122,9 @@ async def async_is_valid_path(path: str) -> bool:
     return is_valid
 
 
-async def async_get_next_file(folder_tuples: list[tuple[str, str]], ignored_files: list[str]):
+async def async_get_next_file(
+    folder_tuples: list[tuple[str, str]], ignored_files: list[str]
+) -> AsyncGenerator[tuple[str, bool], None]:
     """Return next file from scan queue."""
     if not ignored_files:
         ignored_files = ""

@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 import time
-from typing import Any, TypedDict
+from typing import Any, Generator, TypedDict
 
 from homeassistant.core import HomeAssistant
 
@@ -221,7 +221,16 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
 
     return False
 
-def _recursive_search(data: Any, breadcrumbs: list[Any], results: list[FoundItem], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: dict[str, Any] = None, expected_item_type: str = 'entity', parent_key: str = None):
+def _recursive_search(
+    data: Any,
+    breadcrumbs: list[Any],
+    results: list[FoundItem],
+    file_type: str = "yaml",
+    entity_pattern: re.Pattern = _ENTITY_PATTERN,
+    current_context: dict[str, Any] | None = None,
+    expected_item_type: str = "entity",
+    parent_key: str | None = None,
+) -> None:
     """Recursively searches for entities and services.
     """
     if current_context is None:
@@ -501,7 +510,7 @@ class WatchmanParser:
         self.executor = executor or default_async_executor
 
     @contextlib.contextmanager
-    def _db_session(self):
+    def _db_session(self) -> Generator[sqlite3.Connection, None, None]:
         """Context manager for database connections."""
         try:
             conn = self._init_db(self.db_path)
@@ -513,7 +522,7 @@ class WatchmanParser:
             _LOGGER.error(f"Database error in {self.db_path}: {e}")
             raise
 
-    def check_and_fix_db(self):
+    def check_and_fix_db(self) -> None:
         """Check if database is valid, delete and recreate if corrupted."""
         try:
             with self._db_session() as conn:
