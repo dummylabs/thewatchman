@@ -58,7 +58,12 @@ _SERVICE_PATTERN = re.compile(
     re.IGNORECASE
 )
 
-
+DEFAULT_CONTEXT = {
+    "is_automation_context": False,
+    "parent_type": None,
+    "parent_id": None,
+    "parent_alias": None
+}
 
 # Custom YAML Loader with Line Numbers
 
@@ -149,51 +154,44 @@ def _detect_file_type(filepath: str) -> str:
 
     return 'unknown'
 
-def _find_context(breadcrumbs: List[Any]) -> Dict[str, Any]:
+def _derive_context(node: Dict, parent_context: Dict[str, Any], parent_key: str = None) -> Dict[str, Any]:
     """
-    Analyzes breadcrumbs (chain of parent objects) to determine if we are in an automation or script.
+    Derive the context for a node based on its content and parent key.
+    If the node defines an automation or script, return a new context.
+    Otherwise, return the parent context.
     """
-    context = {
-        "is_automation_context": False,
-        "parent_type": None,
-        "parent_id": None,
-        "parent_alias": None
-    }
+    if not isinstance(node, dict):
+        return parent_context
 
-    for i in range(len(breadcrumbs) - 1, -1, -1):
-        node = breadcrumbs[i]
+    c_id = node.get("id")
+    c_alias = node.get("alias")
+    
+    # Heuristic: use parent key as ID if no explicit ID is present
+    # This is common in named scripts: `script_name: { sequence: ... }`
+    if not c_id and parent_key:
+        c_id = parent_key
 
-        if isinstance(node, dict):
-            c_id = node.get("id")
-            c_alias = node.get("alias")
+    has_trigger = "trigger" in node or "triggers" in node
+    has_action = "action" in node or "actions" in node
+    has_sequence = "sequence" in node
 
-            # Attempt to find ID from parent key if current node is a value in a parent dict
-            if not c_id and i > 0:
-                parent = breadcrumbs[i-1]
-                if isinstance(parent, dict):
-                    for k, v in parent.items():
-                        if v is node:
-                            c_id = k
-                            break
+    if has_trigger and has_action:
+        return {
+            "is_automation_context": True,
+            "parent_type": "automation",
+            "parent_id": str(c_id) if c_id else None,
+            "parent_alias": str(c_alias) if c_alias else None
+        }
 
-            has_trigger = "trigger" in node or "triggers" in node
-            has_action = "action" in node or "actions" in node
+    if has_sequence:
+        return {
+            "is_automation_context": True,
+            "parent_type": "script",
+            "parent_id": str(c_id) if c_id else None,
+            "parent_alias": str(c_alias) if c_alias else None
+        }
 
-            if (has_trigger and has_action):
-                context["is_automation_context"] = True
-                context["parent_type"] = "automation"
-                context["parent_id"] = str(c_id) if c_id else None
-                context["parent_alias"] = str(c_alias) if c_alias else None
-                return context
-
-            if "sequence" in node:
-                context["is_automation_context"] = True
-                context["parent_type"] = "script"
-                context["parent_id"] = str(c_id) if c_id else None
-                context["parent_alias"] = str(c_alias) if c_alias else None
-                return context
-
-    return context
+    return parent_context
 
 def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
     start, end = match.span(1)
@@ -252,10 +250,13 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
 
     return False
 
-def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN):
+def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: Dict[str, Any] = None):
     """
     Recursively searches for entities and services.
     """
+    if current_context is None:
+        current_context = DEFAULT_CONTEXT
+
     is_esphome = (file_type == 'esphome_yaml')
 
     if isinstance(data, dict):
@@ -298,14 +299,13 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                     if remaining_text.startswith('('):
                         continue
 
-                    ctx = _find_context(breadcrumbs + [data])
                     results.append({
                         "line": line_no or 0,
                         "entity_id": entity_id,
                         "item_type": 'entity',
                         "is_key": True,
                         "key_name": key,
-                        **ctx
+                        **current_context
                     })
 
             # 2. Special Check for Service/Action Keys
@@ -313,11 +313,19 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             is_action_key = isinstance(key, str) and key.lower() in ["service", "action"]
 
             # Recurse
-            _recursive_search(value, breadcrumbs + [data], results, file_type, entity_pattern)
+            # Calculate context for the child node
+            child_ctx = current_context
+            if isinstance(value, dict):
+                child_ctx = _derive_context(value, current_context, parent_key=key)
+
+            _recursive_search(value, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx)
 
     elif isinstance(data, list):
         for item in data:
-            _recursive_search(item, breadcrumbs + [data], results, file_type, entity_pattern)
+            child_ctx = current_context
+            if isinstance(item, dict):
+                child_ctx = _derive_context(item, current_context)
+            _recursive_search(item, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx)
 
     elif isinstance(data, str):
         # Check Value
@@ -370,8 +378,6 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             if remaining_text.startswith('('):
                 continue
 
-            ctx = _find_context(breadcrumbs)
-
             # Determine item_type
             item_type = 'entity'
             if key_name and key_name.lower() in ['service', 'action']:
@@ -383,14 +389,13 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                 "item_type": item_type,
                 "is_key": False,
                 "key_name": key_name,
-                **ctx
+                **current_context
             })
 
         # Check for Services (e.g. "service: light.turn_on" inside a string template)
         matches_svc = list(_SERVICE_PATTERN.finditer(data))
         for match in matches_svc:
             service_id = match.group(1)
-            ctx = _find_context(breadcrumbs)
 
             key_name = None
             if breadcrumbs and isinstance(breadcrumbs[-1], dict):
@@ -405,7 +410,7 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                 "item_type": 'service',
                 "is_key": False,
                 "key_name": key_name,
-                **ctx
+                **current_context
             })
 
 
@@ -430,6 +435,7 @@ def _parse_content(content: str, file_type: str, filepath: str = None, logger: l
 
     results = []
     if data:
+        # Pass DEFAULT_CONTEXT explicitly if needed, or let it default to None -> DEFAULT_CONTEXT inside
         _recursive_search(data, [], results, file_type, entity_pattern)
 
     return results
@@ -921,7 +927,7 @@ class WatchmanParser:
                 SELECT file_id, path, file_type, entity_count, scan_date
                 FROM processed_files
                 ORDER BY path
-            """)
+            """,)
             return cursor.fetchall()
 
     def get_found_items(self, item_type: str = None) -> List[Tuple]:
