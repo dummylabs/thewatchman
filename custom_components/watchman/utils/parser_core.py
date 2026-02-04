@@ -12,37 +12,23 @@ import anyio
 from typing import List, Tuple, Dict, Any, Callable, Awaitable
 from .logger import _LOGGER
 from ..const import DB_TIMEOUT
-
-# file extensions supported by parser
-# .json is not parsed as they typically contains unrelevant false positive entries
-_YAML_FILE_EXTS = {'.yaml', '.yml'}
-_JSON_FILE_EXTS = {'.config_entries'}
-
-# For MVP, .storage is ignored completely if in _IGNORED_DIRS
-_STORAGE_WHITELIST = {'lovelace', 'lovelace_dashboards', 'lovelace_resources', 'core.config_entries'}
-_MAX_FILE_SIZE = 500 * 1024  # 500 KB
-
-_PLATFORMS = [
-    "ai_task", "air_quality", "alarm_control_panel", "assist_satellite", "binary_sensor", "button",
-    "calendar", "camera", "climate", "conversation", "cover", "date", "datetime", "device_tracker",
-    "event", "fan", "geo_location", "humidifier", "image", "image_processing", "lawn_mower",
-    "light", "lock", "media_player", "notify", "number", "remote", "scene", "select", "sensor",
-    "siren", "stt", "switch", "text", "time", "todo", "tts", "update", "vacuum", "valve",
-    "wake_word", "water_heater", "weather",
-]
-
-_HA_DOMAINS = [
-    "automation", "script", "group", "zone", "person", "sun", "input_boolean", "input_button",
-    "input_datetime", "input_number", "input_select", "input_text", "timer", "counter",
-    "shell_command", "persistent_notification", "homeassistant", "system_log", "logger",
-    "recorder", "history", "logbook", "map", "mobile_app", "tag", "webhook", "websocket_api",
-    "ble_monitor", "hassio", "mqtt", "python_script", "speedtestdotnet", "telegram_bot",
-    "xiaomi_miio", "yeelight", "alert", "plant", "proximity", "schedule"
-]
+from .parser_const import (
+    YAML_FILE_EXTS,
+    JSON_FILE_EXTS,
+    STORAGE_WHITELIST,
+    MAX_FILE_SIZE,
+    PLATFORMS,
+    HA_DOMAINS,
+    BUNDLED_IGNORED_ITEMS,
+    ESPHOME_PATH_SEGMENT,
+    ESPHOME_ALLOWED_KEYS,
+    IGNORED_KEYS,
+    IGNORED_DIRS,
+)
 
 def get_domains(hass=None) -> List[str]:
     """Return a list of valid domains."""
-    platforms = _PLATFORMS
+    platforms = PLATFORMS
     try:
         from homeassistant.const import Platform
         platforms = [platform.value for platform in Platform]
@@ -56,35 +42,15 @@ def get_domains(hass=None) -> List[str]:
         except Exception:
             pass
 
-    return sorted(list(set(platforms + _HA_DOMAINS + extra_domains)))
+    return sorted(list(set(platforms + HA_DOMAINS + extra_domains)))
 
 _ALL_DOMAINS = get_domains()
-
-# following patterns are ignored by watchman as they are neither entities, nor actions
-_BUNDLED_IGNORED_ITEMS = [
-    "timer.cancelled", "timer.finished", "timer.started", "timer.restarted",
-    "timer.paused", "event.*", "date.*", "time.*", "map.*", "homeassistant.*"
-]
-
-
-# Path which includes this string is considered as ESPHome folder
-_ESPHOME_PATH_SEGMENT = "esphome"
-# Allowed keys for ESPHome files to be considered as HA entities/services
-_ESPHOME_ALLOWED_KEYS = {'service', 'action', 'entity_id'}
-
 
 # Regex patterns to identify entitites definitions
 _ENTITY_PATTERN = re.compile(
     r"(?:^|[^a-zA-Z0-9_./\\])(?:states\.)?((" + "|".join(_ALL_DOMAINS) + r")\.[a-z0-9_]+)",
     re.IGNORECASE
 )
-
-# YAML keys which values should be ignored
-_IGNORED_KEYS = {'url', 'example', 'description'}
-
-# Directories to skip during recursive scan
-_IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome', '.storage', 'tmp', 'blueprints', 'media', 'share', 'www', 'trash'}
-
 
 # Regex patterns to identify actions (services) definitions
 _SERVICE_PATTERN = re.compile(
@@ -161,24 +127,24 @@ yaml.add_multi_constructor('!', _default_ctor, Loader=_LineLoader)
 
 def _detect_file_type(filepath: str) -> str:
     filename = os.path.basename(filepath)
-    if filename in _STORAGE_WHITELIST:
+    if filename in STORAGE_WHITELIST:
         return 'json'
 
     # Check for ESPHome path segment
     norm_path = os.path.normpath(filepath)
     path_parts = norm_path.split(os.sep)
-    if _ESPHOME_PATH_SEGMENT in path_parts:
+    if ESPHOME_PATH_SEGMENT in path_parts:
          # Still check extension to ensure it is yaml
          ext = os.path.splitext(filepath)[1].lower()
-         if ext in _YAML_FILE_EXTS:
+         if ext in YAML_FILE_EXTS:
              return 'esphome_yaml'
 
     ext = os.path.splitext(filepath)[1].lower()
 
-    if ext in _YAML_FILE_EXTS:
+    if ext in YAML_FILE_EXTS:
         return 'yaml'
 
-    if ext in _JSON_FILE_EXTS:
+    if ext in JSON_FILE_EXTS:
         return 'json'
 
     return 'unknown'
@@ -297,7 +263,7 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             line_no = getattr(key, 'line', None)
 
             # Check for Ignored Keys
-            if isinstance(key, str) and key.lower() in _IGNORED_KEYS:
+            if isinstance(key, str) and key.lower() in IGNORED_KEYS:
                 continue
 
             # 1. Check Key (Skip if ESPHome mode)
@@ -370,7 +336,7 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
 
         # ESPHome Mode: Only process value if key_name is allowed
         if is_esphome:
-             if not key_name or str(key_name).lower() not in _ESPHOME_ALLOWED_KEYS:
+             if not key_name or str(key_name).lower() not in ESPHOME_ALLOWED_KEYS:
                  return
 
         # Check for Entities
@@ -480,8 +446,8 @@ def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTER
 
     try:
         file_size = os.path.getsize(filepath)
-        if file_size > _MAX_FILE_SIZE:
-            _LOGGER.error(f"File {filepath} is too large ({file_size} bytes), skipping. Max size: {_MAX_FILE_SIZE} bytes.")
+        if file_size > MAX_FILE_SIZE:
+            _LOGGER.error(f"File {filepath} is too large ({file_size} bytes), skipping. Max size: {MAX_FILE_SIZE} bytes.")
             return 0, [], file_type
 
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -514,13 +480,13 @@ def _scan_files_sync(root_path: str, ignored_patterns: List[str]) -> Tuple[List[
     for root, dirs, files in os.walk(root_path, topdown=True):
         # Prune ignored directories
         # Remove ignored dirs and hidden dirs from traversal
-        dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS and not d.startswith('.')]
+        dirs[:] = [d for d in dirs if d not in IGNORED_DIRS and not d.startswith('.')]
 
         for file in files:
             abs_path = os.path.join(root, file)
             # Extension check
             _, ext = os.path.splitext(file)
-            if ext.lower() not in _YAML_FILE_EXTS:
+            if ext.lower() not in YAML_FILE_EXTS:
                 continue
 
             # User ignore patterns
@@ -552,7 +518,7 @@ def _scan_files_sync(root_path: str, ignored_patterns: List[str]) -> Tuple[List[
     # 2. Targeted scan of .storage
     storage_path = os.path.join(root_path, '.storage')
     if os.path.isdir(storage_path):
-        for filename in _STORAGE_WHITELIST:
+        for filename in STORAGE_WHITELIST:
             file_path = os.path.join(storage_path, filename)
             if os.path.isfile(file_path):
                 try:
@@ -718,7 +684,7 @@ class WatchmanParser:
 
                 # If any parent directory in the relative path is ignored, skip
                 # we exclude the last part (filename) to allow files named like ignored dirs (unlikely but safe)
-                if any(part in _IGNORED_DIRS for part in rel_path.parts[:-1]):
+                if any(part in IGNORED_DIRS for part in rel_path.parts[:-1]):
                     continue
 
                 abs_path = str(path)
@@ -752,7 +718,7 @@ class WatchmanParser:
             # This handles extensionless JSON files like 'lovelace_dashboards'
             storage_path = root / ".storage"
             if await storage_path.exists() and await storage_path.is_dir():
-                for whitelist_name in _STORAGE_WHITELIST:
+                for whitelist_name in STORAGE_WHITELIST:
                     file_path = storage_path / whitelist_name
                     if await file_path.exists() and await file_path.is_file():
                          try:
@@ -889,7 +855,7 @@ class WatchmanParser:
                     for item in items:
                         # Filter out bundled ignored items
                         is_ignored = False
-                        for pattern in _BUNDLED_IGNORED_ITEMS:
+                        for pattern in BUNDLED_IGNORED_ITEMS:
                             if fnmatch.fnmatch(item['entity_id'], pattern):
                                 is_ignored = True
                                 break
