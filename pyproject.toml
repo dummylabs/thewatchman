@@ -40,6 +40,9 @@ ignore = [
   "TC006", # Checks for unquoted type expressions in typing.cast() calls.
   "TID252", # Relative imports
   "S101", # asserts in tests
+  "EM101", #Exception must not use a string literal
+  "EM102", # Exception must not use an f-string literal
+  "EM103", # Exception must not use .format() call
 
   # Formatter conflicts
   "COM812",

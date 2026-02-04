@@ -1,5 +1,6 @@
 """Test Watchman Status Sensor."""
 import asyncio
+import contextlib
 import os
 from unittest.mock import patch
 
@@ -87,10 +88,8 @@ async def test_status_sensor_states(hass: HomeAssistant):
                 return
             await asyncio.sleep(0.1)
 
-    try:
+    with contextlib.suppress(TimeoutError):
         await asyncio.wait_for(wait_for_idle(), timeout=2.0)
-    except TimeoutError:
-        pass
 
     state = hass.states.get(entity_id)
     print(f"DEBUG: Final state is {state.state}")

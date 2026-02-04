@@ -1,3 +1,4 @@
+import contextlib
 import os
 
 from custom_components.watchman.const import (
@@ -29,10 +30,8 @@ async def test_symlink_handling(hass, tmp_path, caplog):
 
     # 3. Broken symlink
     broken_link = config_dir / "broken_link.yaml"
-    try:
+    with contextlib.suppress(OSError):
         os.symlink(config_dir / "non_existent.yaml", broken_link)
-    except OSError:
-        pass
 
     # Initialize integration
     await async_init_integration(

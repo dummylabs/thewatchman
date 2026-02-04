@@ -57,10 +57,8 @@ def get_domains(hass: HomeAssistant | None = None) -> list[str]:
 
     extra_domains = []
     if hass:
-        try:
+        with contextlib.suppress(Exception):
             extra_domains = list(hass.services.async_services().keys())
-        except Exception:
-            pass
 
     return sorted(list(set(platforms + HA_DOMAINS + extra_domains)))
 
@@ -587,10 +585,8 @@ class WatchmanParser:
             c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_item_type ON found_items(item_type);")
 
             # Schema migration for existing DB
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 c.execute("ALTER TABLE found_items ADD COLUMN item_type TEXT DEFAULT 'entity'")
-            except sqlite3.OperationalError:
-                pass # Column likely exists
 
             c.execute('''CREATE TABLE IF NOT EXISTS scan_config (
                             id INTEGER PRIMARY KEY DEFAULT 1 CHECK(id=1), -- Ensure only one row
@@ -601,20 +597,14 @@ class WatchmanParser:
                         )''')
 
             # Schema migration for last_parse_duration
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_duration REAL")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_timestamp TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 c.execute("ALTER TABLE scan_config ADD COLUMN ignored_files_count INTEGER DEFAULT 0")
-            except sqlite3.OperationalError:
-                pass
 
             c.execute("INSERT OR IGNORE INTO scan_config (id) VALUES (1)")
 
@@ -760,10 +750,8 @@ class WatchmanParser:
                 # Determine path to store in DB
                 path_for_db = filepath
                 if base_path:
-                    try:
+                    with contextlib.suppress(ValueError):
                         path_for_db = os.path.relpath(filepath, base_path)
-                    except ValueError:
-                        pass # Keep absolute if relpath fails
 
                 scan_date = datetime.datetime.now().isoformat()
                 file_id = None
