@@ -1,0 +1,8 @@
+# Test service_template key
+automation:
+  - alias: "Template Service"
+    trigger: []
+    action:
+      - service_template: "light.unique_service"
+        target:
+          entity_id: light.living_room

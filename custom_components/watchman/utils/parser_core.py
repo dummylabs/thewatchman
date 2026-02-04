@@ -204,7 +204,7 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
 
     return False
 
-def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: Dict[str, Any] = None):
+def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: Dict[str, Any] = None, expected_item_type: str = 'entity', parent_key: str = None):
     """
     Recursively searches for entities and services.
     """
@@ -240,9 +240,6 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                         continue
 
                     # Word Boundary Check (Heuristic 18)
-                    # We check suffix manually instead of using negative lookahead (?![.-]) in regex
-                    # because lookahead is too strong and blocks valid 'states.entity.state' pattern.
-                    # Here we allow '.' suffix only if 'states.' prefix was matched.
                     end_idx = match.end(1)
                     if end_idx < len(key):
                         next_char = key[end_idx]
@@ -259,15 +256,15 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                     results.append({
                         "line": line_no or 0,
                         "entity_id": entity_id,
-                        "item_type": 'entity',
+                        "item_type": 'entity', # Keys are usually entities
                         "is_key": True,
                         "key_name": key,
                         **current_context
                     })
 
-            # 2. Special Check for Service/Action Keys
-            # FIXME - process actions key accordingly
-            is_action_key = isinstance(key, str) and key.lower() in ["service", "action"]
+            # Determine expected type for value
+            is_action_key = isinstance(key, str) and key.lower() in ["service", "action", "service_template"]
+            next_type = 'service' if is_action_key else 'entity'
 
             # Recurse
             # Calculate context for the child node
@@ -275,14 +272,16 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             if isinstance(value, dict):
                 child_ctx = _derive_context(value, current_context, parent_key=key)
 
-            _recursive_search(value, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx)
+            _recursive_search(value, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx, next_type, parent_key=key)
 
     elif isinstance(data, list):
         for item in data:
             child_ctx = current_context
             if isinstance(item, dict):
                 child_ctx = _derive_context(item, current_context)
-            _recursive_search(item, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx)
+            # List items inherit expected_item_type from parent
+            # List items inherit parent_key from parent (e.g. entity_id: [item1, item2])
+            _recursive_search(item, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx, expected_item_type, parent_key=parent_key)
 
     elif isinstance(data, str):
         # Check Value
@@ -290,14 +289,7 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             return
 
         line_no = getattr(data, 'line', None)
-
-        # Try to find key name from parent if parent is dict
-        key_name = None
-        if breadcrumbs and isinstance(breadcrumbs[-1], dict):
-            for k, v in breadcrumbs[-1].items():
-                if v is data:
-                    key_name = k
-                    break
+        key_name = parent_key
 
         # ESPHome Mode: Only process value if key_name is allowed
         if is_esphome:
@@ -319,9 +311,6 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                 continue
 
             # Word Boundary Check (Heuristic 18)
-            # We check suffix manually instead of using negative lookahead (?![.-]) in regex
-            # because lookahead is too strong and blocks valid 'states.entity.state' pattern.
-            # Here we allow '.' suffix only if 'states.' prefix was matched.
             end_idx = match.end(1)
             if end_idx < len(data):
                 next_char = data[end_idx]
@@ -335,15 +324,10 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             if remaining_text.startswith('('):
                 continue
 
-            # Determine item_type
-            item_type = 'entity'
-            if key_name and key_name.lower() in ['service', 'action']:
-                item_type = 'service'
-
             results.append({
                 "line": line_no or 0,
                 "entity_id": entity_id,
-                "item_type": item_type,
+                "item_type": expected_item_type,
                 "is_key": False,
                 "key_name": key_name,
                 **current_context
@@ -353,13 +337,6 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
         matches_svc = list(_SERVICE_PATTERN.finditer(data))
         for match in matches_svc:
             service_id = match.group(1)
-
-            key_name = None
-            if breadcrumbs and isinstance(breadcrumbs[-1], dict):
-                for k, v in breadcrumbs[-1].items():
-                    if v is data:
-                        key_name = k
-                        break
 
             results.append({
                 "line": line_no or 0,
