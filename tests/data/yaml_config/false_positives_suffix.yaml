@@ -1,0 +1,17 @@
+# Test for Heuristic 18: Word Boundary Check
+# Prevent partial matches on hostnames
+
+# 1. Hostname with hyphen (should be ignored)
+# Should NOT detect 'sensor.example'
+# Use space to avoid Heuristic 17 (path/url)
+host: sensor.example-host.org
+
+# 2. Dot-separated status string (should be ignored)
+# Should NOT detect 'sensor.stunnel'
+unique_id: sensor.stunnel.status
+
+# 3. Valid entities (should be detected)
+entity_id: sensor.camera_1
+trigger:
+  - platform: state
+    entity_id: sensor.doorbell

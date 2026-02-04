@@ -17,4 +17,6 @@
 15. Bundled Ignores: A predefined list of specific patterns (e.g., `timer.cancelled`, `date.*`, `event.*`) is used to filter out known system strings that look like entities but aren't.
 16. States Prefix: The parser automatically handles and strips the `states.` prefix (e.g., converting `states.light.living_room` to `light.living_room`) ensuring correct entity identification in templates.
 17. Path Separation: To avoid false positives with file paths (e.g., `/local/images/person.jpg`), the parser ensures that the character immediately preceding a potential entity ID is not a path separator (`/` or `\`).
+18. Word Boundary Check: To prevent extracting partial entity IDs from hostnames or other dot-separated strings (e.g., `frigate.example` from `frigate.example-host.org` or `frigate.stunnel` from `frigate.stunnel.status`), the parser checks that the detected entity ID is not immediately followed by a hyphen `-` or a dot `.`.
+
 

@@ -315,6 +315,19 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
                     if entity_id.endswith('_'):
                         continue
 
+                    # Word Boundary Check (Heuristic 18)
+                    # We check suffix manually instead of using negative lookahead (?![.-]) in regex
+                    # because lookahead is too strong and blocks valid 'states.entity.state' pattern.
+                    # Here we allow '.' suffix only if 'states.' prefix was matched.
+                    end_idx = match.end(1)
+                    if end_idx < len(key):
+                        next_char = key[end_idx]
+                        if next_char == '-':
+                            continue
+                        if next_char == '.':
+                            if "states." not in match.group(0).lower():
+                                continue
+
                     remaining_text = key[match.end(1):].lstrip()
                     if remaining_text.startswith('('):
                         continue
@@ -373,6 +386,19 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
 
             if entity_id.endswith('_'):
                 continue
+
+            # Word Boundary Check (Heuristic 18)
+            # We check suffix manually instead of using negative lookahead (?![.-]) in regex
+            # because lookahead is too strong and blocks valid 'states.entity.state' pattern.
+            # Here we allow '.' suffix only if 'states.' prefix was matched.
+            end_idx = match.end(1)
+            if end_idx < len(data):
+                next_char = data[end_idx]
+                if next_char == '-':
+                    continue
+                if next_char == '.':
+                    if "states." not in match.group(0).lower():
+                        continue
 
             remaining_text = data[match.end(1):].lstrip()
             if remaining_text.startswith('('):
