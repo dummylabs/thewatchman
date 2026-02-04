@@ -10,10 +10,10 @@ import sqlite3
 import time
 from typing import Any, Generator, TypedDict
 
-from homeassistant.core import HomeAssistant
-
 import anyio
 import yaml
+
+from homeassistant.core import HomeAssistant
 
 from ..const import DB_TIMEOUT
 from .logger import _LOGGER

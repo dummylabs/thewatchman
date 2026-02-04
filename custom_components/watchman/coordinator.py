@@ -1,20 +1,20 @@
 import asyncio
+from collections.abc import Iterable
 import logging
 import os
 import time
-from collections.abc import Iterable
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .hub import WatchmanHub
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     EVENT_CALL_SERVICE,
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
 )
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.event import async_track_state_change_event

@@ -1,5 +1,6 @@
 """YAML Loader for Watchman."""
 from typing import Any
+
 import yaml
 
 # Custom YAML Loader with Line Numbers

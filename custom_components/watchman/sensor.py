@@ -1,6 +1,7 @@
 """Watchman sensors definition."""
 
 from typing import Any
+
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
@@ -9,9 +10,9 @@ from homeassistant.components.sensor.const import (
     SensorDeviceClass,
     SensorStateClass,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import MATCH_ALL, EntityCategory
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 

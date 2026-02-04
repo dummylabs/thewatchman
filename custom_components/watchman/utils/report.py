@@ -1,7 +1,7 @@
 """Reporting function of Watchman."""
 
-from datetime import datetime
 from collections.abc import Callable
+from datetime import datetime
 from textwrap import wrap
 import time
 from typing import Any
