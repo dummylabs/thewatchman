@@ -106,9 +106,6 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
     missing_items = {}
     is_entity = item_type == "entity"
     type_label = "entity" if is_entity else "action"
-
-    #_LOGGER.debug(f"## Triaging list of found {type_label}s. exclude_disabled_automations={exclude_disabled_automations}")
-
     ignored_states = []
     if is_entity:
         ignored_states = [
@@ -132,7 +129,6 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
         if is_entity:
             # Check if this is a valid HA action misidentified as a sensor/other entity
             if is_action(hass, entry):
-#                _LOGGER.debug(f"{INDENT}⚪ {entry} is a HA action, skipped ({occurrences})")
                 continue
 
             # Check ignored labels
@@ -143,16 +139,10 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
                     and hasattr(reg_entry, "labels")
                     and set(reg_entry.labels) & ignored_labels
                 ):
-                    # _LOGGER.debug(
-                    #     f"{INDENT}⚪ {entry} has ignored label(s), skipped ({occurrences})"
-                    # )
                     continue
 
             state, _ = get_entity_state(hass, entry)
             if state in ignored_states:
-                # _LOGGER.debug(
-                #     f"{INDENT}⚪ {entry} has ignored state {state}, skipped ({occurrences})"
-                # )
                 continue
 
             # Entities are reported if they are missing/unknown/etc.
@@ -189,12 +179,6 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
                 missing_auto_warning = (
                     "" if auto_state else "❌: automation not found"
                 )
-
-            # log_msg = f"{INDENT}🔴 {type_label} {entry} added to the report"
-            # if is_entity:
-            #     log_msg += f" {missing_auto_warning}"
-            # log_msg += f" ({occurrences})"
-            # _LOGGER.debug(log_msg)
 
     return missing_items
 
@@ -282,6 +266,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     async def async_process_parsed_data(self, parsed_entity_list, parsed_service_list):
         """Process parsed data to calculate missing items and build sensor attributes.
+
         This is separated to allow 'priming' the coordinator from cache without a full scan.
         """
         exclude_disabled_automations = get_config(
@@ -401,10 +386,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     def request_parser_rescan(self, reason=None, force=False, delay=DEFAULT_DELAY):
         """Request a background scan.
+
         If force=True, ignore cooldown and delay.
         """
         self._needs_parse = True
-        print(f"DEBUG: request_parser_rescan reason={reason} needs_parse={self._needs_parse}")
         _LOGGER.debug(f"Parser rescan requested. Reason: {reason}, Force: {force}, Delay: {delay}")
 
         if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
@@ -485,6 +470,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     async def async_force_parse(self):
         """Execute a blocking parse for the report service.
+
         Returns a Task/Coroutine that finishes when parsing is complete.
         """
         # Cancel pending cooldown
@@ -653,6 +639,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update Watchman sensors.
+
         Read from Hub/DB without triggering a parse.
         """
         _LOGGER.debug("Coordinator: refresh watchman sensors requested")

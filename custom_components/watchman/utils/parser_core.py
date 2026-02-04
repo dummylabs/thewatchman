@@ -131,6 +131,7 @@ def _is_script(node: dict) -> bool:
 
 def _derive_context(node: dict, parent_context: dict[str, Any], parent_key: str = None) -> dict[str, Any]:
     """Derive the context for a node based on its content and parent key.
+
     If the node defines an automation or script, return a new context.
     Otherwise, return the parent context.
     """
@@ -390,8 +391,8 @@ def _parse_content(content: str, file_type: str, filepath: str = None, logger: l
 
 def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> tuple[int, list[FoundItem], str]:
     """Process a single file synchronously.
-    This function is intended to be run in an executor.
 
+    This function is intended to be run in an executor.
     Returns a tuple of (count, items, detected_file_type).
     """
     file_type = _detect_file_type(filepath)
@@ -424,6 +425,7 @@ async def default_async_executor(func: Callable, *args: Any) -> Any:
 
 def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
     """Synchronous, blocking file scanner using os.walk.
+
     Executed as a single job in the executor.
     """
     scanned_files = []
@@ -613,6 +615,7 @@ class WatchmanParser:
 
     async def _async_scan_files_legacy(self, root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
         """Phase 1: Asynchronous file scanning using anyio.
+
         Returns a list of file metadata and a count of ignored files.
         """
         scanned_files = []
@@ -688,12 +691,14 @@ class WatchmanParser:
 
     async def _async_scan_files(self, root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
         """Phase 1: Synchronous file scanning (offloaded to thread).
+
         Calls _scan_files_sync in executor.
         """
         return await self.executor(_scan_files_sync, root_path, ignored_patterns)
 
     async def async_scan(self, root_path: str, ignored_files: list[str], force: bool = False, custom_domains: list[str] = None, base_path: str = None) -> None:
         """Orchestrates the scanning process.
+
         If force = True, unmodified files will be scanned again
         """
         start_time = time.monotonic()
@@ -904,6 +909,7 @@ class WatchmanParser:
 
     def get_automation_context(self, entity_id: str) -> dict[str, Any]:
         """Get automation/script context for a specific entity or service.
+
         Returns the first match found.
         """
         with self._db_session() as conn:
@@ -926,7 +932,9 @@ class WatchmanParser:
             return None
 
     async def async_parse(self, root_path: str, ignored_files: list[str], force: bool = False, custom_domains: list[str] = None, base_path: str = None) -> tuple[list[str], list[str], int, int, dict]:
-        """Params:
+        """main parse function
+
+        Params:
             root_path: where to scan
             ignored_files: file paths which should be ignored during scan
             force (bool): if false, files witch unchanged modification time will be not be parsed
@@ -963,7 +971,6 @@ class WatchmanParser:
                 row = cursor.fetchone()
                 ignored_files_count = row[0] if row else 0
 
-            # entity_to_automations (stub)
             entity_to_automations = {}
 
             return (

@@ -136,10 +136,6 @@ async def async_setup_entry(hass, entry, async_add_devices):
         dub_uid = f"{DOMAIN}_{DOMAIN}_{description.key}"
         await update_or_cleanup_entity(ent_reg, dub_uid, new_uid)
 
-        # if entity_id := ent_reg.async_get_entity_id("sensor", DOMAIN, dub_uid):
-        #     _LOGGER.debug(f"async_setup_entry: Entity with dub uid {dub_uid} was migrated to {new_uid}.")
-        #     ent_reg.async_update_entity(entity_id, new_unique_id=new_uid)
-
         # Instantiate sensor classes
         if description.key == SENSOR_LAST_UPDATE:
             entities.append(LastUpdateSensor(coordinator, description))

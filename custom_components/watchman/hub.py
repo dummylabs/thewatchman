@@ -94,7 +94,6 @@ class WatchmanHub:
                 result_dict[entity_id]["locations"][path] = []
             result_dict[entity_id]["locations"][path].append(line)
 
-            # item[6] is parent_id
             parent_id = item[6]
             if parent_id:
                 result_dict[entity_id]["automations"].add(parent_id)

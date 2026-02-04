@@ -57,7 +57,6 @@ async def report(
 
     if parse_config:
         coordinator.request_parser_rescan(reason="service call")
-        #await coordinator.async_parse_config(reason="watchman.report service call")
 
     service_list = await coordinator.async_get_parsed_services()
 
