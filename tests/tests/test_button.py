@@ -51,8 +51,8 @@ async def test_button_press_triggers_report(hass: HomeAssistant):
             
             if domain == "persistent_notification" and service == "create":
                 service_data = call.args[2] if len(call.args) > 2 else call.kwargs.get('service_data')
-                if service_data and service_data.get("title") == "Watchman":
+                if service_data and service_data.get("title") == "🛡️Watchman":
                     found_notify = True
 
         assert found_call, "watchman.report service was not called with parse_config=True"
-        assert found_notify, "persistent_notification.create was not called with title='Watchman'"
+        assert found_notify, "persistent_notification.create was not called with title='🛡️Watchman'"
