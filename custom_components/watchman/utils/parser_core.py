@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Generator
 import contextlib
 import datetime
 import fnmatch
@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 import time
-from typing import Any, Generator, TypedDict
+from typing import Any, TypedDict
 
 import anyio
 import yaml
@@ -508,7 +508,7 @@ class WatchmanParser:
         self.executor = executor or default_async_executor
 
     @contextlib.contextmanager
-    def _db_session(self) -> Generator[sqlite3.Connection, None, None]:
+    def _db_session(self) -> Generator[sqlite3.Connection]:
         """Context manager for database connections."""
         try:
             conn = self._init_db(self.db_path)
@@ -947,7 +947,7 @@ class WatchmanParser:
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
     ) -> tuple[list[str], list[str], int, int, dict]:
-        """main parse function
+        """Main parse function
 
         Params:
             root_path: where to scan

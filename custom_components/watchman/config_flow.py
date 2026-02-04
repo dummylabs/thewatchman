@@ -154,7 +154,7 @@ class OptionsFlowHandler(OptionsFlow):
             if section in data:
                 return section[data].get(key, None)
         else:
-            return data.get(key, None)
+            return data.get(key)
         return None
 
     async def async_step_init(

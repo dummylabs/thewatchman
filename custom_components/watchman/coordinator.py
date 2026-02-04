@@ -424,7 +424,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         *,
         reason: str | None = None,
         force: bool = False,
-        delay: int | float = DEFAULT_DELAY,
+        delay: float = DEFAULT_DELAY,
     ) -> None:
         """Request a background scan.
 

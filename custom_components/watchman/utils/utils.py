@@ -1,10 +1,11 @@
 """Miscellaneous support functions for Watchman."""
 
+from collections.abc import AsyncGenerator
 import fnmatch
 import os
 import re
 from types import MappingProxyType
-from typing import Any, AsyncGenerator
+from typing import Any
 
 import anyio
 
@@ -124,7 +125,7 @@ async def async_is_valid_path(path: str) -> bool:
 
 async def async_get_next_file(
     folder_tuples: list[tuple[str, str]], ignored_files: list[str]
-) -> AsyncGenerator[tuple[str, bool], None]:
+) -> AsyncGenerator[tuple[str, bool]]:
     """Return next file from scan queue."""
     if not ignored_files:
         ignored_files = ""
@@ -161,7 +162,7 @@ def is_action(hass: HomeAssistant, entry: str) -> bool:
     """Check whether config entry is an action."""
     if not isinstance(entry, str):
         return False
-    domain, service = entry.split(".")[0], ".".join(entry.split(".")[1:])
+    domain, service = entry.split(".", maxsplit=1)[0], ".".join(entry.split(".")[1:])
     return hass.services.has_service(domain, service)
 
 
