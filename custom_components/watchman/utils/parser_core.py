@@ -154,6 +154,26 @@ def _detect_file_type(filepath: str) -> str:
 
     return 'unknown'
 
+def _is_automation(node: Dict) -> bool:
+    """Check if a node looks like an automation definition."""
+    has_trigger = "trigger" in node or "triggers" in node
+    has_action = "action" in node or "actions" in node
+
+    if has_trigger and has_action:
+        # Avoid false positives for Template configuration files (trigger-based templates)
+        # These files have trigger/action but also other keys like binary_sensor, sensor, etc.
+        # An automation dict should mostly contain automation keys.
+        # Heuristic: If it has keys typical for integrations, it's not an automation.
+        forbidden_keys = {'sensor', 'binary_sensor', 'image', 'number', 'select', 'weather', 'button', 'template', 'homeassistant', 'script', 'scene'}
+        if any(k in node for k in forbidden_keys):
+             return False
+        return True
+    return False
+
+def _is_script(node: Dict) -> bool:
+    """Check if a node looks like a script definition."""
+    return "sequence" in node
+
 def _derive_context(node: Dict, parent_context: Dict[str, Any], parent_key: str = None) -> Dict[str, Any]:
     """
     Derive the context for a node based on its content and parent key.
@@ -171,11 +191,7 @@ def _derive_context(node: Dict, parent_context: Dict[str, Any], parent_key: str 
     if not c_id and parent_key:
         c_id = parent_key
 
-    has_trigger = "trigger" in node or "triggers" in node
-    has_action = "action" in node or "actions" in node
-    has_sequence = "sequence" in node
-
-    if has_trigger and has_action:
+    if _is_automation(node):
         return {
             "is_automation_context": True,
             "parent_type": "automation",
@@ -183,7 +199,7 @@ def _derive_context(node: Dict, parent_context: Dict[str, Any], parent_key: str 
             "parent_alias": str(c_alias) if c_alias else None
         }
 
-    if has_sequence:
+    if _is_script(node):
         return {
             "is_automation_context": True,
             "parent_type": "script",
@@ -256,6 +272,9 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
     """
     if current_context is None:
         current_context = DEFAULT_CONTEXT
+        # Check if the ROOT node itself establishes a context (e.g., Root Automation)
+        if not breadcrumbs and isinstance(data, dict):
+             current_context = _derive_context(data, current_context)
 
     is_esphome = (file_type == 'esphome_yaml')
 
