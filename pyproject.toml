@@ -14,6 +14,7 @@ dev = [
     "pre-commit>=4.5.1",
     "pytest>=8.3.5",
     "pytest-homeassistant-custom-component>=0.13.236",
+    "ruff>=0.15.0",
 ]
 
 [tool.pytest.ini_options]
@@ -23,3 +24,13 @@ testpaths = [
     "tests",
 ]
 asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 88    # Как в Black
+target-version = "py310" # Ваша версия Python
+
+[tool.ruff.lint]
+# E4, E7, E9, F - стандартные проверки flake8
+# I - сортировка импортов (isort)
+# UP - обновление синтаксиса (pyupgrade)
+select = ["E4", "E7", "E9", "F", "I", "UP"]
