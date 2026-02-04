@@ -9,7 +9,7 @@ import yaml
 import contextlib
 import asyncio
 import anyio
-from typing import List, Tuple, Dict, Any, Callable, Awaitable
+from typing import List, Tuple, Dict, Any, Callable, Awaitable, Optional, TypedDict
 from .logger import _LOGGER
 from ..const import DB_TIMEOUT
 from .parser_const import (
@@ -26,6 +26,18 @@ from .parser_const import (
     IGNORED_DIRS,
 )
 from .yaml_loader import LineLoader
+
+class FoundItem(TypedDict):
+    """Structure of an item found by the parser."""
+    line: int
+    entity_id: str
+    item_type: str
+    is_key: bool
+    key_name: Optional[str]
+    is_automation_context: bool
+    parent_type: Optional[str]
+    parent_id: Optional[str]
+    parent_alias: Optional[str]
 
 def get_domains(hass=None) -> List[str]:
     """Return a list of valid domains."""
@@ -204,7 +216,7 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
 
     return False
 
-def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: Dict[str, Any] = None, expected_item_type: str = 'entity', parent_key: str = None):
+def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[FoundItem], file_type: str = 'yaml', entity_pattern: re.Pattern = _ENTITY_PATTERN, current_context: Dict[str, Any] = None, expected_item_type: str = 'entity', parent_key: str = None):
     """
     Recursively searches for entities and services.
     """
@@ -348,9 +360,11 @@ def _recursive_search(data: Any, breadcrumbs: List[Any], results: List[Dict], fi
             })
 
 
-def _parse_content(content: str, file_type: str, filepath: str = None, logger: logging.Logger = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> List[Dict]:
+def _parse_content(content: str, file_type: str, filepath: str = None, logger: logging.Logger = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> List[FoundItem]:
     """
     Parses YAML/JSON content and extracts entities.
+
+    Returns a list of FoundItem dictionaries.
     """
     if file_type == 'unknown':
         return []
@@ -367,17 +381,19 @@ def _parse_content(content: str, file_type: str, filepath: str = None, logger: l
              logger.error(f"Critical error parsing content in {filepath or 'unknown'}: {e}")
         return []
 
-    results = []
+    results: List[FoundItem] = []
     if data:
         # Pass DEFAULT_CONTEXT explicitly if needed, or let it default to None -> DEFAULT_CONTEXT inside
         _recursive_search(data, [], results, file_type, entity_pattern)
 
     return results
 
-def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> Tuple[int, List[dict], str]:
+def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> Tuple[int, List[FoundItem], str]:
     """
     Process a single file synchronously.
     This function is intended to be run in an executor.
+
+    Returns a tuple of (count, items, detected_file_type).
     """
     file_type = _detect_file_type(filepath)
 
