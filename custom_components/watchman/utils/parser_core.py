@@ -25,6 +25,7 @@ from .parser_const import (
     IGNORED_KEYS,
     IGNORED_DIRS,
 )
+from .yaml_loader import LineLoader
 
 def get_domains(hass=None) -> List[str]:
     """Return a list of valid domains."""
@@ -64,69 +65,6 @@ DEFAULT_CONTEXT = {
     "parent_id": None,
     "parent_alias": None
 }
-
-# Custom YAML Loader with Line Numbers
-
-class _StringWithLine(str):
-    """String subclass that holds the line number and tag info."""
-    def __new__(cls, value, line, is_tag=False):
-        obj = str.__new__(cls, value)
-        obj.line = line
-        obj.is_tag = is_tag
-        return obj
-
-class _LineLoader(yaml.SafeLoader):
-    """Custom YAML loader that attaches line numbers to scalars."""
-    def construct_scalar(self, node):
-        value = super().construct_scalar(node)
-        if isinstance(value, str):
-            return _StringWithLine(value, node.start_mark.line + 1)
-        return value
-
-    def flatten_mapping(self, node):
-        """
-        Override flatten_mapping to handle merge keys ('<<') safely.
-        """
-        merge = []
-        index = 0
-        while index < len(node.value):
-            key_node, value_node = node.value[index]
-            if key_node.tag == 'tag:yaml.org,2002:merge':
-                del node.value[index]
-                if isinstance(value_node, yaml.MappingNode):
-                    self.flatten_mapping(value_node)
-                    merge.extend(value_node.value)
-                elif isinstance(value_node, yaml.SequenceNode):
-                    submerge = []
-                    for subnode in value_node.value:
-                        if isinstance(subnode, yaml.MappingNode):
-                            self.flatten_mapping(subnode)
-                            submerge.append(subnode)
-                        elif isinstance(subnode, yaml.ScalarNode):
-                            continue
-                    for subnode in reversed(submerge):
-                        merge.extend(subnode.value)
-                elif isinstance(value_node, yaml.ScalarNode):
-                    continue
-            elif key_node.tag == 'tag:yaml.org,2002:value':
-                key_node.tag = 'tag:yaml.org,2002:str'
-                index += 1
-            else:
-                index += 1
-        if merge:
-            node.value = merge + node.value
-
-_LineLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG, _LineLoader.construct_scalar)
-
-# Handle custom HA tags by ignoring them or treating as string
-def _default_ctor(loader, tag_suffix, node):
-    value = loader.construct_scalar(node)
-    if isinstance(value, str):
-        return _StringWithLine(value, node.start_mark.line + 1, is_tag=True)
-    return value
-
-yaml.add_multi_constructor('!', _default_ctor, Loader=_LineLoader)
-
 
 # Core Logic Functions
 
@@ -442,7 +380,7 @@ def _parse_content(content: str, file_type: str, filepath: str = None, logger: l
 
     try:
         # JSON is valid YAML 1.2
-        data = yaml.load(content, Loader=_LineLoader)
+        data = yaml.load(content, Loader=LineLoader)
     except yaml.YAMLError as e:
         if logger:
             logger.error(f"Error parsing content in {filepath or 'unknown'}: {e}")
