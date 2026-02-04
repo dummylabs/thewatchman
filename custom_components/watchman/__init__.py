@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, HomeAssistant
 from homeassistant.loader import async_get_integration
 
 from .const import (
@@ -53,7 +53,7 @@ class WMData:
 async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry):
     """Set up this integration using UI."""
 
-    async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
+    async def async_on_home_assistant_started(event: Event | None):  # pylint: disable=unused-argument
         """Update watchman sensors and start listening to HA events when Home Assistant started.
         """
         coordinator = config_entry.runtime_data.coordinator
@@ -125,7 +125,7 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disable=unused-argument
+async def async_unload_entry(hass: HomeAssistant, config_entry: WMConfigEntry):  # pylint: disable=unused-argument
     """Handle integration unload."""
     if hasattr(config_entry, "runtime_data") and config_entry.runtime_data:
         await config_entry.runtime_data.coordinator.async_shutdown()
@@ -150,7 +150,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):  # pylint: disa
     return unload_ok
 
 
-async def async_migrate_entry(hass, config_entry: ConfigEntry):
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Migrate ConfigEntry persistent data to a new version."""
     if config_entry.version > CONFIG_ENTRY_VERSION:
         # the user has downgraded from a future version

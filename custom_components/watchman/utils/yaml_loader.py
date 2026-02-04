@@ -1,4 +1,5 @@
 """YAML Loader for Watchman."""
+from typing import Any
 import yaml
 
 # Custom YAML Loader with Line Numbers
@@ -6,7 +7,7 @@ import yaml
 class StringWithLine(str):
     """String subclass that holds the line number and tag info."""
 
-    def __new__(cls, value, line, is_tag=False):
+    def __new__(cls, value: str, line: int, is_tag: bool = False) -> "StringWithLine":
         obj = str.__new__(cls, value)
         obj.line = line
         obj.is_tag = is_tag
@@ -15,13 +16,13 @@ class StringWithLine(str):
 class LineLoader(yaml.SafeLoader):
     """Custom YAML loader that attaches line numbers to scalars."""
 
-    def construct_scalar(self, node):
+    def construct_scalar(self, node: yaml.ScalarNode) -> Any:
         value = super().construct_scalar(node)
         if isinstance(value, str):
             return StringWithLine(value, node.start_mark.line + 1)
         return value
 
-    def flatten_mapping(self, node):
+    def flatten_mapping(self, node: yaml.MappingNode) -> None:
         """Override flatten_mapping to handle merge keys ('<<') safely.
         """
         merge = []
@@ -56,7 +57,7 @@ class LineLoader(yaml.SafeLoader):
 LineLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG, LineLoader.construct_scalar)
 
 # Handle custom HA tags by ignoring them or treating as string
-def default_ctor(loader, tag_suffix, node):
+def default_ctor(loader: yaml.Loader, tag_suffix: str, node: yaml.ScalarNode) -> Any:
     value = loader.construct_scalar(node)
     if isinstance(value, str):
         return StringWithLine(value, node.start_mark.line + 1, is_tag=True)

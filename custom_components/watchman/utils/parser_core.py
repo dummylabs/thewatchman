@@ -10,6 +10,8 @@ import sqlite3
 import time
 from typing import Any, TypedDict
 
+from homeassistant.core import HomeAssistant
+
 import anyio
 import yaml
 
@@ -44,7 +46,7 @@ class FoundItem(TypedDict):
     parent_id: str | None
     parent_alias: str | None
 
-def get_domains(hass=None) -> list[str]:
+def get_domains(hass: HomeAssistant | None = None) -> list[str]:
     """Return a list of valid domains."""
     platforms = PLATFORMS
     try:

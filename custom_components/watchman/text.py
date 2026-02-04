@@ -1,9 +1,11 @@
 """Text entity for Watchman ignored labels."""
 from homeassistant.components.text import TextEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN
@@ -88,7 +90,11 @@ class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
 
         return valid, invalid
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up the text platform."""
     coordinator = config_entry.runtime_data.coordinator
     async_add_entities([WatchmanIgnoredLabelsText(hass, coordinator)])

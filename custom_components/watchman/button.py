@@ -1,8 +1,10 @@
 """Button entity for Watchman."""
 from homeassistant.components.button import ButtonEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_REPORT_PATH, DOMAIN, REPORT_SERVICE_NAME
 from .utils.utils import get_config
@@ -16,7 +18,7 @@ class WatchmanReportButton(ButtonEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:file-document-outline"
 
-    def __init__(self, hass: HomeAssistant, config_entry: str):
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
         """Initialize the entity."""
         self.hass = hass
         self._attr_unique_id = f"{DOMAIN}_report_button"
@@ -49,6 +51,10 @@ class WatchmanReportButton(ButtonEntity):
         )
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback
+) -> None:
     """Set up the button platform."""
     async_add_entities([WatchmanReportButton(hass, config_entry)])

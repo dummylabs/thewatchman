@@ -7,6 +7,7 @@ import voluptuous as vol
 
 from homeassistant import data_entry_flow
 from homeassistant.config_entries import (
+    ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
@@ -123,7 +124,9 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     VERSION = CONFIG_ENTRY_VERSION
     MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
 
-    async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Create new Watchman entry via UI."""
         _LOGGER.debug("::async_step_user::")
         options = DEFAULT_OPTIONS
@@ -135,7 +138,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
         return OptionsFlowHandler()
 
@@ -143,7 +146,9 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(OptionsFlow):
     """Options flow used to change configuration (options) of existing instance of integration."""
 
-    async def async_get_key_in_section(self, data, key, section=None):
+    async def async_get_key_in_section(
+        self, data: dict[str, Any], key: str, section: str | None = None
+    ) -> Any:
         """Return value of a key in ConfigEntry.data."""
         if section:
             if section in data:
@@ -152,7 +157,9 @@ class OptionsFlowHandler(OptionsFlow):
             return data.get(key, None)
         return None
 
-    async def async_step_init(self, user_input=None) -> ConfigFlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Manage the options form.
 
         This method is invoked twice.

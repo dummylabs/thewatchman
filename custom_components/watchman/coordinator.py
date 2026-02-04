@@ -2,14 +2,19 @@ import asyncio
 import logging
 import os
 import time
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .hub import WatchmanHub
 
 from homeassistant.const import (
     EVENT_CALL_SERVICE,
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
 )
-from homeassistant.core import CALLBACK_TYPE, callback
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.event import async_track_state_change_event
@@ -55,7 +60,7 @@ from .utils.utils import (
 parser_lock = asyncio.Lock()
 
 
-def _get_automation_map(hass):
+def _get_automation_map(hass: HomeAssistant) -> dict[str, str]:
     """Build a map of unique_id -> entity_id for automations."""
     ent_reg = er.async_get(hass)
     return {
@@ -65,7 +70,7 @@ def _get_automation_map(hass):
     }
 
 
-def _get_disabled_automations(hass, exclude_disabled_automations):
+def _get_disabled_automations(hass: HomeAssistant, exclude_disabled_automations: bool) -> set[str]:
     """Return a set of disabled automation entity IDs."""
     if not exclude_disabled_automations:
         return set()
@@ -79,7 +84,9 @@ def _get_disabled_automations(hass, exclude_disabled_automations):
     return disabled
 
 
-def _resolve_automations(hass, raw_automations, automation_map):
+def _resolve_automations(
+    hass: HomeAssistant, raw_automations: Iterable[str], automation_map: dict[str, str]
+) -> set[str]:
     """Resolve parser parent IDs to Home Assistant entity IDs."""
     automations = set()
     ent_reg = er.async_get(hass)
@@ -101,7 +108,13 @@ def _resolve_automations(hass, raw_automations, automation_map):
     return automations
 
 
-def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ignored_labels, item_type):
+def renew_missing_items_list(
+    hass: HomeAssistant,
+    parsed_list: dict[str, Any],
+    exclude_disabled_automations: bool,
+    ignored_labels: set[str],
+    item_type: str,
+) -> dict[str, Any]:
     """Refresh list of missing items (entities or actions)."""
     missing_items = {}
     is_entity = item_type == "entity"
@@ -186,7 +199,14 @@ def renew_missing_items_list(hass, parsed_list, exclude_disabled_automations, ig
 class WatchmanCoordinator(DataUpdateCoordinator):
     """Watchman coordinator."""
 
-    def __init__(self, hass, logger, name, hub, version):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        logger: logging.Logger,
+        name: str,
+        hub: "WatchmanHub",
+        version: str,
+    ):
         """Initialize watchmman coordinator."""
         debouncer = Debouncer(
                     hass,
@@ -245,7 +265,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         """Return True if integration is in safe mode."""
         return self._status == STATE_SAFE_MODE
 
-    def update_status(self, new_status):
+    def update_status(self, new_status: str):
         """Update the status and notify listeners."""
         self._status = new_status
         self.async_update_listeners()
@@ -264,7 +284,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         """Return a dictionary of parsed services and their locations."""
         return await self.hub.async_get_parsed_services()
 
-    async def async_process_parsed_data(self, parsed_entity_list, parsed_service_list):
+    async def async_process_parsed_data(
+        self, parsed_entity_list: dict[str, Any], parsed_service_list: dict[str, Any]
+    ) -> dict[str, Any]:
         """Process parsed data to calculate missing items and build sensor attributes.
 
         This is separated to allow 'priming' the coordinator from cache without a full scan.
@@ -351,7 +373,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             "entity",
         )
 
-        def flatten_locations(item_id, locations, state):
+        def flatten_locations(
+            item_id: str, locations: dict[str, list[int]], state: str
+        ) -> list[dict[str, Any]]:
             results = []
             for file_path, lines in locations.items():
                 for line in lines:
@@ -384,7 +408,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         info["missing_actions"] = actions_list
         return info
 
-    def request_parser_rescan(self, reason=None, force=False, delay=DEFAULT_DELAY):
+    def request_parser_rescan(
+        self,
+        reason: str | None = None,
+        force: bool = False,
+        delay: int | float = DEFAULT_DELAY,
+    ):
         """Request a background scan.
 
         If force=True, ignore cooldown and delay.
@@ -434,7 +463,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self._cooldown_unsub = None
         self._schedule_parse()
 
-    def _schedule_parse(self, force_immediate=False):
+    def _schedule_parse(self, force_immediate: bool = False):
         """Schedule the parse task based on state and cooldown."""
         if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
             #  do nothing as parsing is already running
@@ -547,13 +576,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self.hass.async_create_task(self.async_request_refresh())
 
     @callback
-    def _handle_state_change_event(self, event):
+    def _handle_state_change_event(self, event: Event):
         """Handle state change event for monitored entities."""
         if self.hub.is_scanning:
             _LOGGER.debug("Scan in progress, skipping state change event.")
             return
 
-        def state_or_missing(state_id):
+        def state_or_missing(state_id: str) -> str:
             """Return missing state if entity not found."""
             return "missing" if not event.data[state_id] else event.data[state_id].state
 
@@ -581,9 +610,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         else:
             _LOGGER.debug("No entities to monitor.")
 
-    def subscribe_to_events(self, entry):
+    def subscribe_to_events(self, entry: ConfigEntry):
         """Subscribe to Home Assistant events."""
-        async def async_on_configuration_changed(event):
+
+        async def async_on_configuration_changed(event: Event):
             event_type = event.event_type
             if event_type == EVENT_CALL_SERVICE:
 
@@ -595,7 +625,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             elif event_type in WATCHED_EVENTS:
                 self.request_parser_rescan(reason=event_type)
 
-        async def async_on_service_changed(event):
+        async def async_on_service_changed(event: Event):
             if self.hub.is_scanning:
                 _LOGGER.debug("Scan in progress, skipping service change event.")
                 return

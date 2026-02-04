@@ -1,5 +1,5 @@
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, SupportsResponse
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 
 from .const import (
@@ -40,7 +40,7 @@ class WatchmanServicesSetup:
             supports_response=SupportsResponse.OPTIONAL
         )
 
-    async def async_handle_report(self, call):
+    async def async_handle_report(self, call: ServiceCall):
         """Handle the action call."""
         path = get_config(self.hass, CONF_REPORT_PATH)
         send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)

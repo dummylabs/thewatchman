@@ -48,7 +48,9 @@ def get_val(
     return val
 
 
-def to_lists(options, key, section=None):
+def to_lists(
+    options: MappingProxyType[str, Any] | dict[str, Any], key: str, section: str | None = None
+) -> list[str]:
     """Transform configuration value to the list of strings."""
     val = get_val(options, key, section)
     if isinstance(val, list):
@@ -58,7 +60,9 @@ def to_lists(options, key, section=None):
     return [x.strip() for x in val.split(",") if x.strip()]
 
 
-def to_listi(options, key, section=None):
+def to_listi(
+    options: MappingProxyType[str, Any] | dict[str, Any], key: str, section: str | None = None
+) -> list[int]:
     """Transform configuration value to the list of integers."""
     val = get_val(options, key, section)
     return [int(x) for x in val.split(",") if x.strip()]
@@ -108,7 +112,7 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
     return default
 
 
-async def async_is_valid_path(path) -> bool:
+async def async_is_valid_path(path: str) -> bool:
     """Validate the report path."""
     folder, f_name = os.path.split(path)
     if is_valid := (
@@ -118,7 +122,7 @@ async def async_is_valid_path(path) -> bool:
     return is_valid
 
 
-async def async_get_next_file(folder_tuples, ignored_files):
+async def async_get_next_file(folder_tuples: list[tuple[str, str]], ignored_files: list[str]):
     """Return next file from scan queue."""
     if not ignored_files:
         ignored_files = ""
@@ -136,7 +140,7 @@ async def async_get_next_file(folder_tuples, ignored_files):
             )
 
 
-def get_included_folders(hass):
+def get_included_folders(hass: HomeAssistant) -> list[tuple[str, str]]:
     """Gather the list of folders to parse."""
     folders = []
 
@@ -151,7 +155,7 @@ def get_included_folders(hass):
     return folders
 
 
-def is_action(hass, entry):
+def is_action(hass: HomeAssistant, entry: str) -> bool:
     """Check whether config entry is an action."""
     if not isinstance(entry, str):
         return False
@@ -159,7 +163,9 @@ def is_action(hass, entry):
     return hass.services.has_service(domain, service)
 
 
-def get_entity_state(hass, entry, friendly_names=False):
+def get_entity_state(
+    hass: HomeAssistant, entry: str, friendly_names: bool = False
+) -> tuple[str, str | None]:
     """Return entity state or 'missing' if entity does not extst."""
     entity_state = hass.states.get(entry)
     entity_registry = er.async_get(hass)

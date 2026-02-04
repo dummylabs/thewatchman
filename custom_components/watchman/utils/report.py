@@ -1,6 +1,7 @@
 """Reporting function of Watchman."""
 
 from datetime import datetime
+from collections.abc import Callable
 from textwrap import wrap
 import time
 from typing import Any
@@ -24,10 +25,10 @@ from .logger import _LOGGER
 from .utils import get_config, get_entity_state, get_entry, is_action
 
 
-async def parsing_stats(hass, start_time):
+async def parsing_stats(hass: HomeAssistant, start_time: float):
     """Separate func for test mocking."""
 
-    def get_timezone(hass):
+    def get_timezone(hass: HomeAssistant):
         return pytz.timezone(hass.config.time_zone)
 
     timezone = await hass.async_add_executor_job(get_timezone, hass)
@@ -42,10 +43,10 @@ async def parsing_stats(hass, start_time):
 
 
 async def report(
-    hass,
-    render=None,
-    chunk_size=None,
-    parse_config=None,
+    hass: HomeAssistant,
+    render: Callable[[HomeAssistant, str, dict[str, Any], dict[str, Any]], str] | None = None,
+    chunk_size: int | None = None,
+    parse_config: bool | None = None,
 ):
     """Generate a report of missing entities and services."""
     from ..const import CONF_EXCLUDE_DISABLED_AUTOMATION
@@ -130,7 +131,12 @@ async def report(
     return report_chunks
 
 
-def table_renderer(hass, entry_type, missing_items, parsed_list):
+def table_renderer(
+    hass: HomeAssistant,
+    entry_type: str,
+    missing_items: dict[str, Any],
+    parsed_list: dict[str, Any],
+) -> str:
     """Render ASCII tables in the report."""
     table = PrettyTable()
     columns_width = get_config(hass, CONF_COLUMNS_WIDTH, None)
@@ -166,7 +172,12 @@ def table_renderer(hass, entry_type, missing_items, parsed_list):
     return f"Table render error: unknown entry type: {entry_type}"
 
 
-def text_renderer(hass, entry_type, missing_items, parsed_list):
+def text_renderer(
+    hass: HomeAssistant,
+    entry_type: str,
+    missing_items: dict[str, Any],
+    parsed_list: dict[str, Any],
+) -> str:
     """Render plain lists in the report."""
     result = ""
     if entry_type == REPORT_ENTRY_TYPE_SERVICE:
@@ -184,7 +195,7 @@ def text_renderer(hass, entry_type, missing_items, parsed_list):
     return f"Text render error: unknown entry type: {entry_type}"
 
 
-def fill(data, width, extra=None):
+def fill(data: Any, width: int, extra: str | None = None) -> str:
     """Arrange data by table column width."""
     if data and isinstance(data, dict):
         key, val = next(iter(data.items()))
@@ -197,7 +208,7 @@ def fill(data, width, extra=None):
     )
 
 
-def get_columns_width(user_width):
+def get_columns_width(user_width: list[int] | None) -> list[int]:
     """Define width of the report columns."""
     default_width = [30, 7, 60]
     if not user_width:
@@ -212,11 +223,11 @@ def get_columns_width(user_width):
     return default_width
 
 
-async def async_report_to_file(hass, path):
+async def async_report_to_file(hass: HomeAssistant, path: str) -> None:
     """Save report to a file."""
     report_chunks = await report(hass, table_renderer, chunk_size=0)
 
-    def write(path):
+    def write(path: str) -> None:
         with open(path, "w", encoding="utf-8") as report_file:
             report_file.writelines(report_chunks)
 
