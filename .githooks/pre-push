@@ -1,8 +1,0 @@
-#!/bin/sh
-# Run tests before push
-echo "Running tests..."
-uv run pytest tests
-if [ $? -ne 0 ]; then
-    echo "Tests failed. Push aborted."
-    exit 1
-fi
