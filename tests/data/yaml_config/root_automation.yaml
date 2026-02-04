@@ -1,0 +1,9 @@
+alias: "Root Automation"
+id: "root_auto_123"
+trigger:
+  - platform: state
+    entity_id: sensor.root_trigger
+action:
+  - service: light.turn_on
+    target:
+      entity_id: light.root_light
