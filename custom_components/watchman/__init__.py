@@ -54,8 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
     """Set up this integration using UI."""
 
     async def async_on_home_assistant_started(event: Event | None) -> None:  # pylint: disable=unused-argument
-        """Update watchman sensors and start listening to HA events when Home Assistant started.
-        """
+        """Update watchman sensors and start listening to HA events when Home Assistant started."""
         coordinator = config_entry.runtime_data.coordinator
 
         # prime the coordinator with cached data immediately to minimize startup delay

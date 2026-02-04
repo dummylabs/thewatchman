@@ -20,7 +20,7 @@ class WatchmanIgnoredLabelsText(RestoreEntity, TextEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:label-off"
 
-    def __init__(self, hass: HomeAssistant, coordinator: WatchmanCoordinator):
+    def __init__(self, hass: HomeAssistant, coordinator: WatchmanCoordinator) -> None:
         """Initialize the entity."""
         self.hass = hass
         self.coordinator = coordinator

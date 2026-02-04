@@ -188,13 +188,10 @@ def renew_missing_items_list(
             missing_items[entry] = occurrences
 
             # Entity-specific warning logic
-            missing_auto_warning = ""
             if is_entity and automations:
-                auto_id = list(automations)[0]
-                auto_state = hass.states.get(auto_id)
-                missing_auto_warning = (
-                    "" if auto_state else "❌: automation not found"
-                )
+                auto_id = next(iter(automations))
+                if not hass.states.get(auto_id):
+                    _LOGGER.warning(f"Automation with id {auto_id} not found.")
 
     return missing_items
 
@@ -209,7 +206,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         name: str,
         hub: "WatchmanHub",
         version: str,
-    ):
+    ) -> None:
         """Initialize watchmman coordinator."""
         debouncer = Debouncer(
                     hass,

@@ -1,5 +1,5 @@
 """YAML Loader for Watchman."""
-from typing import Any
+from typing import Any, Self
 
 import yaml
 
@@ -10,7 +10,7 @@ class StringWithLine(str):
 
     def __new__(
         cls, value: str, line: int, *, is_tag: bool = False
-    ) -> "StringWithLine":
+    ) -> Self:
         obj = str.__new__(cls, value)
         obj.line = line
         obj.is_tag = is_tag
@@ -26,8 +26,7 @@ class LineLoader(yaml.SafeLoader):
         return value
 
     def flatten_mapping(self, node: yaml.MappingNode) -> None:
-        """Override flatten_mapping to handle merge keys ('<<') safely.
-        """
+        """Override flatten_mapping to handle merge keys ('<<') safely."""
         merge = []
         index = 0
         while index < len(node.value):

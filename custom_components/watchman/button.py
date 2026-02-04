@@ -18,7 +18,7 @@ class WatchmanReportButton(ButtonEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:file-document-outline"
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize the entity."""
         self.hass = hass
         self._attr_unique_id = f"{DOMAIN}_report_button"

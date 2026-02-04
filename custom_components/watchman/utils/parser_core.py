@@ -60,7 +60,7 @@ def get_domains(hass: HomeAssistant | None = None) -> list[str]:
         with contextlib.suppress(Exception):
             extra_domains = list(hass.services.async_services().keys())
 
-    return sorted(list(set(platforms + HA_DOMAINS + extra_domains)))
+    return sorted(set(platforms + HA_DOMAINS + extra_domains))
 
 _ALL_DOMAINS = get_domains()
 
@@ -120,16 +120,14 @@ def _is_automation(node: dict) -> bool:
         # An automation dict should mostly contain automation keys.
         # Heuristic: If it has keys typical for integrations, it's not an automation.
         forbidden_keys = {'sensor', 'binary_sensor', 'image', 'number', 'select', 'weather', 'button', 'template', 'homeassistant', 'script', 'scene'}
-        if any(k in node for k in forbidden_keys):
-             return False
-        return True
+        return not any(k in node for k in forbidden_keys)
     return False
 
 def _is_script(node: dict) -> bool:
     """Check if a node looks like a script definition."""
     return "sequence" in node
 
-def _derive_context(node: dict, parent_context: dict[str, Any], parent_key: str = None) -> dict[str, Any]:
+def _derive_context(node: dict, parent_context: dict[str, Any], parent_key: str | None = None) -> dict[str, Any]:
     """Derive the context for a node based on its content and parent key.
 
     If the node defines an automation or script, return a new context.
@@ -229,8 +227,7 @@ def _recursive_search(
     expected_item_type: str = "entity",
     parent_key: str | None = None,
 ) -> None:
-    """Recursively searches for entities and services.
-    """
+    """Recursively searches for entities and services."""
     if current_context is None:
         current_context = DEFAULT_CONTEXT
         # Check if the ROOT node itself establishes a context (e.g., Root Automation)
@@ -295,7 +292,7 @@ def _recursive_search(
             if isinstance(value, dict):
                 child_ctx = _derive_context(value, current_context, parent_key=key)
 
-            _recursive_search(value, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx, next_type, parent_key=key)
+            _recursive_search(value, [*breadcrumbs, data], results, file_type, entity_pattern, child_ctx, next_type, parent_key=key)
 
     elif isinstance(data, list):
         for item in data:
@@ -304,7 +301,7 @@ def _recursive_search(
                 child_ctx = _derive_context(item, current_context)
             # List items inherit expected_item_type from parent
             # List items inherit parent_key from parent (e.g. entity_id: [item1, item2])
-            _recursive_search(item, breadcrumbs + [data], results, file_type, entity_pattern, child_ctx, expected_item_type, parent_key=parent_key)
+            _recursive_search(item, [*breadcrumbs, data], results, file_type, entity_pattern, child_ctx, expected_item_type, parent_key=parent_key)
 
     elif isinstance(data, str):
         # Check Value
@@ -371,7 +368,7 @@ def _recursive_search(
             })
 
 
-def _parse_content(content: str, file_type: str, filepath: str = None, logger: logging.Logger = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> list[FoundItem]:
+def _parse_content(content: str, file_type: str, filepath: str | None = None, logger: logging.Logger | None = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> list[FoundItem]:
     """Parses YAML/JSON content and extracts entities.
 
     Returns a list of FoundItem dictionaries.
@@ -384,11 +381,11 @@ def _parse_content(content: str, file_type: str, filepath: str = None, logger: l
         data = yaml.load(content, Loader=LineLoader)
     except yaml.YAMLError as e:
         if logger:
-            logger.error(f"Error parsing content in {filepath or 'unknown'}: {e}")
+            logger.exception(f"Error parsing content in {filepath or 'unknown'}: {e}")
         return []
     except Exception as e:
         if logger:
-             logger.error(f"Critical error parsing content in {filepath or 'unknown'}: {e}")
+             logger.exception(f"Critical error parsing content in {filepath or 'unknown'}: {e}")
         return []
 
     results: list[FoundItem] = []
@@ -502,7 +499,7 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
 # --- WatchmanParser ---
 
 class WatchmanParser:
-    def __init__(self, db_path: str, executor: Callable[[Callable, Any], Awaitable[Any]] = None):
+    def __init__(self, db_path: str, executor: Callable[[Callable, Any], Awaitable[Any]] | None = None) -> None:
         self.db_path = db_path
         # default_async_executor is used by parser CLI
         self.executor = executor or default_async_executor
@@ -791,7 +788,7 @@ class WatchmanParser:
             with self._db_session() as conn:
                 cursor = conn.cursor()
 
-                for i, file_info in enumerate(files_to_parse):
+                for _i, file_info in enumerate(files_to_parse):
                     filepath = file_info["path"]
                     path_for_db = file_info["path_for_db"]
                     scan_date = file_info["scan_date"]
@@ -887,7 +884,7 @@ class WatchmanParser:
             """,)
             return cursor.fetchall()
 
-    def get_found_items(self, item_type: str = None) -> list[tuple]:
+    def get_found_items(self, item_type: str | None = None) -> list[tuple]:
         """Fetch found items from the database.
 
         Args:
@@ -947,7 +944,7 @@ class WatchmanParser:
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
     ) -> tuple[list[str], list[str], int, int, dict]:
-        """Main parse function
+        """Main parse function.
 
         Params:
             root_path: where to scan
