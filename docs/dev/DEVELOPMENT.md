@@ -1,1 +1,2 @@
-to register git hooks run `git config core.hooksPath .githooks` 
+uv run pre-commit install    # run linters
+uv run pre-commit install --hook-type pre-push  # run tests before push
