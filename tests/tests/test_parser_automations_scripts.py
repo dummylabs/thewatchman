@@ -1,6 +1,7 @@
 """Tests for automation and script parsing contexts."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -19,8 +20,8 @@ def test_automations_parsing(parser_client, new_test_data_dir):
     # Heuristic 5: List vs Single
     # Heuristic 3: Service Keys
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "automations.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "automations.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
@@ -45,8 +46,8 @@ def test_scripts_parsing(parser_client, new_test_data_dir):
     """Test parsing of script files."""
     # Heuristic 10: Script Context
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "scripts.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "scripts.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
@@ -65,8 +66,8 @@ def test_package_mixed_contexts(parser_client, new_test_data_dir):
     """Test parsing of a package file with mixed domains."""
     # Heuristic 10: Context Switching
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "package_example.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "package_example.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     _, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 

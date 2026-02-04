@@ -1,15 +1,16 @@
 import argparse
 import logging
 import os
+from pathlib import Path
 import sys
 
 CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*"
 
 # Add project root to sys.path to allow importing custom_components
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, ".."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+current_dir = Path(__file__).resolve().parent
+project_root = current_dir.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 # Import shared core library
 try:
@@ -63,7 +64,7 @@ def print_table(headers, data, max_width=None):
 def main():
     parser = argparse.ArgumentParser(description="Watchman Prototype Parser (CLI)")
     # list of paths divided by space
-    parser.add_argument("path", nargs='?', default=os.getcwd(), help="Root path to scan (default: current dir)")
+    parser.add_argument("path", nargs='?', default=str(Path.cwd()), help="Root path to scan (default: current dir)")
     # -ignore "*.log" --ignore "*.tmp"
     parser.add_argument("--ignore", action='append', help="Glob patterns to ignore")
     parser.add_argument("--force", action='store_true', help="Force rescan of all files")

@@ -1,5 +1,6 @@
 """Test report generation using snapshots."""
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from custom_components.watchman.const import (
@@ -23,14 +24,14 @@ async def mock_stats(hass, start_time):
 async def test_report_generation_snapshot(hass, new_test_data_dir, tmp_path, snapshot):
     """Test full report generation matching a snapshot."""
     # Define source config directory
-    config_dir = os.path.join(new_test_data_dir, "reports", "test_report_generation")
+    config_dir = str(Path(new_test_data_dir) / "reports" / "test_report_generation")
 
     # Mock hass.config.config_dir to the source dir so relative paths are calculated correctly
     hass.config.config_dir = config_dir
 
     # Mock hass.config.path to redirect .storage/watchman.db to tmp_path
     def mock_path_side_effect(*args):
-        return str(tmp_path / os.path.join(*args))
+        return str(tmp_path.joinpath(*args))
 
     hass.config.path = MagicMock(side_effect=mock_path_side_effect)
 

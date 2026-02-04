@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 from custom_components.watchman.const import (
@@ -30,7 +31,7 @@ async def async_init_integration(
     """Set up integration in Home Assistant."""
     config = deepcopy(DEFAULT_OPTIONS)
     # Use absolute path for test data based on current working directory
-    test_data_dir = os.path.join(os.getcwd(), "tests/data")
+    test_data_dir = str(Path.cwd() / "tests/data")
     config[CONF_INCLUDED_FOLDERS] = test_data_dir
     # Disable startup delay for tests to speed up execution
     config[CONF_STARTUP_DELAY] = 0
@@ -89,6 +90,6 @@ async def async_init_integration(
 
 def assert_files_equal(test, ref):
     """Compare two files line by line."""
-    test_array = open(test, encoding="utf-8").readlines()
-    for idx, row in enumerate(open(ref, encoding="utf-8")):
+    test_array = Path(test).open(encoding="utf-8").readlines()
+    for idx, row in enumerate(Path(ref).open(encoding="utf-8")):
         assert test_array[idx].strip() == row.strip()

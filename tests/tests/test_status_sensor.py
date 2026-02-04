@@ -2,6 +2,7 @@
 import asyncio
 import contextlib
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 from custom_components.watchman.const import (
@@ -115,10 +116,9 @@ async def test_status_sensor_safe_mode(hass: HomeAssistant):
     lock_path = hass.config.path(".storage", LOCK_FILENAME)
 
     # Ensure directory exists
-    os.makedirs(os.path.dirname(lock_path), exist_ok=True)
+    Path(lock_path).parent.mkdir(parents=True, exist_ok=True)
 
-    with open(lock_path, "w") as f:
-        f.write("1")
+    Path(lock_path).write_text("1", encoding="utf-8")
 
     try:
         # Initialize integration
@@ -135,9 +135,8 @@ async def test_status_sensor_safe_mode(hass: HomeAssistant):
         assert state.state == STATE_SAFE_MODE, f"State should be {STATE_SAFE_MODE} due to lock file"
 
         # Verify lock file is removed
-        assert not os.path.exists(lock_path), "Lock file should be removed after safe mode startup"
+        assert not Path(lock_path).exists(), "Lock file should be removed after safe mode startup"
 
     finally:
         # Cleanup if test fails
-        if os.path.exists(lock_path):
-            os.remove(lock_path)
+        Path(lock_path).unlink(missing_ok=True)

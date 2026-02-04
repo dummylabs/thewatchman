@@ -1,6 +1,7 @@
 """Tests for advanced parser heuristics."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -20,7 +21,7 @@ def test_ignored_patterns(parser_client, new_test_data_dir, tmp_path):
     """Test ignoring of variables, function calls, concatenation, and wildcards."""
     # H:1, H:2, H:6, H:7, H:15
 
-    source_file = os.path.join(new_test_data_dir, "yaml_config", "patterns_ignored.yaml")
+    source_file = str(Path(new_test_data_dir) / "yaml_config" / "patterns_ignored.yaml")
     dest_dir = tmp_path / "config"
     dest_dir.mkdir()
     dest_file = dest_dir / "patterns_ignored.yaml"
@@ -56,8 +57,8 @@ def test_ignored_keys(parser_client, new_test_data_dir):
     """Test ignoring content under specific keys."""
     # H:8 Ignored Keys (url, example, description)
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "keys_ignored.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "keys_ignored.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
@@ -70,8 +71,8 @@ def test_custom_tags(parser_client, new_test_data_dir):
     """Test handling of custom YAML tags."""
     # H:12 Custom Tags
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "custom_tags.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "custom_tags.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
@@ -85,8 +86,8 @@ def test_templates_and_prefixes(parser_client, new_test_data_dir):
     # H:11 Embedded Services
     # H:16 States Prefix
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "templates.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "templates.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 

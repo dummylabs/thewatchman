@@ -1,5 +1,6 @@
 """Test report service response."""
 import os
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from custom_components.watchman.const import (
@@ -16,14 +17,14 @@ from tests import async_init_integration
 async def test_report_service_response(hass, new_test_data_dir, tmp_path):
     """Test that the report service returns parsing statistics."""
     # Define source config directory (can be minimal)
-    config_dir = os.path.join(new_test_data_dir, "reports", "test_report_generation")
+    config_dir = str(Path(new_test_data_dir) / "reports" / "test_report_generation")
 
     # Mock hass.config.config_dir
     hass.config.config_dir = config_dir
 
     # Mock hass.config.path to redirect .storage/watchman.db to tmp_path
     def mock_path_side_effect(*args):
-        return str(tmp_path / os.path.join(*args))
+        return str(tmp_path.joinpath(*args))
 
     hass.config.path = MagicMock(side_effect=mock_path_side_effect)
 

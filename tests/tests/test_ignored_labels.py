@@ -1,6 +1,7 @@
 """Test ignored labels functionality."""
 from datetime import timedelta
 import os
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from custom_components.watchman.const import (
@@ -21,14 +22,14 @@ from homeassistant.util import dt as dt_util
 async def test_ignored_labels(hass, tmp_path, new_test_data_dir):
     """Test ignored labels processing."""
     # Define source config directory
-    config_dir = os.path.join(new_test_data_dir, "reports", "test_ignored_labels")
+    config_dir = str(Path(new_test_data_dir) / "reports" / "test_ignored_labels")
 
     # Mock hass.config.config_dir to the source dir so relative paths are calculated correctly
     hass.config.config_dir = config_dir
 
     # Mock hass.config.path to redirect .storage/watchman.db to tmp_path
     def mock_path_side_effect(*args):
-        return str(tmp_path / os.path.join(*args))
+        return str(tmp_path.joinpath(*args))
 
     hass.config.path = MagicMock(side_effect=mock_path_side_effect)
 

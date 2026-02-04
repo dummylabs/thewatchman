@@ -5,6 +5,7 @@ import datetime
 import fnmatch
 import logging
 import os
+from pathlib import Path
 import re
 import sqlite3
 import time
@@ -86,28 +87,27 @@ DEFAULT_CONTEXT = {
 # Core Logic Functions
 
 def _detect_file_type(filepath: str) -> str:
-    filename = os.path.basename(filepath)
+    path = Path(filepath)
+    filename = path.name
     if filename in STORAGE_WHITELIST:
-        return 'json'
+        return "json"
 
     # Check for ESPHome path segment
-    norm_path = os.path.normpath(filepath)
-    path_parts = norm_path.split(os.sep)
-    if ESPHOME_PATH_SEGMENT in path_parts:
-         # Still check extension to ensure it is yaml
-         ext = os.path.splitext(filepath)[1].lower()
-         if ext in YAML_FILE_EXTS:
-             return 'esphome_yaml'
+    if ESPHOME_PATH_SEGMENT in path.parts:
+        # Still check extension to ensure it is yaml
+        ext = path.suffix.lower()
+        if ext in YAML_FILE_EXTS:
+            return "esphome_yaml"
 
-    ext = os.path.splitext(filepath)[1].lower()
+    ext = path.suffix.lower()
 
     if ext in YAML_FILE_EXTS:
-        return 'yaml'
+        return "yaml"
 
     if ext in JSON_FILE_EXTS:
-        return 'json'
+        return "json"
 
-    return 'unknown'
+    return "unknown"
 
 def _is_automation(node: dict) -> bool:
     """Check if a node looks like an automation definition."""
@@ -407,13 +407,15 @@ def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTER
         return 0, [], 'unknown'
 
     try:
-        file_size = os.path.getsize(filepath)
+        path = Path(filepath)
+        file_size = path.stat().st_size
         if file_size > MAX_FILE_SIZE:
-            _LOGGER.error(f"File {filepath} is too large ({file_size} bytes), skipping. Max size: {MAX_FILE_SIZE} bytes.")
+            _LOGGER.error(
+                f"File {filepath} is too large ({file_size} bytes), skipping. Max size: {MAX_FILE_SIZE} bytes."
+            )
             return 0, [], file_type
 
-        with open(filepath, encoding='utf-8') as f:
-            content = f.read()
+        content = path.read_text(encoding="utf-8")
 
         # Call the engine
         items = _parse_content(content, file_type, filepath, _LOGGER, entity_pattern)
@@ -436,26 +438,33 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
     """
     scanned_files = []
     ignored_count = 0
-    cwd = os.getcwd()
+    cwd = Path.cwd()
 
     # 1. Main recursive scan (os.walk)
     for root, dirs, files in os.walk(root_path, topdown=True):
         # Prune ignored directories
         # Remove ignored dirs and hidden dirs from traversal
-        dirs[:] = [d for d in dirs if d not in IGNORED_DIRS and not d.startswith('.')]
+        dirs[:] = [d for d in dirs if d not in IGNORED_DIRS and not d.startswith(".")]
 
+        root_path_obj = Path(root)
         for file in files:
-            abs_path = os.path.join(root, file)
+            abs_path_obj = root_path_obj / file
             # Extension check
-            _, ext = os.path.splitext(file)
-            if ext.lower() not in YAML_FILE_EXTS:
+            if abs_path_obj.suffix.lower() not in YAML_FILE_EXTS:
                 continue
 
             # User ignore patterns
-            rel_path_cwd = os.path.relpath(abs_path, cwd)
+            abs_path_str = str(abs_path_obj)
+            try:
+                rel_path_cwd = str(abs_path_obj.relative_to(cwd))
+            except ValueError:
+                rel_path_cwd = abs_path_str
+
             is_ignored = False
             for pattern in ignored_patterns:
-                if fnmatch.fnmatch(abs_path, pattern) or fnmatch.fnmatch(rel_path_cwd, pattern):
+                if fnmatch.fnmatch(abs_path_str, pattern) or fnmatch.fnmatch(
+                    rel_path_cwd, pattern
+                ):
                     is_ignored = True
                     break
 
@@ -465,33 +474,37 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
 
             # Stat
             try:
-                stat_res = os.stat(abs_path)
-                scanned_files.append({
-                    'path': abs_path,
-                    'mtime': stat_res.st_mtime,
-                    'size': stat_res.st_size
-                })
+                stat_res = abs_path_obj.stat()
+                scanned_files.append(
+                    {
+                        "path": abs_path_str,
+                        "mtime": stat_res.st_mtime,
+                        "size": stat_res.st_size,
+                    }
+                )
             except OSError as e:
-                if os.path.islink(abs_path):
-                    _LOGGER.warning(f"Skipping broken symlink: {abs_path}")
+                if abs_path_obj.is_symlink():
+                    _LOGGER.warning(f"Skipping broken symlink: {abs_path_str}")
                 else:
-                    _LOGGER.error(f"Error accessing file {abs_path}: {e}")
+                    _LOGGER.error(f"Error accessing file {abs_path_str}: {e}")
 
     # 2. Targeted scan of .storage
-    storage_path = os.path.join(root_path, '.storage')
-    if os.path.isdir(storage_path):
+    storage_path_obj = Path(root_path) / ".storage"
+    if storage_path_obj.is_dir():
         for filename in STORAGE_WHITELIST:
-            file_path = os.path.join(storage_path, filename)
-            if os.path.isfile(file_path):
+            file_path_obj = storage_path_obj / filename
+            if file_path_obj.is_file():
                 try:
-                    stat_res = os.stat(file_path)
-                    scanned_files.append({
-                        'path': file_path,
-                        'mtime': stat_res.st_mtime,
-                        'size': stat_res.st_size
-                    })
+                    stat_res = file_path_obj.stat()
+                    scanned_files.append(
+                        {
+                            "path": str(file_path_obj),
+                            "mtime": stat_res.st_mtime,
+                            "size": stat_res.st_size,
+                        }
+                    )
                 except OSError as e:
-                    _LOGGER.error(f"Error accessing whitelist file {file_path}: {e}")
+                    _LOGGER.error(f"Error accessing whitelist file {file_path_obj}: {e}")
 
     return scanned_files, ignored_count
 
@@ -529,9 +542,10 @@ class WatchmanParser:
                 return
 
             _LOGGER.error(f"Database corrupted ({e}), deleting {self.db_path}")
-            if os.path.exists(self.db_path):
+            path = Path(self.db_path)
+            if path.exists():
                 try:
-                    os.remove(self.db_path)
+                    path.unlink()
                 except OSError as remove_err:
                     _LOGGER.error(f"Failed to remove corrupted DB: {remove_err}")
 
@@ -543,9 +557,8 @@ class WatchmanParser:
 
     def _init_db(self, db_path: str) -> sqlite3.Connection:
         # Ensure directory exists
-        db_dir = os.path.dirname(db_path)
-        if db_dir and not os.path.exists(db_dir):
-            os.makedirs(db_dir, exist_ok=True)
+        path = Path(db_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
         conn = sqlite3.connect(db_path, timeout=DB_TIMEOUT)
         try:
@@ -618,7 +631,7 @@ class WatchmanParser:
         """
         scanned_files = []
         ignored_count = 0
-        cwd = os.getcwd()
+        cwd = Path.cwd()
         root = anyio.Path(root_path)
 
 
@@ -645,7 +658,10 @@ class WatchmanParser:
 
                 # Check ignored_patterns (user config)
                 is_ignored_user = False
-                rel_path_cwd = os.path.relpath(abs_path, cwd)
+                try:
+                    rel_path_cwd = str(path.relative_to(cwd))
+                except ValueError:
+                    rel_path_cwd = abs_path
 
                 for pattern in ignored_patterns:
                     if fnmatch.fnmatch(abs_path, pattern) or fnmatch.fnmatch(rel_path_cwd, pattern):
@@ -662,7 +678,7 @@ class WatchmanParser:
                     mtime = stat_result.st_mtime
                     scanned_files.append({'path': abs_path, 'mtime': mtime, 'size': stat_result.st_size})
                 except OSError as e:
-                    if os.path.islink(abs_path):
+                    if await path.is_symlink():
                          _LOGGER.warning(f"Skipping broken symlink: {abs_path}")
                     else:
                          _LOGGER.error(f"Error accessing file {abs_path}: {e}")

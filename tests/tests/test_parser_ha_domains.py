@@ -1,6 +1,7 @@
 """Tests for Home Assistant specific domains parsing."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -15,8 +16,8 @@ def parser_client(tmp_path):
 
 def test_ha_domains_parsing(parser_client, new_test_data_dir):
     """Test parsing of Home Assistant specific domains."""
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "ha_domains.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "ha_domains.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     # Parse the directory
     entities, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))

@@ -1,6 +1,7 @@
 import asyncio
 from datetime import timedelta
 import os
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from custom_components.watchman.const import (
@@ -25,9 +26,8 @@ def mock_hub_parse():
 async def test_request_during_scan(hass: HomeAssistant, mock_hub_parse):
     """Test that a request during scan is queued and executed later."""
     # Ensure no leftover lock file from previous failed runs
-    lock_path = os.path.join(os.getcwd(), "tests/data/.storage/watchman.lock")
-    if os.path.exists(lock_path):
-        os.remove(lock_path)
+    lock_path_obj = Path.cwd() / "tests/data/.storage/watchman.lock"
+    lock_path_obj.unlink(missing_ok=True)
 
     config_entry = await async_init_integration(hass)
     coordinator: WatchmanCoordinator = hass.data[DOMAIN][config_entry.entry_id]

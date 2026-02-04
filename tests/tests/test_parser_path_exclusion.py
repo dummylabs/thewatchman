@@ -1,6 +1,7 @@
 """Test for parser path exclusion heuristic."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -17,8 +18,8 @@ def test_path_exclusion(parser_client, new_test_data_dir):
     """Test that file paths looking like entities are ignored."""
     # Heuristic 17: Path Separation
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "path_exclusion.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "path_exclusion.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     # We scan the directory, but filtering by file might not be supported by async_parse directly (it scans dir)
     # But since we put it in yaml_config, it might parse other files too.

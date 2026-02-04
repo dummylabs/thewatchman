@@ -1,6 +1,7 @@
 """Tests for ESPHome configuration parsing."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -17,8 +18,8 @@ def test_esphome_context(parser_client, new_test_data_dir):
     """Test strict parsing for ESPHome files."""
     # H:9 ESPHOME Context
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "esphome", "device.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "esphome" / "device.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 

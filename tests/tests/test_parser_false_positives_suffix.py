@@ -1,6 +1,7 @@
 """Test for parser false positives due to suffix matching."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -17,8 +18,8 @@ def test_false_positives_suffix(parser_client, new_test_data_dir):
     """Test that entity IDs are not matched if followed by - or ."""
     # Heuristic 18: Word Boundary Check
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "false_positives_suffix.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "false_positives_suffix.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 

@@ -1,5 +1,6 @@
 import contextlib
 import os
+from pathlib import Path
 
 from custom_components.watchman.const import (
     CONF_INCLUDED_FOLDERS,
@@ -24,14 +25,14 @@ async def test_symlink_handling(hass, tmp_path, caplog):
     # 2. Valid symlink to target_file
     valid_link = config_dir / "valid_link.yaml"
     try:
-        os.symlink(target_file, valid_link)
+        valid_link.symlink_to(target_file)
     except OSError:
         pytest.skip("Symlinks not supported on this OS/filesystem")
 
     # 3. Broken symlink
     broken_link = config_dir / "broken_link.yaml"
     with contextlib.suppress(OSError):
-        os.symlink(config_dir / "non_existent.yaml", broken_link)
+        broken_link.symlink_to(config_dir / "non_existent.yaml")
 
     # Initialize integration
     await async_init_integration(

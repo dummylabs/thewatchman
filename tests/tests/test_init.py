@@ -1,5 +1,6 @@
 """Tests for watchman integration setup and removal."""
 import os
+from pathlib import Path
 
 from custom_components.watchman.const import DB_FILENAME
 from tests import async_init_integration
@@ -17,11 +18,11 @@ async def test_integration_removal_cleanup(hass: HomeAssistant):
     # 2. Verify DB file exists
     db_path = hass.config.path(".storage", DB_FILENAME)
     # Ensure directory exists for the test environment
-    assert os.path.exists(db_path)
+    assert Path(db_path).exists()
 
     # 3. Remove integration
     await hass.config_entries.async_remove(config_entry.entry_id)
     await hass.async_block_till_done()
 
     # 4. Verify DB file is removed
-    assert not os.path.exists(db_path)
+    assert not Path(db_path).exists()

@@ -1,6 +1,7 @@
 """Tests for parser regressions."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -15,8 +16,8 @@ def parser_client(tmp_path):
 
 def test_template_false_positive(parser_client, new_test_data_dir):
     """Test that template files with trigger/action are NOT identified as automations."""
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "template_false_positive.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "template_false_positive.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     # Parse just this file (but scanning dir scans all, so rely on specific entity checks)
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
@@ -32,8 +33,8 @@ def test_template_false_positive(parser_client, new_test_data_dir):
 
 def test_automation_context_regression(parser_client, new_test_data_dir):
     """Test that entities in automation triggers are correctly identified in context."""
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "automation_context_regression.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "automation_context_regression.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
@@ -48,8 +49,8 @@ def test_automation_context_regression(parser_client, new_test_data_dir):
 
 def test_root_automation(parser_client, new_test_data_dir):
     """Test that a root-level automation dictionary is correctly detected."""
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "root_automation.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "root_automation.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 

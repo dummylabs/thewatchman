@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 from textwrap import wrap
 import time
 from typing import Any
@@ -238,7 +239,7 @@ async def async_report_to_file(hass: HomeAssistant, path: str) -> None:
     report_chunks = await report(hass, render=table_renderer, chunk_size=0)
 
     def write(path: str) -> None:
-        with open(path, "w", encoding="utf-8") as report_file:
+        with Path(path).open("w", encoding="utf-8") as report_file:
             report_file.writelines(report_chunks)
 
     await hass.async_add_executor_job(write, path)

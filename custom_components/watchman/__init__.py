@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import os
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -93,11 +94,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
 
     # Check for previous crash
     lock_path = hass.config.path(".storage", LOCK_FILENAME)
-    if await hass.async_add_executor_job(os.path.exists, lock_path):
+    if await hass.async_add_executor_job(Path(lock_path).exists):
         _LOGGER.error("Previous crash detected (lock file found). Watchman is starting in Safe Mode.")
         coordinator.update_status(STATE_SAFE_MODE)
         # We must clean up the lock file so next restart isn't safe mode unless it crashes again
-        await hass.async_add_executor_job(os.remove, lock_path)
+        await hass.async_add_executor_job(Path(lock_path).unlink, True)
 
     hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
@@ -263,10 +264,8 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     lock_path = hass.config.path(".storage", LOCK_FILENAME)
 
     def remove_files() -> None:
-        if os.path.exists(db_path):
-            os.remove(db_path)
-        if os.path.exists(lock_path):
-            os.remove(lock_path)
+        Path(db_path).unlink(missing_ok=True)
+        Path(lock_path).unlink(missing_ok=True)
 
     await hass.async_add_executor_job(remove_files)
     _LOGGER.info("Watchman database file removed: %s", db_path)

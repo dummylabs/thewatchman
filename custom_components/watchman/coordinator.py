@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Iterable
 import logging
 import os
+from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -541,7 +542,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         # Create lock file
         lock_path = self.hass.config.path(".storage", LOCK_FILENAME)
-        await self.hass.async_add_executor_job(lambda: open(lock_path, "w").write("1"))
+        await self.hass.async_add_executor_job(
+            lambda: Path(lock_path).write_text("1", encoding="utf-8")
+        )
 
         try:
             ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
@@ -561,7 +564,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         finally:
             # Cleanup
             await self.hass.async_add_executor_job(
-                lambda: os.remove(lock_path) if os.path.exists(lock_path) else None
+                lambda: Path(lock_path).unlink(missing_ok=True)
             )
             self.update_status(STATE_IDLE)
             self._parse_task = None

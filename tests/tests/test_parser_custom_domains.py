@@ -1,6 +1,7 @@
 """Test for custom domain injection via hass services."""
 import asyncio
 import os
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from custom_components.watchman.const import DOMAIN_DATA
@@ -24,7 +25,7 @@ async def test_custom_domain_injection(new_test_data_dir, tmp_path):
 
     def mock_path(*args):
         # redirect .storage/watchman.db to tmp_path
-        return str(tmp_path / os.path.join(*args))
+        return str(tmp_path.joinpath(*args))
 
     hass.config.path = MagicMock(side_effect=mock_path)
 
@@ -61,7 +62,7 @@ async def test_custom_domain_injection(new_test_data_dir, tmp_path):
 
     # 2. Setup Config File Input
     # We only scan the specific file
-    yaml_dir = os.path.join(new_test_data_dir, "yaml_config")
+    yaml_dir = str(Path(new_test_data_dir) / "yaml_config")
     ignored_files = []
 
     # 3. Execute

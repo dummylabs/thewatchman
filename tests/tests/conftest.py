@@ -1,5 +1,6 @@
 """Test configuration for parser tests."""
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -25,4 +26,4 @@ def patch_debouncer():
 @pytest.fixture
 def new_test_data_dir():
     """Return the path to the new_tests/data directory."""
-    return os.path.join(os.path.dirname(__file__), "..", "data")
+    return str(Path(__file__).parent.parent / "data")

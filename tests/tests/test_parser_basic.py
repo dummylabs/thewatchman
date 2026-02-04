@@ -1,6 +1,7 @@
 """Tests for basic parser functionality."""
 import asyncio
 import os
+from pathlib import Path
 
 from custom_components.watchman.utils.parser_core import WatchmanParser
 import pytest
@@ -19,8 +20,8 @@ def test_basic_yaml_parsing(parser_client, new_test_data_dir):
     # Heuristic 4: Comments
     # Heuristic 3: Service Keys
 
-    yaml_file = os.path.join(new_test_data_dir, "yaml_config", "basic_config.yaml")
-    yaml_dir = os.path.dirname(yaml_file)
+    yaml_file = Path(new_test_data_dir) / "yaml_config" / "basic_config.yaml"
+    yaml_dir = str(yaml_file.parent)
 
     # Parse the directory
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
@@ -42,8 +43,8 @@ def test_json_files_ignored(parser_client, new_test_data_dir):
     # Heuristic 14: File Type Detection
     # .json files are ignored to prevent false positives, even if they contain valid config.
 
-    json_file = os.path.join(new_test_data_dir, "json_config", "dashboard.json")
-    json_dir = os.path.dirname(json_file)
+    json_file = Path(new_test_data_dir) / "json_config" / "dashboard.json"
+    json_dir = str(json_file.parent)
 
     # We pass the file path, but the scanner internal filter should reject it based on extension
     # Scan the directory
@@ -78,8 +79,10 @@ def test_extensionless_json_parsing(parser_client, new_test_data_dir):
     # Heuristic 14: File Type Detection (Extensionless JSON)
 
     # Renamed file to match whitelist
-    storage_file = os.path.join(new_test_data_dir, "json_config", ".storage", "lovelace_dashboards")
-    root_dir = os.path.join(new_test_data_dir, "json_config")
+    storage_file = (
+        Path(new_test_data_dir) / "json_config" / ".storage" / "lovelace_dashboards"
+    )
+    root_dir = str(Path(new_test_data_dir) / "json_config")
 
     entities, _, _, _, _ = asyncio.run(parser_client.async_parse(root_dir, []))
 
@@ -90,8 +93,8 @@ def test_invalid_file_extension(parser_client, new_test_data_dir):
     """Test that files with invalid extensions are ignored."""
     # Heuristic 14: File Type Detection
 
-    txt_file = os.path.join(new_test_data_dir, "yaml_config", "invalid_file.txt")
-    yaml_dir = os.path.dirname(txt_file)
+    txt_file = Path(new_test_data_dir) / "yaml_config" / "invalid_file.txt"
+    yaml_dir = str(txt_file.parent)
 
     entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
