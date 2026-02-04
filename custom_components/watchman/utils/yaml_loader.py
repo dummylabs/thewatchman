@@ -7,7 +7,9 @@ import yaml
 class StringWithLine(str):
     """String subclass that holds the line number and tag info."""
 
-    def __new__(cls, value: str, line: int, is_tag: bool = False) -> "StringWithLine":
+    def __new__(
+        cls, value: str, line: int, *, is_tag: bool = False
+    ) -> "StringWithLine":
         obj = str.__new__(cls, value)
         obj.line = line
         obj.is_tag = is_tag

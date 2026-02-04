@@ -63,7 +63,7 @@ async def test_status_sensor_states(hass: HomeAssistant):
     with patch.object(coordinator.hub, 'async_parse', side_effect=mocked_async_parse) as mock_parse, \
             patch("custom_components.watchman.coordinator.PARSE_COOLDOWN", 0):
         # Request a rescan to ensure parsing logic is triggered
-        coordinator.request_parser_rescan("Test")
+        coordinator.request_parser_rescan(reason="Test")
 
         # Trigger an update
         task = asyncio.create_task(coordinator.async_request_refresh())
@@ -103,7 +103,7 @@ async def test_status_sensor_states(hass: HomeAssistant):
     # We assume default PARSE_COOLDOWN is 60s (defined in const.py).
     # Since we just finished a parse, last_parse_time is set to now.
 
-    coordinator.request_parser_rescan("Test Pending")
+    coordinator.request_parser_rescan(reason="Test Pending")
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)

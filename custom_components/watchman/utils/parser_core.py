@@ -707,7 +707,15 @@ class WatchmanParser:
         """
         return await self.executor(_scan_files_sync, root_path, ignored_patterns)
 
-    async def async_scan(self, root_path: str, ignored_files: list[str], force: bool = False, custom_domains: list[str] = None, base_path: str = None) -> None:
+    async def async_scan(
+        self,
+        root_path: str,
+        ignored_files: list[str],
+        *,
+        force: bool = False,
+        custom_domains: list[str] | None = None,
+        base_path: str | None = None,
+    ) -> None:
         """Orchestrates the scanning process.
 
         If force = True, unmodified files will be scanned again
@@ -942,7 +950,15 @@ class WatchmanParser:
                 }
             return None
 
-    async def async_parse(self, root_path: str, ignored_files: list[str], force: bool = False, custom_domains: list[str] = None, base_path: str = None) -> tuple[list[str], list[str], int, int, dict]:
+    async def async_parse(
+        self,
+        root_path: str,
+        ignored_files: list[str],
+        *,
+        force: bool = False,
+        custom_domains: list[str] | None = None,
+        base_path: str | None = None,
+    ) -> tuple[list[str], list[str], int, int, dict]:
         """main parse function
 
         Params:
@@ -960,7 +976,13 @@ class WatchmanParser:
             entity_to_automations (dict): Empty dictionary (stub).
 
         """
-        await self.async_scan(root_path, ignored_files, force, custom_domains, base_path)
+        await self.async_scan(
+            root_path,
+            ignored_files,
+            force=force,
+            custom_domains=custom_domains,
+            base_path=base_path,
+        )
 
         try:
             with self._db_session() as conn:

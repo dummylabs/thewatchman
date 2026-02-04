@@ -166,7 +166,7 @@ def is_action(hass: HomeAssistant, entry: str) -> bool:
 
 
 def get_entity_state(
-    hass: HomeAssistant, entry: str, friendly_names: bool = False
+    hass: HomeAssistant, entry: str, *, friendly_names: bool = False
 ) -> tuple[str, str | None]:
     """Return entity state or 'missing' if entity does not extst."""
     entity_state = hass.states.get(entry)

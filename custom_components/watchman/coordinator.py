@@ -70,7 +70,7 @@ def _get_automation_map(hass: HomeAssistant) -> dict[str, str]:
     }
 
 
-def _get_disabled_automations(hass: HomeAssistant, exclude_disabled_automations: bool) -> set[str]:
+def _get_disabled_automations(hass: HomeAssistant, *, exclude_disabled_automations: bool) -> set[str]:
     """Return a set of disabled automation entity IDs."""
     if not exclude_disabled_automations:
         return set()
@@ -111,6 +111,7 @@ def _resolve_automations(
 def renew_missing_items_list(
     hass: HomeAssistant,
     parsed_list: dict[str, Any],
+    *,
     exclude_disabled_automations: bool,
     ignored_labels: set[str],
     item_type: str,
@@ -130,7 +131,9 @@ def renew_missing_items_list(
         _LOGGER.info("MISSING state set as ignored in config, so watchman ignores missing actions.")
         return missing_items
 
-    disabled_automations = _get_disabled_automations(hass, exclude_disabled_automations)
+    disabled_automations = _get_disabled_automations(
+        hass, exclude_disabled_automations=exclude_disabled_automations
+    )
     automation_map = _get_automation_map(hass)
     ent_reg = er.async_get(hass)
 
@@ -296,10 +299,18 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         )
 
         services_missing = renew_missing_items_list(
-            self.hass, parsed_service_list, exclude_disabled_automations, self.ignored_labels, "action"
+            self.hass,
+            parsed_service_list,
+            exclude_disabled_automations=exclude_disabled_automations,
+            ignored_labels=self.ignored_labels,
+            item_type="action",
         )
         entities_missing = renew_missing_items_list(
-            self.hass, parsed_entity_list, exclude_disabled_automations, self.ignored_labels, "entity"
+            self.hass,
+            parsed_entity_list,
+            exclude_disabled_automations=exclude_disabled_automations,
+            ignored_labels=self.ignored_labels,
+            item_type="entity",
         )
 
         parse_info = await self.hub.async_get_last_parse_info()
@@ -361,16 +372,16 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         missing_services = renew_missing_items_list(
             self.hass,
             parsed_services,
-            exclude_disabled,
-            self.ignored_labels,
-            "action",
+            exclude_disabled_automations=exclude_disabled,
+            ignored_labels=self.ignored_labels,
+            item_type="action",
         )
         missing_entities = renew_missing_items_list(
             self.hass,
             parsed_entities,
-            exclude_disabled,
-            self.ignored_labels,
-            "entity",
+            exclude_disabled_automations=exclude_disabled,
+            ignored_labels=self.ignored_labels,
+            item_type="entity",
         )
 
         def flatten_locations(
@@ -410,6 +421,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     def request_parser_rescan(
         self,
+        *,
         reason: str | None = None,
         force: bool = False,
         delay: int | float = DEFAULT_DELAY,
@@ -463,7 +475,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self._cooldown_unsub = None
         self._schedule_parse()
 
-    def _schedule_parse(self, force_immediate: bool = False) -> None:
+    def _schedule_parse(self, *, force_immediate: bool = False) -> None:
         """Schedule the parse task based on state and cooldown."""
         if self.hub.is_scanning or (self._parse_task and not self._parse_task.done()):
             #  do nothing as parsing is already running

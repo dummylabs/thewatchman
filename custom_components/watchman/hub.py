@@ -109,6 +109,7 @@ class WatchmanHub:
     async def async_parse(
         self,
         ignored_files: list[str],
+        *,
         force: bool = False
     ) -> None:
         """Asynchronous wrapper for the parse method."""
@@ -123,9 +124,9 @@ class WatchmanHub:
             await self._parser.async_parse(
                 self.hass.config.config_dir,
                 ignored_files,
-                force,
-                custom_domains,
-                base_path=self.hass.config.config_dir
+                force=force,
+                custom_domains=custom_domains,
+                base_path=self.hass.config.config_dir,
             )
 
             self.cached_items = {}

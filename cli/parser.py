@@ -104,7 +104,7 @@ def main():
     logging.info(f"Calling client.scan with: root_path={root_path}, ignored_files={ignored_files}, force={args.force}, base_path={root_path}")
     # We call scan directly. Logic for configuration change detection is inside WatchmanParser.scan
     import asyncio
-    asyncio.run(client.async_scan(root_path, ignored_files, args.force, base_path=root_path))
+    asyncio.run(client.async_scan(root_path, ignored_files, force=args.force, base_path=root_path))
 
     # Output results matching original format
     if not args.no_files:

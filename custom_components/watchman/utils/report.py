@@ -44,7 +44,9 @@ async def parsing_stats(hass: HomeAssistant, start_time: float) -> tuple[str, fl
 
 async def report(
     hass: HomeAssistant,
-    render: Callable[[HomeAssistant, str, dict[str, Any], dict[str, Any]], str] | None = None,
+    *,
+    render: Callable[[HomeAssistant, str, dict[str, Any], dict[str, Any]], str]
+    | None = None,
     chunk_size: int | None = None,
     parse_config: bool | None = None,
 ) -> list[str]:
@@ -66,12 +68,20 @@ async def report(
     )
 
     missing_services = renew_missing_items_list(
-        hass, service_list, exclude_disabled_automations, coordinator.ignored_labels, "action"
+        hass,
+        service_list,
+        exclude_disabled_automations=exclude_disabled_automations,
+        ignored_labels=coordinator.ignored_labels,
+        item_type="action",
     )
     entity_list = await coordinator.async_get_parsed_entities()
 
     missing_entities = renew_missing_items_list(
-        hass, entity_list, exclude_disabled_automations, coordinator.ignored_labels, "entity"
+        hass,
+        entity_list,
+        exclude_disabled_automations=exclude_disabled_automations,
+        ignored_labels=coordinator.ignored_labels,
+        item_type="entity",
     )
 
     header = get_config(hass, CONF_HEADER, DEFAULT_HEADER)
@@ -157,7 +167,7 @@ def table_renderer(
         header = ["Entity ID", "State", "Location"]
         table.field_names = header
         for entity in missing_items:
-            state, name = get_entity_state(hass, entity, friendly_names)
+            state, name = get_entity_state(hass, entity, friendly_names=friendly_names)
             table.add_row(
                 [
                     fill(entity, columns_width[0], name),
@@ -187,7 +197,7 @@ def text_renderer(
     if entry_type == REPORT_ENTRY_TYPE_ENTITY:
         friendly_names = get_config(hass, CONF_FRIENDLY_NAMES, False)
         for entity in missing_items:
-            state, name = get_entity_state(hass, entity, friendly_names)
+            state, name = get_entity_state(hass, entity, friendly_names=friendly_names)
             entity_col = entity if not name else f"{entity} ('{name}')"
             result += f"{entity_col} [{state}] in: {fill(parsed_list[entity]['locations'], 0)}\n"
 
@@ -225,7 +235,7 @@ def get_columns_width(user_width: list[int] | None) -> list[int]:
 
 async def async_report_to_file(hass: HomeAssistant, path: str) -> None:
     """Save report to a file."""
-    report_chunks = await report(hass, table_renderer, chunk_size=0)
+    report_chunks = await report(hass, render=table_renderer, chunk_size=0)
 
     def write(path: str) -> None:
         with open(path, "w", encoding="utf-8") as report_file:
@@ -257,7 +267,7 @@ async def async_report_to_notification(
 
     _LOGGER.debug(f"SERVICE_DATA {data}")
 
-    report_chunks = await report(hass, text_renderer, chunk_size)
+    report_chunks = await report(hass, render=text_renderer, chunk_size=chunk_size)
     for msg_chunk in report_chunks:
         data["message"] = msg_chunk
         # blocking=True ensures send order
