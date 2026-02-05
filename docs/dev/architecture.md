@@ -41,7 +41,7 @@ graph TD
         E -- No --> D
     end
     
-    F --> G[In-Memory Cache\n(Referenced Entities)]
+    F --> G["In-Memory Cache\n(Referenced Entities)"]
     
     H[User Trigger / Automation] --> I[service: watchman.report]
     I --> J{Compare Cache vs.\nHA State Machine}
