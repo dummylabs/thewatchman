@@ -151,9 +151,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
         _LOGGER.debug("Waiting for Home Assistant to be up and running...")
         if not coordinator.safe_mode:
             config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
-        
-        # Capture and register the unsubscribe callback
-        unsub = hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+
+        # do not use async_listen_once here to make unsubscribe callback valid even after the event fires,
+        # preventing the "unknown job listener" warning on entry unload.
+        unsub = hass.bus.async_listen(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
         config_entry.async_on_unload(unsub)
 
     return True
