@@ -42,5 +42,8 @@ ESPHOME_ALLOWED_KEYS = {'service', 'action', 'entity_id'}
 # YAML keys which values should be ignored
 IGNORED_KEYS = {'url', 'example', 'description'}
 
+# Domains to parse in core.config_entries
+CONFIG_ENTRY_DOMAINS = {'group', 'template'}
+
 # Directories to skip during recursive scan
 IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome', '.storage', 'tmp', 'blueprints', 'media', 'share', 'www', 'trash'}

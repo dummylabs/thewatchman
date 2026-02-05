@@ -1,0 +1,38 @@
+{
+    "data": {
+        "entries": [
+            {
+                "entry_id": "entry_1",
+                "domain": "group",
+                "title": "Kitchen Group",
+                "data": {
+                    "entities": ["light.kitchen_ceiling"]
+                }
+            },
+            {
+                "entry_id": "entry_2",
+                "domain": "template",
+                "title": "Garage Template",
+                "options": {
+                    "template_data": "{{ is_state('binary_sensor.garage_door', 'on') }}"
+                }
+            },
+            {
+                "entry_id": "entry_3",
+                "domain": "hassio",
+                "title": "Supervisor",
+                "data": {
+                    "some_config": "sensor.fake_sensor"
+                }
+            },
+            {
+                "entry_id": "entry_4",
+                "domain": "system",
+                "title": "System",
+                "data": {
+                    "info": "sensor.another_fake"
+                }
+            }
+        ]
+    }
+}

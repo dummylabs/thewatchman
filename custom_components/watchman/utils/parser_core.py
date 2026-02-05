@@ -31,6 +31,7 @@ from .parser_const import (
     PLATFORMS,
     STORAGE_WHITELIST,
     YAML_FILE_EXTS,
+    CONFIG_ENTRY_DOMAINS,
 )
 from .yaml_loader import LineLoader
 
@@ -379,6 +380,47 @@ def _recursive_search(
             })
 
 
+def _parse_config_entries_file(
+    data: dict,
+    results: list[FoundItem],
+    file_type: str,
+    entity_pattern: re.Pattern,
+) -> None:
+    """Parse core.config_entries to extract only relevant domains."""
+    if not isinstance(data, dict):
+        return
+
+    entries = data.get("data", {}).get("entries", [])
+    if not isinstance(entries, list):
+        return
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+
+        domain = entry.get("domain")
+        if domain not in CONFIG_ENTRY_DOMAINS:
+            continue
+
+        # Create Context
+        context = {
+            "is_automation_context": True,
+            "parent_type": domain,
+            "parent_alias": entry.get("title"),
+            "parent_id": entry.get("entry_id"),
+        }
+
+        # Recursive Search on this entry only
+        _recursive_search(
+            entry,
+            [],
+            results,
+            file_type,
+            entity_pattern,
+            current_context=context,
+        )
+
+
 def _parse_content(content: str, file_type: str, filepath: str | None = None, logger: logging.Logger | None = None, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> list[FoundItem]:
     """Parses YAML/JSON content and extracts entities.
 
@@ -401,8 +443,12 @@ def _parse_content(content: str, file_type: str, filepath: str | None = None, lo
 
     results: list[FoundItem] = []
     if data:
-        # Pass DEFAULT_CONTEXT explicitly if needed, or let it default to None -> DEFAULT_CONTEXT inside
-        _recursive_search(data, [], results, file_type, entity_pattern)
+        # Check for core.config_entries
+        if filepath and filepath.endswith("core.config_entries"):
+            _parse_config_entries_file(data, results, file_type, entity_pattern)
+        else:
+            # Pass DEFAULT_CONTEXT explicitly if needed, or let it default to None -> DEFAULT_CONTEXT inside
+            _recursive_search(data, [], results, file_type, entity_pattern)
 
     return results
 
