@@ -32,7 +32,7 @@ The SQLite database stores the parsing cache. Since this data is reproducible (b
     - **Upgrade (vCurrent < vTarget):** Apply sequential SQL migrations (ALTER TABLE) inside `_migrate_db`.
     - **Downgrade (vCurrent > vTarget):** **Hard Reset.** The system detects a newer schema version than supported, deletes the `.db` file, and rebuilds it from scratch. We do not implement downgrade logic for the cache.
         
-- **Legacy Note:** Version 0.8.3 introduced a hard break by renaming the file from `watchman.db` to `watchman_v2.db`to isolate the new schema from legacy versions.
+- **Legacy Note:** Version 0.8.3-rc2 introduced a hard break by renaming the file from `watchman.db` to `watchman_v2.db`to isolate the new schema from legacy versions.
 
 ### 4. Statistics Migration (JSON Store)
 
