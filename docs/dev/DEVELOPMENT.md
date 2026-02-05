@@ -1,4 +1,13 @@
 
+## Dev Entironment Setup
+
+Please make sure to install the git pre-push hook before pushing any commits to the remote. You can do this by running:
+
+```bash
+uv run pre-commit install    # run linters before commit (TODO, not yet implemented)
+uv run pre-commit install --hook-type pre-push  # run tests before push
+```
+
 ## Data Persistence & Migrations
 
 Watchman uses a hybrid storage approach to balance performance and reliability. Data is segregated into three categories based on its lifecycle and access patterns.
@@ -66,8 +75,3 @@ We use snapshot testing to prevent accidental schema changes.
     2. Verify the change is intentional.
     3. Bump `CURRENT_DB_SCHEMA_VERSION` in `const.py`.
     4. Run `pytest --snapshot-update` to update the golden files.
-
-## Dev Entironment Setup
-
-uv run pre-commit install    # run linters before commit (TODO, not yet implemented)
-uv run pre-commit install --hook-type pre-push  # run tests before push
