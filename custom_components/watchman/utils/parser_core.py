@@ -596,7 +596,7 @@ class WatchmanParser:
             c = conn.cursor()
 
             c.execute("PRAGMA foreign_keys = ON;")
-            c.execute("PRAGMA journal_mode = WAL;")
+            c.execute("PRAGMA journal_mode = TRUNCATE;")
             c.execute("PRAGMA synchronous = OFF;")
 
             c.execute(
