@@ -79,6 +79,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
 
     async def async_on_home_assistant_started(event: Event | None) -> None:  # pylint: disable=unused-argument
         """Update watchman sensors and start listening to HA events when Home Assistant started."""
+        # Guard Clause: Check if integration is still loaded
+        if DOMAIN_DATA not in hass.data or hass.data[DOMAIN_DATA].get("config_entry_id") != config_entry.entry_id:
+            _LOGGER.debug("Skipping async_on_home_assistant_started: Integration unloaded.")
+            return
+
         # prime the coordinator with cached data immediately to minimize startup delay
         try:
             _LOGGER.debug("HA is ready. Prime coordinator with cached data.")
@@ -146,7 +151,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
         _LOGGER.debug("Waiting for Home Assistant to be up and running...")
         if not coordinator.safe_mode:
             config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+        
+        # Capture and register the unsubscribe callback
+        unsub = hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+        config_entry.async_on_unload(unsub)
 
     return True
 

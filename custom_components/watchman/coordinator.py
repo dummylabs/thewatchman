@@ -581,7 +581,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         )
 
         try:
-            ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
+            ignored_files = get_config(self.hass, CONF_IGNORED_FILES, [])
 
             # Perform the scan
             if parse_result := await self.hub.async_parse(ignored_files):
