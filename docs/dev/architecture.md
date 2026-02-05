@@ -69,41 +69,33 @@ Responsible for formatting the output. Watchman supports multiple output formats
 
 ```
 [Project Root]/
-├── AGENTS.md               # AI contribution rules tailored for this repo
-├── ARCHITECTURE.md         # Project architecture notes for The Watchman
-├── requirements.txt        # Runtime Python dependencies
-├── requirements_test.txt   # Testing-only Python dependencies
-├── setup.cfg               # Tooling configuration (pytest, coverage, flake8, etc.)
-├── hacs.json               # HACS metadata for distribution
-├── .devcontainer.json      # VS Code devcontainer configuration
-├── scripts/                # Developer helper scripts
-│   ├── develop             # Run Home Assistant instance with Watchman on localhost:8123
-│   ├── lint                # Linting entrypoint wrapper
-│   ├── test                # Test runner wrapper
-│   ├── setup               # Environment setup helper
-├── custom_components/      # Home Assistant custom component packages
-│   └── watchman/           # The Watchman integration implementation
-│       ├── const.py        # Shared constants (domain, defaults, keys)
-│       ├── manifest.json   # Integration manifest and metadata
-│       ├── config_flow.py  # UI config flow definitions
-│       ├── coordinator.py  # DataUpdateCoordinator for scanning tasks
-│       ├── entity.py       # Base entity classes for Watchman sensors
-│       ├── sensor.py       # Sensor platform entities and setup
-│       ├── services.py     # watchman.report service implementation
-│       ├── services.yaml   # Service schema for watchman.report
-│       ├── icons.json      # Entity icon mappings
-│       ├── utils/          # Utility helpers used across integration
-│       │   ├── logger.py   # Logging helpers with structured output
-│       │   ├── parser.py   # YAML/automation parsing utilities
-│       │   ├── report.py   # Report formatting and content helpers
-│       │   └── utils.py    # Miscellaneous helper functions
-│       └── translations/   # Localized UI strings
-├── config/                 # Example Home Assistant configuration for testing
-│   ├── configuration.yaml  # Primary HA configuration
-└── tests/                  # Pytest-based regression suite
-    ├── input/              # Sample text/YAML inputs for tests
-    ├── input_regex/       # Regex-specific fixtures
-    └── input_automations/ # Complex automation fixtures
+├── docs/                      # Documentation for developers and contributors
+│   └── dev/
+│       ├── architecture.md    # This document
+│       ├── DEVELOPMENT.md     # Development environment setup guide
+│       └── heuristics.md      # Parser heuristics and coding standards
+├── .devcontainer/             # VS Code devcontainer configuration and Dockerfiles
+├── cli/                     
+│   └── parser.py              # Standalone parser tool for testing and debugging
+├── custom_components/      
+│   └── watchman/           
+│       ├── config_flow.py     # UI configuration flow
+│       ├── coordinator.py     # DataUpdateCoordinator for state tracking and reporting
+│       ├── hub.py             # Watchman database and scan engine orchestrator
+│       ├── entity.py          # Base entity classes for Watchman entities
+│       ├── sensor.py          # Sensor platform (missing entities/actions count)
+│       ├── button.py          # Button entities (trigger manual report/scan)
+│       ├── text.py            # Text entities (e.g. `watchman.ignored_labels`)
+│       ├── services.py        # Service handlers (watchman.report)
+│       ├── utils/             # Internal utility modules
+│       │   ├── logger.py      # Structured logging with visual indentation
+│       │   ├── parser_core.py # Core regex-based scanning logic
+│       │   ├── report.py      # Report generation and formatting (table/text)
+│       │   ├── yaml_loader.py # Optimized YAML loading for parser
+│       │   └── utils.py       # General helper functions
+└── tests/                     # Pytest-based regression suite
+    ├── data/                  # Test fixtures (YAML, JSON configurations)
+    └── tests/                 # Comprehensive unit and integration tests
 ```
 
 ## 6. Development Tips
