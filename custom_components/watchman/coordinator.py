@@ -208,7 +208,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self,
         hass: HomeAssistant,
         logger: logging.Logger,
-        name: str,
+        config_entry: ConfigEntry,
         hub: "WatchmanHub",
         version: str,
     ) -> None:
@@ -223,7 +223,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=name,  # Name of the data. For logging purposes.
+            name=config_entry.title.lower(), # Name of the data. For logging purposes.
+            config_entry=config_entry,
             always_update=False,
             request_refresh_debouncer=debouncer
         )

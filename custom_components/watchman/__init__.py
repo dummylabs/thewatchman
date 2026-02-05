@@ -70,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
     coordinator = WatchmanCoordinator(
         hass,
         _LOGGER,
-        name=config_entry.title.lower(),
+        config_entry=config_entry,
         hub=hub,
         version=str(integration.version),
     )

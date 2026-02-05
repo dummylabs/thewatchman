@@ -61,11 +61,12 @@ async def test_exclude_disabled_automations(hass):
     # Mock Config Entry
     entry = MagicMock()
     entry.entry_id = "test_entry"
+    entry.title = "Watchman Test"
     entry.runtime_data = MagicMock()
     entry.runtime_data.force_parsing = False
 
     # Setup Coordinator
-    coordinator = WatchmanCoordinator(hass, None, "test_coordinator", hub, version="0.0.0")
+    coordinator = WatchmanCoordinator(hass, None, entry, hub, version="0.0.0")
 
     # Step 1: Flag is FALSE
     # Mock get_config to return False for CONF_EXCLUDE_DISABLED_AUTOMATION
