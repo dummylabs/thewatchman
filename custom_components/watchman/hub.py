@@ -88,14 +88,31 @@ class WatchmanHub:
                 continue
 
             if entity_id not in result_dict:
-                result_dict[entity_id] = {"locations": {}, "automations": set()}
+                result_dict[entity_id] = {"locations": {}, "automations": set(), "occurrences": []}
 
             if path not in result_dict[entity_id]["locations"]:
                 result_dict[entity_id]["locations"][path] = []
             result_dict[entity_id]["locations"][path].append(line)
 
+            parent_type = item[4]
+            parent_alias = item[5]
             parent_id = item[6]
-            if parent_id:
+
+            context = None
+            if parent_type or parent_alias or parent_id:
+                context = {
+                    "parent_type": parent_type,
+                    "parent_alias": parent_alias,
+                    "parent_id": parent_id
+                }
+
+            result_dict[entity_id]["occurrences"].append({
+                "path": path,
+                "line": line,
+                "context": context
+            })
+
+            if parent_id and parent_type in ("automation", "script"):
                 result_dict[entity_id]["automations"].add(parent_id)
 
         # Update fast lookups

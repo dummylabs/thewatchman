@@ -19,15 +19,18 @@ async def test_exclude_disabled_automations(hass):
     parsed_entities = {
         "sensor.sensor_1": {
             "locations": {"config/automations.yaml": [10]},
-            "automations": {"automation.automation_2"}
+            "automations": {"automation.automation_2"},
+            "occurrences": []
         },
         "automation.automation_1": {
             "locations": {"config/automations.yaml": [12]},
-            "automations": {"automation.automation_2"}
+            "automations": {"automation.automation_2"},
+            "occurrences": []
         },
         "sensor.shared_sensor": {
             "locations": {"config/scripts.yaml": [5]},
-            "automations": {"script.active_script", "script.disabled_script"}
+            "automations": {"script.active_script", "script.disabled_script"},
+            "occurrences": []
         }
     }
 
@@ -36,7 +39,8 @@ async def test_exclude_disabled_automations(hass):
     parsed_services = {
         "service.test_service": {
             "locations": {"config/automations.yaml": [15]},
-            "automations": {"automation.automation_2"}
+            "automations": {"automation.automation_2"},
+            "occurrences": []
         }
     }
 

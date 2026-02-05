@@ -190,7 +190,7 @@ def renew_missing_items_list(
                     f"{INDENT} {type_label} {entry} is used both by enabled and disabled automations {automations}, added to the report ({occurrences})"
                 )
 
-            missing_items[entry] = occurrences
+            missing_items[entry] = data["occurrences"]
 
             # Entity-specific warning logic
             if is_entity and automations:
@@ -418,30 +418,30 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             item_type="entity",
         )
 
-        def flatten_locations(
-            item_id: str, locations: dict[str, list[int]], state: str
+        def flatten_occurrences(
+            item_id: str, occurrences: list[dict[str, Any]], state: str
         ) -> list[dict[str, Any]]:
             results = []
-            for file_path, lines in locations.items():
-                for line in lines:
-                    results.append(
-                        {
-                            "id": item_id,
-                            "state": state,
-                            "file": file_path,
-                            "line": line,
-                        }
-                    )
+            for occ in occurrences:
+                results.append(
+                    {
+                        "id": item_id,
+                        "state": state,
+                        "file": occ["path"],
+                        "line": occ["line"],
+                        "context": occ.get("context"),
+                    }
+                )
             return results
 
         entities_list = []
-        for entity_id, locations in missing_entities.items():
+        for entity_id, occurrences in missing_entities.items():
             state, _ = get_entity_state(self.hass, entity_id)
-            entities_list.extend(flatten_locations(entity_id, locations, state))
+            entities_list.extend(flatten_occurrences(entity_id, occurrences, state))
 
         actions_list = []
-        for service_id, locations in missing_services.items():
-            actions_list.extend(flatten_locations(service_id, locations, "missing"))
+        for service_id, occurrences in missing_services.items():
+            actions_list.extend(flatten_occurrences(service_id, occurrences, "missing"))
 
         info = {}
         info["last_parse_date"] = self.data.get(COORD_DATA_LAST_PARSE)
