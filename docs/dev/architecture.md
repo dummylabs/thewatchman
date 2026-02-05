@@ -29,7 +29,7 @@ When these events are detected, the cached list of referenced entities is discar
 ## 3. Data Flow
 The following diagram illustrates the flow of data from the file system to the final report.
 
-```
+```mermaid
 graph TD
     A[Home Assistant Startup] --> B{Watchman Init}
     B --> C[File System Walker]
