@@ -290,14 +290,14 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle removal of an entry."""
-    from .const import DB_FILENAME, LEGACY_DB_FILENAME, LOCK_FILENAME
+    from .const import DB_FILENAME, LEGACY_DB_FILENAME, LOCK_FILENAME, STORAGE_KEY
 
     db_path = hass.config.path(".storage", DB_FILENAME)
     journal_path = f"{db_path}-journal"
     lock_path = hass.config.path(".storage", LOCK_FILENAME)
+    stats_path = hass.config.path(".storage", STORAGE_KEY)
 
     # Legacy files
-    # FIXME: delete this block (and cleanup part) after 0.8.3 release is out
     legacy_db_path = hass.config.path(".storage", LEGACY_DB_FILENAME)
     legacy_wal_path = f"{legacy_db_path}-wal"
     legacy_shm_path = f"{legacy_db_path}-shm"
@@ -306,6 +306,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         Path(db_path).unlink(missing_ok=True)
         Path(journal_path).unlink(missing_ok=True)
         Path(lock_path).unlink(missing_ok=True)
+        Path(stats_path).unlink(missing_ok=True)
         # Cleanup legacy
         Path(legacy_db_path).unlink(missing_ok=True)
         Path(legacy_wal_path).unlink(missing_ok=True)
@@ -313,3 +314,5 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     await hass.async_add_executor_job(remove_files)
     _LOGGER.info("Watchman database file removed: %s", db_path)
+    _LOGGER.info("Watchman journal file removed: %s", journal_path)
+    _LOGGER.info("Watchman stats file removed: %s", stats_path)

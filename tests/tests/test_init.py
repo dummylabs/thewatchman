@@ -10,8 +10,8 @@ from homeassistant.core import HomeAssistant
 
 
 async def test_integration_removal_cleanup(hass: HomeAssistant):
-    """Test that the database, journal, and lock files are removed when the integration is deleted."""
-    from custom_components.watchman.const import LOCK_FILENAME
+    """Test that the database, journal, lock, and stats files are removed when the integration is deleted."""
+    from custom_components.watchman.const import LOCK_FILENAME, STORAGE_KEY
 
     # 1. Setup integration
     config_entry = await async_init_integration(hass)
@@ -21,6 +21,7 @@ async def test_integration_removal_cleanup(hass: HomeAssistant):
     db_path = Path(hass.config.path(".storage", DB_FILENAME))
     journal_path = Path(str(db_path) + "-journal")
     lock_path = Path(hass.config.path(".storage", LOCK_FILENAME))
+    stats_path = Path(hass.config.path(".storage", STORAGE_KEY))
 
     # Manually create journal and lock files if they don't exist (simulating active usage/crash)
     # The integration creates .db, but journal might be transient in WAL/TRUNCATE unless active
@@ -28,10 +29,14 @@ async def test_integration_removal_cleanup(hass: HomeAssistant):
         journal_path.touch()
     if not lock_path.exists():
         lock_path.touch()
+    # Ensure stats file exists (created by coordinator, but let's be sure)
+    if not stats_path.exists():
+        stats_path.touch()
 
     assert db_path.exists()
     assert journal_path.exists()
     assert lock_path.exists()
+    assert stats_path.exists()
 
     # 3. Remove integration
     await hass.config_entries.async_remove(config_entry.entry_id)
@@ -41,3 +46,4 @@ async def test_integration_removal_cleanup(hass: HomeAssistant):
     assert not db_path.exists(), "Database file not removed"
     assert not journal_path.exists(), "Journal file not removed"
     assert not lock_path.exists(), "Lock file not removed"
+    assert not stats_path.exists(), "Stats file not removed"
