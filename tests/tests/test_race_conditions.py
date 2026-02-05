@@ -38,8 +38,16 @@ async def test_request_during_scan(hass: HomeAssistant, mock_hub_parse):
     # 1. Start a scan that takes some time
     finish_first_parse = asyncio.Event()
 
+    from custom_components.watchman.utils.parser_core import ParseResult
+
     async def slow_parse(*args, **kwargs):
         await finish_first_parse.wait()
+        return ParseResult(
+            duration=1.0,
+            timestamp="2026-01-01T12:00:00",
+            processed_files_count=1,
+            ignored_files_count=0,
+        )
 
     mock_hub_parse.side_effect = slow_parse
     mock_hub_parse.reset_mock()

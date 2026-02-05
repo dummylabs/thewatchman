@@ -18,6 +18,8 @@ from ..const import (
     CONF_COLUMNS_WIDTH,
     CONF_FRIENDLY_NAMES,
     CONF_HEADER,
+    COORD_DATA_IGNORED_FILES,
+    COORD_DATA_PROCESSED_FILES,
     DEFAULT_HEADER,
     REPORT_ENTRY_TYPE_ENTITY,
     REPORT_ENTRY_TYPE_SERVICE,
@@ -86,9 +88,8 @@ async def report(
     )
 
     header = get_config(hass, CONF_HEADER, DEFAULT_HEADER)
-    info = await coordinator.hub.async_get_last_parse_info()
-    files_parsed = info.get("processed_files_count", 0)
-    files_ignored = info.get("ignored_files_count", 0)
+    files_parsed = coordinator.data.get(COORD_DATA_PROCESSED_FILES, 0)
+    files_ignored = coordinator.data.get(COORD_DATA_IGNORED_FILES, 0)
 
     rep = f"{header} \n"
     if missing_services:

@@ -58,10 +58,13 @@ async def test_coordinator_resilience_info_timeout(hass, tmp_path):
     coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
 
     # Mock get_last_parse_info to raise OperationalError
-    with patch.object(WatchmanParser, 'get_last_parse_info', side_effect=sqlite3.OperationalError("database is locked")):
-
+    with patch.object(
+        WatchmanParser,
+        "get_last_parse_info",
+        side_effect=sqlite3.OperationalError("database is locked"),
+    ):
         info = await coordinator.hub.async_get_last_parse_info()
 
         # Verify default values returned
-        assert info['duration'] == 0.0
-        assert info['processed_files_count'] == 0
+        assert info["duration"] == 0.0
+        assert info["processed_files_count"] == 0

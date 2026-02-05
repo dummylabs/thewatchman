@@ -43,32 +43,30 @@ async def test_diagnostic_sensors(hass: HomeAssistant):
     # 2. Trigger a scan and verify values update
     coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
 
-    # Mock return values from parser
-    mock_info = {
-        "duration": 12.5,
-        "timestamp": "2023-01-01T12:00:00+00:00",
-        "processed_files_count": 42,
-        "ignored_files_count": 5
-    }
+    from custom_components.watchman.utils.parser_core import ParseResult
 
-    with patch.object(coordinator.hub, 'async_get_last_parse_info', return_value=mock_info):
-        # Trigger update
-        coordinator.request_parser_rescan(reason="Test", delay=0)
+    # Simulate parse results
+    mock_result = ParseResult(
+        duration=12.5,
+        timestamp="2023-01-01T12:00:00+00:00",
+        processed_files_count=42,
+        ignored_files_count=5
+    )
 
-        await hass.async_block_till_done()
-        await coordinator.async_request_refresh()
-        await hass.async_block_till_done()
+    await coordinator.async_save_stats(mock_result)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
 
-        # Verify Values
-        processed_id = get_entity_id(SENSOR_PROCESSED_FILES)
-        assert hass.states.get(processed_id).state == "42"
+    # Verify Values
+    processed_id = get_entity_id(SENSOR_PROCESSED_FILES)
+    assert hass.states.get(processed_id).state == "42"
 
-        ignored_id = get_entity_id(SENSOR_IGNORED_FILES)
-        assert hass.states.get(ignored_id).state == "5"
+    ignored_id = get_entity_id(SENSOR_IGNORED_FILES)
+    assert hass.states.get(ignored_id).state == "5"
 
-        duration_id = get_entity_id(SENSOR_PARSE_DURATION)
-        assert hass.states.get(duration_id).state == "12.5"
+    duration_id = get_entity_id(SENSOR_PARSE_DURATION)
+    assert hass.states.get(duration_id).state == "12.5"
 
-        last_parse_id = get_entity_id(SENSOR_LAST_PARSE)
-        # HA handles timestamp formatting, but it should be present
-        assert hass.states.get(last_parse_id).state == "2023-01-01T12:00:00+00:00"
+    last_parse_id = get_entity_id(SENSOR_LAST_PARSE)
+    # HA handles timestamp formatting, but it should be present
+    assert hass.states.get(last_parse_id).state == "2023-01-01T12:00:00+00:00"

@@ -1,7 +1,6 @@
 """The Watchman integration."""
 
 from dataclasses import dataclass
-import os
 from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
@@ -53,23 +52,49 @@ class WMData:
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) -> bool:
     """Set up this integration using UI."""
+    from .const import DB_FILENAME, LEGACY_DB_FILENAME
+
+    legacy_db_path = Path(hass.config.path(".storage", LEGACY_DB_FILENAME))
+    db_path = Path(hass.config.path(".storage", DB_FILENAME))
+
+    # One-time migration: rename watchman.db to watchman_v2.db
+    if not db_path.exists() and legacy_db_path.exists():
+        _LOGGER.info(
+            "Migrating legacy database %s to %s", LEGACY_DB_FILENAME, DB_FILENAME
+        )
+        legacy_db_path.rename(db_path)
+
+    integration = await async_get_integration(hass, DOMAIN)
+    hub = WatchmanHub(hass, str(db_path))
+    await hub.async_init()
+    coordinator = WatchmanCoordinator(
+        hass,
+        _LOGGER,
+        name=config_entry.title.lower(),
+        hub=hub,
+        version=str(integration.version),
+    )
+    await coordinator.async_load_stats()
+    config_entry.runtime_data = WMData(coordinator, hub)
 
     async def async_on_home_assistant_started(event: Event | None) -> None:  # pylint: disable=unused-argument
         """Update watchman sensors and start listening to HA events when Home Assistant started."""
-        coordinator = config_entry.runtime_data.coordinator
-
         # prime the coordinator with cached data immediately to minimize startup delay
         try:
             _LOGGER.debug("HA is ready. Prime coordinator with cached data.")
             parsed_entities = await hub.async_get_parsed_entities()
             parsed_services = await hub.async_get_parsed_services()
-            initial_data = await coordinator.async_process_parsed_data(parsed_entities, parsed_services)
+            initial_data = await coordinator.async_process_parsed_data(
+                parsed_entities, parsed_services
+            )
             coordinator.async_set_updated_data(initial_data)
         except Exception as e:
             _LOGGER.error(f"Failed to prime coordinator with cached data: {e}")
 
         if coordinator.safe_mode:
-            _LOGGER.info("Watchman is in Safe Mode. Skipping event subscriptions and initial scan.")
+            _LOGGER.info(
+                "Watchman is in Safe Mode. Skipping event subscriptions and initial scan."
+            )
             return
 
         coordinator.subscribe_to_events(config_entry)
@@ -77,28 +102,33 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
 
         if event:
             startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
-            _LOGGER.debug(f"Watchman started during HA startup). Initial parse in: {startup_delay}s.")
+            _LOGGER.debug(
+                f"Watchman started during HA startup). Initial parse in: {startup_delay}s."
+            )
         else:
             startup_delay = DEFAULT_DELAY
-            _LOGGER.debug(f"Watchman installed (HA running). Initial parse in: {startup_delay}s.")
+            _LOGGER.debug(
+                f"Watchman installed (HA running). Initial parse in: {startup_delay}s."
+            )
 
         coordinator.request_parser_rescan(reason="startup", delay=startup_delay)
 
-    db_path = hass.config.path(".storage", DB_FILENAME)
-    integration = await async_get_integration(hass, DOMAIN)
-    hub = WatchmanHub(hass, db_path)
-    await hub.async_init()
-    coordinator = WatchmanCoordinator(hass, _LOGGER, name=config_entry.title.lower(), hub=hub, version=str(integration.version))
-    config_entry.runtime_data = WMData(coordinator, hub)
     _LOGGER.info("Watchman integration started [%s]", coordinator.version)
 
     # Check for previous crash
-    lock_path = hass.config.path(".storage", LOCK_FILENAME)
-    if await hass.async_add_executor_job(Path(lock_path).exists):
-        _LOGGER.error("Previous crash detected (lock file found). Watchman is starting in Safe Mode.")
+    lock_path = Path(hass.config.path(".storage", LOCK_FILENAME))
+
+    def check_crash() -> bool:
+        if lock_path.exists():
+            _LOGGER.error(
+                "Previous crash detected (lock file found). Watchman is starting in Safe Mode."
+            )
+            lock_path.unlink(missing_ok=True)
+            return True
+        return False
+
+    if await hass.async_add_executor_job(check_crash):
         coordinator.update_status(STATE_SAFE_MODE)
-        # We must clean up the lock file so next restart isn't safe mode unless it crashes again
-        await hass.async_add_executor_job(Path(lock_path).unlink, True)
 
     hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator

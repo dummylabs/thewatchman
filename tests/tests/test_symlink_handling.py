@@ -4,6 +4,7 @@ from pathlib import Path
 
 from custom_components.watchman.const import (
     CONF_INCLUDED_FOLDERS,
+    COORD_DATA_PROCESSED_FILES,
     DOMAIN,
 )
 import pytest
@@ -51,6 +52,8 @@ async def test_symlink_handling(hass, tmp_path, caplog):
 
     # 2. Valid file parsed
     coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
+    await coordinator.async_load_stats()
+    await coordinator.async_refresh()
 
     # We expect sensor.target_sensor_missing to be reported as missing
     # It appears in target_file.yaml and potentially valid_link.yaml
@@ -59,6 +62,5 @@ async def test_symlink_handling(hass, tmp_path, caplog):
     assert "sensor.target_sensor_missing" in parsed_entities, "Entity from real file should be parsed"
 
     # Check if we parsed 2 files (target + link) or 1 (if parser handles deduplication by real path, which it doesn't seem to do yet, but `processed_files` uses path as key)
-    info = await coordinator.hub.async_get_last_parse_info()
     # processed_files_count should be at least 1. If symlink is followed as a separate file, it might be 2.
-    assert info["processed_files_count"] >= 1
+    assert coordinator.data.get(COORD_DATA_PROCESSED_FILES) >= 1

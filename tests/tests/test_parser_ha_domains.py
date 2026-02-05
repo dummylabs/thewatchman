@@ -20,7 +20,7 @@ def test_ha_domains_parsing(parser_client, new_test_data_dir):
     yaml_dir = str(yaml_file.parent)
 
     # Parse the directory
-    entities, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    entities, _, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     # List of domains to check
     domains_to_check = [

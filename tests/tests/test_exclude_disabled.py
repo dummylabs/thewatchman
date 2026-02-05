@@ -44,8 +44,8 @@ async def test_exclude_disabled_automations(hass):
     hub.async_get_parsed_services = AsyncMock(return_value=parsed_services)
 
     hub.async_parse = AsyncMock(return_value=None)
-    hub.async_get_last_parse_info = AsyncMock(return_value={})
     # Ensure is_scanning is False so coordinator doesn't skip update
+
     type(hub).is_scanning = PropertyMock(return_value=False)
 
     # Set states

@@ -1,0 +1,37 @@
+# serializer version: 1
+# name: test_db_schema_integrity
+  tuple(
+    2,
+    '''
+      Table: found_items
+      CREATE TABLE found_items (
+                                  item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  file_id INTEGER,
+                                  line INTEGER,
+                                  entity_id TEXT,
+                                  item_type TEXT DEFAULT 'entity',
+                                  is_key BOOLEAN,
+                                  key_name TEXT,
+                                  is_automation_context BOOLEAN,
+                                  parent_type TEXT,
+                                  parent_id TEXT,
+                                  parent_alias TEXT,
+                                                  FOREIGN KEY(file_id) REFERENCES processed_files(file_id) ON DELETE CASCADE
+                                              )
+      Table: processed_files
+      CREATE TABLE processed_files (
+                                  file_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  scan_date TEXT,
+                                  path TEXT UNIQUE,
+                                  entity_count INTEGER,
+                                  file_type TEXT
+                              )
+      Table: scan_config
+      CREATE TABLE scan_config (
+                                  id INTEGER PRIMARY KEY DEFAULT 1 CHECK(id=1), -- Ensure only one row
+                                  included_folders TEXT,
+                                  ignored_files TEXT
+                              )
+    ''',
+  )
+# ---

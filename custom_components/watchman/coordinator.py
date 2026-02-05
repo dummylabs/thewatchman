@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Iterable
+import contextlib
 import logging
-import os
 from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any
@@ -19,6 +19,7 @@ from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -46,10 +47,13 @@ from .const import (
     STATE_PENDING,
     STATE_SAFE_MODE,
     STATE_WAITING_HA,
+    STORAGE_KEY,
+    STORAGE_VERSION,
     WATCHED_EVENTS,
     WATCHED_SERVICES,
 )
 from .utils.logger import _LOGGER, INDENT
+from .utils.parser_core import ParseResult
 from .utils.report import fill
 from .utils.utils import (
     get_config,
@@ -238,6 +242,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._last_parse_time = 0.0
         self._current_delay = 0
         self._version = version
+        self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
@@ -250,6 +255,47 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_PROCESSED_FILES: 0,
             COORD_DATA_IGNORED_FILES: 0,
         }
+
+    async def async_load_stats(self) -> None:
+        """Load stats from storage."""
+        if stats := await self._store.async_load():
+            self._last_parse_time = stats.get("last_parse_time_monotonic", 0.0)
+            self.data[COORD_DATA_PARSE_DURATION] = stats.get("duration", 0.0)
+            self.data[COORD_DATA_PROCESSED_FILES] = stats.get("processed_files_count", 0)
+            self.data[COORD_DATA_IGNORED_FILES] = stats.get("ignored_files_count", 0)
+            if timestamp := stats.get("timestamp"):
+                with contextlib.suppress(Exception):
+                    last_parse_dt = dt_util.parse_datetime(timestamp)
+                    if last_parse_dt and last_parse_dt.tzinfo is None:
+                        last_parse_dt = last_parse_dt.replace(
+                            tzinfo=dt_util.DEFAULT_TIME_ZONE
+                        )
+                    self.data[COORD_DATA_LAST_PARSE] = last_parse_dt
+
+    async def async_save_stats(self, parse_result: ParseResult) -> None:
+        """Save stats to storage and update in-memory data."""
+        # Update in-memory data immediately so sensors are fresh
+        self.data[COORD_DATA_PARSE_DURATION] = parse_result.duration
+        self.data[COORD_DATA_PROCESSED_FILES] = parse_result.processed_files_count
+        self.data[COORD_DATA_IGNORED_FILES] = parse_result.ignored_files_count
+
+        if parse_result.timestamp:
+            with contextlib.suppress(Exception):
+                last_parse_dt = dt_util.parse_datetime(parse_result.timestamp)
+                if last_parse_dt and last_parse_dt.tzinfo is None:
+                    last_parse_dt = last_parse_dt.replace(
+                        tzinfo=dt_util.DEFAULT_TIME_ZONE
+                    )
+                self.data[COORD_DATA_LAST_PARSE] = last_parse_dt
+
+        stats = {
+            "duration": parse_result.duration,
+            "timestamp": parse_result.timestamp,
+            "ignored_files_count": parse_result.ignored_files_count,
+            "processed_files_count": parse_result.processed_files_count,
+            "last_parse_time_monotonic": self._last_parse_time,
+        }
+        await self._store.async_save(stats)
 
     @property
     def version(self) -> str:
@@ -311,17 +357,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             item_type="entity",
         )
 
-        parse_info = await self.hub.async_get_last_parse_info()
-
-        last_parse_dt = None
-        if parse_info.get("timestamp"):
-                try:
-                    last_parse_dt = dt_util.parse_datetime(parse_info["timestamp"])
-                    if last_parse_dt and last_parse_dt.tzinfo is None:
-                        last_parse_dt = last_parse_dt.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
-                except Exception:
-                    pass
-
         # build entity attributes map for missing_entities sensor
         entity_attrs = []
         for entity in entities_missing:
@@ -353,10 +388,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_LAST_UPDATE: dt_util.now(),
             COORD_DATA_SERVICE_ATTRS: service_attrs,
             COORD_DATA_ENTITY_ATTRS: entity_attrs,
-            COORD_DATA_PARSE_DURATION: parse_info.get("duration", 0.0),
-            COORD_DATA_LAST_PARSE: last_parse_dt,
-            COORD_DATA_PROCESSED_FILES: parse_info.get("processed_files_count", 0),
-            COORD_DATA_IGNORED_FILES: parse_info.get("ignored_files_count", 0),
+            COORD_DATA_PARSE_DURATION: self.data.get(COORD_DATA_PARSE_DURATION, 0.0),
+            COORD_DATA_LAST_PARSE: self.data.get(COORD_DATA_LAST_PARSE),
+            COORD_DATA_PROCESSED_FILES: self.data.get(COORD_DATA_PROCESSED_FILES, 0),
+            COORD_DATA_IGNORED_FILES: self.data.get(COORD_DATA_IGNORED_FILES, 0),
         }
 
     async def async_get_detailed_report_data(self) -> dict[str, Any]:
@@ -407,12 +442,11 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         for service_id, locations in missing_services.items():
             actions_list.extend(flatten_locations(service_id, locations, "missing"))
 
-        parse_info = await self.hub.async_get_last_parse_info()
         info = {}
-        info["last_parse_date"] = parse_info["timestamp"]
-        info["parse_duration"] = parse_info["duration"]
-        info["ignored_files_count"] = parse_info["ignored_files_count"]
-        info["processed_files_count"] = parse_info["processed_files_count"]
+        info["last_parse_date"] = self.data.get(COORD_DATA_LAST_PARSE)
+        info["parse_duration"] = self.data.get(COORD_DATA_PARSE_DURATION)
+        info["ignored_files_count"] = self.data.get(COORD_DATA_IGNORED_FILES)
+        info["processed_files_count"] = self.data.get(COORD_DATA_PROCESSED_FILES)
         info["missing_entities"] = entities_list
         info["missing_actions"] = actions_list
         return info
@@ -550,9 +584,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             ignored_files = get_config(self.hass, CONF_IGNORED_FILES, None)
 
             # Perform the scan
-            await self.hub.async_parse(ignored_files)
-
-            self._last_parse_time = time.time()
+            if parse_result := await self.hub.async_parse(ignored_files):
+                self._last_parse_time = time.time()
+                await self.async_save_stats(parse_result)
 
             # Refresh data and notify sensors
             await self.async_refresh()
@@ -577,8 +611,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
     async def async_get_last_parse_duration(self) -> float:
         """Return duration of the last parsing."""
-        info = await self.hub.async_get_last_parse_info()
-        return info.get("duration", 0.0)
+        return self.data.get(COORD_DATA_PARSE_DURATION, 0.0)
 
     def update_ignored_labels(self, labels: list[str]) -> None:
         """Update ignored labels list and refresh data."""

@@ -9,7 +9,8 @@ from pathlib import Path
 import re
 import sqlite3
 import time
-from typing import Any, TypedDict
+from dataclasses import dataclass
+from typing import Any, Generator, TypedDict
 
 import anyio
 import yaml
@@ -32,6 +33,16 @@ from .parser_const import (
     YAML_FILE_EXTS,
 )
 from .yaml_loader import LineLoader
+
+
+@dataclass
+class ParseResult:
+    """Dataclass to hold parse statistics."""
+
+    duration: float
+    timestamp: str
+    ignored_files_count: int
+    processed_files_count: int
 
 
 class FoundItem(TypedDict):
@@ -560,23 +571,46 @@ class WatchmanParser:
         path = Path(db_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
+        from ..const import CURRENT_DB_SCHEMA_VERSION
+
         conn = sqlite3.connect(db_path, timeout=DB_TIMEOUT)
         try:
+            # Check version
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA user_version")
+            db_version = cursor.fetchone()[0]
+
+            if db_version > CURRENT_DB_SCHEMA_VERSION:
+                _LOGGER.warning(
+                    "Database version %s is newer than supported version %s. Rebuilding database.",
+                    db_version,
+                    CURRENT_DB_SCHEMA_VERSION,
+                )
+                conn.close()
+                path.unlink(missing_ok=True)
+                return self._init_db(db_path)
+
+            if db_version < CURRENT_DB_SCHEMA_VERSION:
+                self._migrate_db(conn, db_version, CURRENT_DB_SCHEMA_VERSION)
+
             c = conn.cursor()
 
             c.execute("PRAGMA foreign_keys = ON;")
             c.execute("PRAGMA journal_mode = WAL;")
             c.execute("PRAGMA synchronous = OFF;")
 
-            c.execute('''CREATE TABLE IF NOT EXISTS processed_files (
+            c.execute(
+                """CREATE TABLE IF NOT EXISTS processed_files (
                             file_id INTEGER PRIMARY KEY AUTOINCREMENT,
                             scan_date TEXT,
                             path TEXT UNIQUE,
                             entity_count INTEGER,
                             file_type TEXT
-                        )''')
+                        )"""
+            )
 
-            c.execute('''CREATE TABLE IF NOT EXISTS found_items (
+            c.execute(
+                """CREATE TABLE IF NOT EXISTS found_items (
                             item_id INTEGER PRIMARY KEY AUTOINCREMENT,
                             file_id INTEGER,
                             line INTEGER,
@@ -589,40 +623,47 @@ class WatchmanParser:
                             parent_id TEXT,
                             parent_alias TEXT,
                                             FOREIGN KEY(file_id) REFERENCES processed_files(file_id) ON DELETE CASCADE
-                                        )''')
+                                        )"""
+            )
 
-            c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_file_id ON found_items(file_id);")
-            c.execute("CREATE INDEX IF NOT EXISTS idx_found_items_item_type ON found_items(item_type);")
+            c.execute(
+                "CREATE INDEX IF NOT EXISTS idx_found_items_file_id ON found_items(file_id);"
+            )
+            c.execute(
+                "CREATE INDEX IF NOT EXISTS idx_found_items_item_type ON found_items(item_type);"
+            )
 
-            # Schema migration for existing DB
-            with contextlib.suppress(sqlite3.OperationalError):
-                c.execute("ALTER TABLE found_items ADD COLUMN item_type TEXT DEFAULT 'entity'")
-
-            c.execute('''CREATE TABLE IF NOT EXISTS scan_config (
+            c.execute(
+                """CREATE TABLE IF NOT EXISTS scan_config (
                             id INTEGER PRIMARY KEY DEFAULT 1 CHECK(id=1), -- Ensure only one row
                             included_folders TEXT,
-                            ignored_files TEXT,
-                            last_parse_duration REAL,
-                            last_parse_timestamp TEXT
-                        )''')
-
-            # Schema migration for last_parse_duration
-            with contextlib.suppress(sqlite3.OperationalError):
-                c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_duration REAL")
-
-            with contextlib.suppress(sqlite3.OperationalError):
-                c.execute("ALTER TABLE scan_config ADD COLUMN last_parse_timestamp TEXT")
-
-            with contextlib.suppress(sqlite3.OperationalError):
-                c.execute("ALTER TABLE scan_config ADD COLUMN ignored_files_count INTEGER DEFAULT 0")
+                            ignored_files TEXT
+                        )"""
+            )
 
             c.execute("INSERT OR IGNORE INTO scan_config (id) VALUES (1)")
+
+            # Set version if new DB
+            if db_version == 0:
+                cursor.execute(f"PRAGMA user_version = {CURRENT_DB_SCHEMA_VERSION}")
 
             conn.commit()
             return conn
         except Exception:
             conn.close()
             raise
+
+    def _migrate_db(
+        self, conn: sqlite3.Connection, from_version: int, to_version: int
+    ) -> None:
+        """Handle database migrations."""
+        _LOGGER.info("Migrating database from version %s to %s", from_version, to_version)
+        if from_version == 0 and to_version == 2:
+            # Migration 0 -> 2 (Passive): just bump version
+            # Dead columns remain in scan_config but are ignored by named SELECTs
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA user_version = 2")
+            conn.commit()
 
     async def _async_scan_files_legacy(self, root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
         """Phase 1: Asynchronous file scanning using anyio.
@@ -718,7 +759,7 @@ class WatchmanParser:
         force: bool = False,
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
-    ) -> None:
+    ) -> ParseResult | None:
         """Orchestrates the scanning process.
 
         If force = True, unmodified files will be scanned again
@@ -730,15 +771,23 @@ class WatchmanParser:
             entity_pattern = _ENTITY_PATTERN
             if custom_domains:
                 entity_pattern = re.compile(
-                    r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?((" + "|".join(custom_domains) + r")\.[a-z0-9_]+)",
-                    re.IGNORECASE
+                    r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?(("
+                    + "|".join(custom_domains)
+                    + r")\.[a-z0-9_]+)",
+                    re.IGNORECASE,
                 )
 
             # --- Phase 1: Async File Scanning ---
-            _LOGGER.debug(f"Phase 1 (Scan): Starting scan of {root_path} with patterns {ignored_files}")
+            _LOGGER.debug(
+                f"Phase 1 (Scan): Starting scan of {root_path} with patterns {ignored_files}"
+            )
             scan_time = time.monotonic()
-            files_scanned, ignored_count = await self._async_scan_files(root_path, ignored_files)
-            _LOGGER.debug(f"Phase 1 (Scan): Found {len(files_scanned)} files in {(time.monotonic() - scan_time):.3f} sec")
+            files_scanned, ignored_count = await self._async_scan_files(
+                root_path, ignored_files
+            )
+            _LOGGER.debug(
+                f"Phase 1 (Scan): Found {len(files_scanned)} files in {(time.monotonic() - scan_time):.3f} sec"
+            )
 
             # --- Phase 2: Reconciliation (DB Check) ---
             reconcile_time = time.monotonic()
@@ -756,9 +805,9 @@ class WatchmanParser:
             total_size_to_parse = 0
 
             for file_data in files_scanned:
-                filepath = file_data['path']
-                mtime = file_data['mtime']
-                size = file_data.get('size', 0)
+                filepath = file_data["path"]
+                mtime = file_data["mtime"]
+                size = file_data.get("size", 0)
 
                 # Determine path to store in DB
                 path_for_db = filepath
@@ -784,18 +833,22 @@ class WatchmanParser:
                     should_scan = True
 
                 if should_scan:
-                    files_to_parse.append({
-                        "path": filepath,
-                        "path_for_db": path_for_db,
-                        "scan_date": scan_date,
-                        "file_id": file_id
-                    })
+                    files_to_parse.append(
+                        {
+                            "path": filepath,
+                            "path_for_db": path_for_db,
+                            "scan_date": scan_date,
+                            "file_id": file_id,
+                        }
+                    )
                     total_size_to_parse += size
                 else:
                     skipped_count += 1
                     actual_file_ids.append(file_id)
 
-            _LOGGER.debug(f"Phase 2 (Reconciliation): Identified {len(files_to_parse)} files to parse ({total_size_to_parse} bytes). Skipped {skipped_count}. Took {(time.monotonic() - reconcile_time):.3f} sec")
+            _LOGGER.debug(
+                f"Phase 2 (Reconciliation): Identified {len(files_to_parse)} files to parse ({total_size_to_parse} bytes). Skipped {skipped_count}. Took {(time.monotonic() - reconcile_time):.3f} sec"
+            )
 
             # --- Phase 3: Sequential Parsing & Persistence ---
             parse_time = time.monotonic()
@@ -812,16 +865,24 @@ class WatchmanParser:
 
                     # Execute parsing in executor (CPU-bound)
                     # We do this sequentially to avoid CPU bursts
-                    count, items, detected_ftype = await self.executor(process_file_sync, filepath, entity_pattern)
+                    count, items, detected_ftype = await self.executor(
+                        process_file_sync, filepath, entity_pattern
+                    )
 
                     # Update DB immediately (transaction is still open until we exit context manager)
                     if file_id:
-                        cursor.execute("UPDATE processed_files SET scan_date=?, entity_count=?, file_type=? WHERE file_id=?",
-                                    (scan_date, count, detected_ftype, file_id))
-                        cursor.execute("DELETE FROM found_items WHERE file_id=?", (file_id,))
+                        cursor.execute(
+                            "UPDATE processed_files SET scan_date=?, entity_count=?, file_type=? WHERE file_id=?",
+                            (scan_date, count, detected_ftype, file_id),
+                        )
+                        cursor.execute(
+                            "DELETE FROM found_items WHERE file_id=?", (file_id,)
+                        )
                     else:
-                        cursor.execute("INSERT INTO processed_files (scan_date, path, entity_count, file_type) VALUES (?, ?, ?, ?)",
-                                    (scan_date, path_for_db, count, detected_ftype))
+                        cursor.execute(
+                            "INSERT INTO processed_files (scan_date, path, entity_count, file_type) VALUES (?, ?, ?, ?)",
+                            (scan_date, path_for_db, count, detected_ftype),
+                        )
                         file_id = cursor.lastrowid
 
                     if file_id not in actual_file_ids:
@@ -832,49 +893,80 @@ class WatchmanParser:
                         # Filter out bundled ignored items
                         is_ignored = False
                         for pattern in BUNDLED_IGNORED_ITEMS:
-                            if fnmatch.fnmatch(item['entity_id'], pattern):
+                            if fnmatch.fnmatch(item["entity_id"], pattern):
                                 is_ignored = True
                                 break
 
                         if is_ignored:
                             continue
 
-                        cursor.execute('''INSERT INTO found_items
+                        cursor.execute(
+                            """INSERT INTO found_items
                                         (file_id, line, entity_id, item_type, is_key, key_name, is_automation_context, parent_type, parent_id, parent_alias)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                                    (file_id, item['line'], item['entity_id'], item['item_type'], item['is_key'], item['key_name'],
-                                        item['is_automation_context'], item['parent_type'], item['parent_id'], item['parent_alias']))
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                file_id,
+                                item["line"],
+                                item["entity_id"],
+                                item["item_type"],
+                                item["is_key"],
+                                item["key_name"],
+                                item["is_automation_context"],
+                                item["parent_type"],
+                                item["parent_id"],
+                                item["parent_alias"],
+                            ),
+                        )
 
                 # --- Cleanup stale files ---
                 if actual_file_ids:
-                    placeholders = ','.join('?' * len(actual_file_ids))
-                    cursor.execute(f"DELETE FROM processed_files WHERE file_id NOT IN ({placeholders})", actual_file_ids)
+                    placeholders = ",".join("?" * len(actual_file_ids))
+                    cursor.execute(
+                        f"DELETE FROM processed_files WHERE file_id NOT IN ({placeholders})",
+                        actual_file_ids,
+                    )
                 else:
                     cursor.execute("DELETE FROM processed_files")
-
-                # Update last parse stats
-                duration = time.monotonic() - start_time
-                _LOGGER.debug(f"Phase 3 (Parse): finished in {(time.monotonic() - parse_time):.3f} sec")
-                _LOGGER.debug(f"Total Scan finished in {duration:.3f} sec")
-
-                current_timestamp = datetime.datetime.now().isoformat()
-                cursor.execute("UPDATE scan_config SET last_parse_duration = ?, last_parse_timestamp = ?, ignored_files_count = ? WHERE id = 1",
-                            (duration, current_timestamp, ignored_count))
 
                 # Commit transaction
                 conn.commit()
 
+            # Update last parse stats
+            duration = time.monotonic() - start_time
+            _LOGGER.debug(
+                f"Phase 3 (Parse): finished in {(time.monotonic() - parse_time):.3f} sec"
+            )
+            _LOGGER.debug(f"Total Scan finished in {duration:.3f} sec")
+
+            current_timestamp = datetime.datetime.now().isoformat()
+
+            # Return ParseResult instead of writing to DB
+            with self._db_session() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM processed_files")
+                processed_files_count = cursor.fetchone()[0]
+
+            return ParseResult(
+                duration=duration,
+                timestamp=current_timestamp,
+                ignored_files_count=ignored_count,
+                processed_files_count=processed_files_count,
+            )
+
         except sqlite3.OperationalError as e:
             if "locked" in str(e):
                 _LOGGER.error(f"Database locked, aborting scan: {e}")
-                return
+                return None
             raise
 
     def get_last_parse_info(self) -> dict[str, Any]:
         """Return the duration, timestamp, ignored files count and processed files count of the last successful scan."""
         with self._db_session() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT last_parse_duration, last_parse_timestamp, ignored_files_count FROM scan_config WHERE id = 1")
+            # Note: last_parse_duration and last_parse_timestamp are now dead columns
+            # This method should probably be removed in favor of Store, but kept for compatibility
+            # if anything still uses it during transition.
+            cursor.execute("SELECT id FROM scan_config WHERE id = 1")
             row = cursor.fetchone()
 
             cursor.execute("SELECT COUNT(*) FROM processed_files")
@@ -882,12 +974,17 @@ class WatchmanParser:
 
             if row:
                 return {
-                    "duration": row[0],
-                    "timestamp": row[1],
-                    "ignored_files_count": row[2],
-                    "processed_files_count": processed_files_count
+                    "duration": 0.0,
+                    "timestamp": None,
+                    "ignored_files_count": 0,
+                    "processed_files_count": processed_files_count,
                 }
-        return {"duration": 0.0, "timestamp": None, "ignored_files_count": 0, "processed_files_count": 0}
+        return {
+            "duration": 0.0,
+            "timestamp": None,
+            "ignored_files_count": 0,
+            "processed_files_count": 0,
+        }
 
     def get_processed_files(self) -> list[tuple]:
         """Fetch all processed files from the database."""
@@ -959,7 +1056,7 @@ class WatchmanParser:
         force: bool = False,
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
-    ) -> tuple[list[str], list[str], int, int, dict]:
+    ) -> tuple[list[str], list[str], int, int, dict, ParseResult | None]:
         """Main parse function.
 
         Params:
@@ -975,9 +1072,10 @@ class WatchmanParser:
             parsed_files_count (int): Number of entries in processed_files.
             ignored_files_count (int): Always 0 (stub).
             entity_to_automations (dict): Empty dictionary (stub).
+            parse_result (ParseResult): Operational statistics.
 
         """
-        await self.async_scan(
+        parse_result = await self.async_scan(
             root_path,
             ignored_files,
             force=force,
@@ -989,11 +1087,15 @@ class WatchmanParser:
             with self._db_session() as conn:
                 cursor = conn.cursor()
                 # parsed_entity_list
-                cursor.execute("SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'entity'")
+                cursor.execute(
+                    "SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'entity'"
+                )
                 parsed_entity_list = [row[0] for row in cursor.fetchall()]
 
                 # parsed_service_list
-                cursor.execute("SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'service'")
+                cursor.execute(
+                    "SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'service'"
+                )
                 parsed_service_list = [row[0] for row in cursor.fetchall()]
 
                 # parsed_files_count
@@ -1001,9 +1103,9 @@ class WatchmanParser:
                 parsed_files_count = cursor.fetchone()[0]
 
                 # ignored_files_count
-                cursor.execute("SELECT ignored_files_count FROM scan_config WHERE id = 1")
-                row = cursor.fetchone()
-                ignored_files_count = row[0] if row else 0
+                ignored_files_count = (
+                    parse_result.ignored_files_count if parse_result else 0
+                )
 
             entity_to_automations = {}
 
@@ -1012,8 +1114,11 @@ class WatchmanParser:
                 parsed_service_list,
                 parsed_files_count,
                 ignored_files_count,
-                entity_to_automations
+                entity_to_automations,
+                parse_result,
             )
         except sqlite3.OperationalError:
-            _LOGGER.error("Database locked during result fetching in parse(), returning empty results.")
-            return ([], [], 0, 0, {})
+            _LOGGER.error(
+                "Database locked during result fetching in parse(), returning empty results."
+            )
+            return ([], [], 0, 0, {}, None)

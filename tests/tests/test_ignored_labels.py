@@ -8,6 +8,7 @@ from custom_components.watchman.const import (
     CONF_INCLUDED_FOLDERS,
     COORD_DATA_ENTITY_ATTRS,
     COORD_DATA_MISSING_ENTITIES,
+    COORD_DATA_PROCESSED_FILES,
     DOMAIN,
 )
 import pytest
@@ -63,9 +64,12 @@ async def test_ignored_labels(hass, tmp_path, new_test_data_dir):
     )
 
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    await coordinator.async_load_stats()
+    await coordinator.async_refresh()
 
-    info = await coordinator.hub.async_get_last_parse_info()
-    assert info.get("processed_files_count") > 0, f"Parsed 0 files! Path: {config_dir}, Info: {info}"
+    assert (
+        coordinator.data.get(COORD_DATA_PROCESSED_FILES) > 0
+    ), f"Parsed 0 files! Path: {config_dir}, Data: {coordinator.data}"
 
     # Verify Initial Results (all 3 missing)
     assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 3

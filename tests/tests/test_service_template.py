@@ -19,7 +19,7 @@ def test_service_template(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "service_template.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     # light.living_room is entity
     assert "light.living_room" in entities
