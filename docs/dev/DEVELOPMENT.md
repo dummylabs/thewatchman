@@ -71,7 +71,8 @@ We use snapshot testing to prevent accidental schema changes.
 - **Tests:** `tests/test_integrity.py`.
 - **Mechanism:** The tests dump the in-memory SQLite schema and `ParseResult` fields, comparing them against stored snapshots in `tests/snapshots/`.
 - **Workflow:**
-    1. If you modify the SQL schema, `pytest` will fail.
+    1. If you modify the SQL schema or Stats structure, `pytest` will fail.
     2. Verify the change is intentional.
     3. Bump `CURRENT_DB_SCHEMA_VERSION` in `const.py`.
     4. Run `pytest --snapshot-update` to update the golden files.
+    5. If modification of `Stats` structure simply adds a field (no breaking change), do not increment `STORAGE_VERSION`, just update test snapshot
