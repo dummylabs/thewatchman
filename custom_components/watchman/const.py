@@ -132,7 +132,7 @@ DEFAULT_OPTIONS = {
     CONF_IGNORED_ITEMS: "",
     CONF_IGNORED_STATES: [],
     CONF_EXCLUDE_DISABLED_AUTOMATION: False,
-    CONF_IGNORED_FILES: "*.cache*, */custom_components/*, *.git*",
+    CONF_IGNORED_FILES: "",
     CONF_STARTUP_DELAY: 30,
     CONF_SECTION_APPEARANCE_LOCATION: {
         CONF_HEADER: "-== Watchman Report ==-",
