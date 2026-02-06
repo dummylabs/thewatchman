@@ -486,11 +486,11 @@ def _parse_content(content: str, file_type: str, filepath: str | None = None, lo
         data = yaml.load(content, Loader=LineLoader)
     except yaml.YAMLError as e:
         if logger:
-            logger.exception(f"Error parsing content in {filepath or 'unknown'}: {e}")
+            logger.error(f"Error parsing content in {filepath or 'unknown'}: {e}")
         return []
     except Exception as e:
         if logger:
-             logger.exception(f"Critical error parsing content in {filepath or 'unknown'}: {e}")
+             logger.error(f"Critical error parsing content in {filepath or 'unknown'}: {e}")
         return []
 
     results: list[FoundItem] = []
@@ -631,7 +631,7 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
                         }
                     )
                 except OSError as e:
-                    _LOGGER.error(f"Error accessing whitelist file {file_path_obj}: {e}")
+                    _LOGGER.error(f"Error accessing file {file_path_obj}: {e}")
 
     return scanned_files, ignored_count
 
