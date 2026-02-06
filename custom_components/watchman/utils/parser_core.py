@@ -25,7 +25,8 @@ from .parser_const import (
     ESPHOME_PATH_SEGMENT,
     HA_DOMAINS,
     IGNORED_DIRS,
-    IGNORED_KEYS,
+    IGNORED_BRANCH_KEYS,
+    IGNORED_VALUE_KEYS,
     JSON_FILE_EXTS,
     MAX_FILE_SIZE,
     PLATFORMS,
@@ -268,8 +269,8 @@ def _recursive_search(
         for key, value in data.items():
             line_no = getattr(key, "line", None)
 
-            # Check for Ignored Keys
-            if isinstance(key, str) and key.lower() in IGNORED_KEYS:
+            # exclude whole branch with key name from IGNORED_BRANCH_KEYS
+            if isinstance(key, str) and key.lower() in IGNORED_BRANCH_KEYS:
                 continue
 
             # 1. Check Key (Skip if ESPHome mode)
@@ -364,6 +365,11 @@ def _recursive_search(
 
         line_no = getattr(data, "line", None)
         key_name = parent_key
+
+        # ignore _values_ of the key from IGNORED_VALUE_KEYS
+        # this does not prevent parser to traverse in if there are nested keys
+        if key_name and str(key_name).lower() in IGNORED_VALUE_KEYS:
+            return
 
         # ESPHome Mode: Only process value if key_name is allowed
         if is_esphome:

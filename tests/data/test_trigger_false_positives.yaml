@@ -1,0 +1,14 @@
+# 1. False Positive Scenario
+# "light.turn_on" should NOT be detected as an entity.
+automation_shorthand:
+  - alias: "False Positive Test"
+    triggers:
+      - trigger: light.turn_on
+
+# 2. Valid Recursion Scenario
+# "sensor.real_entity" MUST be detected.
+automation_nested:
+  - alias: "Nested Entity Test"
+    triggers:
+      - platform: state
+        entity_id: sensor.real_entity
