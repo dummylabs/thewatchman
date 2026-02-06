@@ -4,7 +4,7 @@ sync_repo.sh
 deploy.sh
 deploy_ha.sh
 watchman.db
-test_config
+cli/test*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
