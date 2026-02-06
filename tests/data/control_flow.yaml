@@ -1,0 +1,56 @@
+automation:
+  - id: 'test_choose'
+    alias: Test Choose
+    trigger: []
+    action:
+      - choose:
+          - conditions: []
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.living_room_1
+        default:
+          - service: switch.turn_off
+            target:
+              entity_id: switch.kitchen_fan
+
+  - id: 'test_repeat'
+    alias: Test Repeat
+    trigger: []
+    action:
+      - repeat:
+          count: 3
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                message: "Ping"
+
+  - id: 'test_if_then'
+    alias: Test If Then
+    trigger: []
+    action:
+      - if:
+          - condition: state
+            entity_id: binary_sensor.door
+            state: 'on'
+        then:
+          - service: light.turn_on_hallway
+            target:
+              entity_id: light.hallway
+        else:
+          - service: light.turn_off_hallway
+            target:
+              entity_id: light.hallway
+
+  - id: 'test_parallel'
+    alias: Test Parallel
+    trigger: []
+    action:
+      - parallel:
+          - sequence:
+              - service: script.perform_cleanup
+            alias: Cleanup
+          - sequence:
+              - service: notify.admin
+                data:
+                  message: "Starting cleanup"
