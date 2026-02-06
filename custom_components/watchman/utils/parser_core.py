@@ -502,7 +502,25 @@ def _parse_content(content: str, file_type: str, filepath: str | None = None, lo
             # Pass DEFAULT_CONTEXT explicitly if needed, or let it default to None -> DEFAULT_CONTEXT inside
             _recursive_search(data, [], results, file_type, entity_pattern)
 
-    return results
+    # Deduplication
+    unique_results: list[FoundItem] = []
+    seen = set()
+    for item in results:
+        signature = (
+            item["entity_id"],
+            item["line"],
+            item["item_type"],
+            item["parent_id"],
+            item["parent_type"],
+        )
+
+        if signature in seen:
+            continue
+
+        seen.add(signature)
+        unique_results.append(item)
+
+    return unique_results
 
 def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTERN) -> tuple[int, list[FoundItem], str]:
     """Process a single file synchronously.
