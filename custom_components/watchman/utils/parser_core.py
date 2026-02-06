@@ -46,6 +46,19 @@ class ParseResult:
     processed_files_count: int
 
 
+@dataclass(frozen=True)
+class ParserContext:
+    """Immutable context object passed during recursion."""
+
+    is_active: bool = False
+    parent_type: str | None = None
+    parent_id: str | None = None
+    parent_alias: str | None = None
+
+
+DEFAULT_CONTEXT = ParserContext()
+
+
 class FoundItem(TypedDict):
     """Structure of an item found by the parser."""
 
@@ -89,12 +102,6 @@ _SERVICE_PATTERN = re.compile(
     re.IGNORECASE
 )
 
-DEFAULT_CONTEXT = {
-    "is_automation_context": False,
-    "parent_type": None,
-    "parent_id": None,
-    "parent_alias": None
-}
 
 # Core Logic Functions
 
@@ -139,13 +146,22 @@ def _is_script(node: dict) -> bool:
     """Check if a node looks like a script definition."""
     return "sequence" in node
 
-def _derive_context(node: dict, parent_context: dict[str, Any], parent_key: str | None = None) -> dict[str, Any]:
+
+def _derive_context(
+    node: dict, parent_context: ParserContext, parent_key: str | None = None
+) -> ParserContext:
     """Derive the context for a node based on its content and parent key.
 
     If the node defines an automation or script, return a new context.
     Otherwise, return the parent context.
     """
     if not isinstance(node, dict):
+        return parent_context
+
+    # Guard clause: If already inside an automation, preserve it.
+    # This prevents nested 'choose' or 'repeat' blocks (which look like scripts)
+    # from overwriting the automation context.
+    if parent_context.is_active and parent_context.parent_type == "automation":
         return parent_context
 
     c_id = node.get("id")
@@ -157,20 +173,20 @@ def _derive_context(node: dict, parent_context: dict[str, Any], parent_key: str 
         c_id = parent_key
 
     if _is_automation(node):
-        return {
-            "is_automation_context": True,
-            "parent_type": "automation",
-            "parent_id": str(c_id) if c_id else None,
-            "parent_alias": str(c_alias) if c_alias else None
-        }
+        return ParserContext(
+            is_active=True,
+            parent_type="automation",
+            parent_id=str(c_id) if c_id else None,
+            parent_alias=str(c_alias) if c_alias else None,
+        )
 
     if _is_script(node):
-        return {
-            "is_automation_context": True,
-            "parent_type": "script",
-            "parent_id": str(c_id) if c_id else None,
-            "parent_alias": str(c_alias) if c_alias else None
-        }
+        return ParserContext(
+            is_active=True,
+            parent_type="script",
+            parent_id=str(c_id) if c_id else None,
+            parent_alias=str(c_alias) if c_alias else None,
+        )
 
     return parent_context
 
@@ -235,7 +251,7 @@ def _recursive_search(
     results: list[FoundItem],
     file_type: str = "yaml",
     entity_pattern: re.Pattern = _ENTITY_PATTERN,
-    current_context: dict[str, Any] | None = None,
+    current_context: ParserContext | None = None,
     expected_item_type: str = "entity",
     parent_key: str | None = None,
 ) -> None:
@@ -244,13 +260,13 @@ def _recursive_search(
         current_context = DEFAULT_CONTEXT
         # Check if the ROOT node itself establishes a context (e.g., Root Automation)
         if not breadcrumbs and isinstance(data, dict):
-             current_context = _derive_context(data, current_context)
+            current_context = _derive_context(data, current_context)
 
-    is_esphome = (file_type == 'esphome_yaml')
+    is_esphome = file_type == "esphome_yaml"
 
     if isinstance(data, dict):
         for key, value in data.items():
-            line_no = getattr(key, 'line', None)
+            line_no = getattr(key, "line", None)
 
             # Check for Ignored Keys
             if isinstance(key, str) and key.lower() in IGNORED_KEYS:
@@ -265,38 +281,46 @@ def _recursive_search(
                     if _is_part_of_concatenation(key, match):
                         continue
 
-                    if match.end(1) < len(key) and key[match.end(1)] == '*':
+                    if match.end(1) < len(key) and key[match.end(1)] == "*":
                         continue
 
-                    if entity_id.endswith('_'):
+                    if entity_id.endswith("_"):
                         continue
 
                     # Word Boundary Check (Heuristic 18)
                     end_idx = match.end(1)
                     if end_idx < len(key):
                         next_char = key[end_idx]
-                        if next_char == '-':
+                        if next_char == "-":
                             continue
-                        if next_char == '.':
+                        if next_char == ".":
                             if "states." not in match.group(0).lower():
                                 continue
 
-                    remaining_text = key[match.end(1):].lstrip()
-                    if remaining_text.startswith('('):
+                    remaining_text = key[match.end(1) :].lstrip()
+                    if remaining_text.startswith("("):
                         continue
 
-                    results.append({
-                        "line": line_no or 0,
-                        "entity_id": entity_id,
-                        "item_type": 'entity', # Keys are usually entities
-                        "is_key": True,
-                        "key_name": key,
-                        **current_context
-                    })
+                    results.append(
+                        {
+                            "line": line_no or 0,
+                            "entity_id": entity_id,
+                            "item_type": "entity",  # Keys are usually entities
+                            "is_key": True,
+                            "key_name": key,
+                            "is_automation_context": current_context.is_active,
+                            "parent_type": current_context.parent_type,
+                            "parent_id": current_context.parent_id,
+                            "parent_alias": current_context.parent_alias,
+                        }
+                    )
 
             # Determine expected type for value
-            is_action_key = isinstance(key, str) and key.lower() in ["service", "action", "service_template"]
-            next_type = 'service' if is_action_key else 'entity'
+            is_action_key = (
+                isinstance(key, str)
+                and key.lower() in ["service", "action", "service_template"]
+            )
+            next_type = "service" if is_action_key else "entity"
 
             # Recurse
             # Calculate context for the child node
@@ -304,7 +328,16 @@ def _recursive_search(
             if isinstance(value, dict):
                 child_ctx = _derive_context(value, current_context, parent_key=key)
 
-            _recursive_search(value, [*breadcrumbs, data], results, file_type, entity_pattern, child_ctx, next_type, parent_key=key)
+            _recursive_search(
+                value,
+                [*breadcrumbs, data],
+                results,
+                file_type,
+                entity_pattern,
+                child_ctx,
+                next_type,
+                parent_key=key,
+            )
 
     elif isinstance(data, list):
         for item in data:
@@ -313,20 +346,29 @@ def _recursive_search(
                 child_ctx = _derive_context(item, current_context)
             # List items inherit expected_item_type from parent
             # List items inherit parent_key from parent (e.g. entity_id: [item1, item2])
-            _recursive_search(item, [*breadcrumbs, data], results, file_type, entity_pattern, child_ctx, expected_item_type, parent_key=parent_key)
+            _recursive_search(
+                item,
+                [*breadcrumbs, data],
+                results,
+                file_type,
+                entity_pattern,
+                child_ctx,
+                expected_item_type,
+                parent_key=parent_key,
+            )
 
     elif isinstance(data, str):
         # Check Value
-        if getattr(data, 'is_tag', False):
+        if getattr(data, "is_tag", False):
             return
 
-        line_no = getattr(data, 'line', None)
+        line_no = getattr(data, "line", None)
         key_name = parent_key
 
         # ESPHome Mode: Only process value if key_name is allowed
         if is_esphome:
-             if not key_name or str(key_name).lower() not in ESPHOME_ALLOWED_KEYS:
-                 return
+            if not key_name or str(key_name).lower() not in ESPHOME_ALLOWED_KEYS:
+                return
 
         # Check for Entities
         matches = list(entity_pattern.finditer(data))
@@ -336,48 +378,58 @@ def _recursive_search(
             if _is_part_of_concatenation(data, match):
                 continue
 
-            if match.end(1) < len(data) and data[match.end(1)] == '*':
+            if match.end(1) < len(data) and data[match.end(1)] == "*":
                 continue
 
-            if entity_id.endswith('_'):
+            if entity_id.endswith("_"):
                 continue
 
             # Word Boundary Check (Heuristic 18)
             end_idx = match.end(1)
             if end_idx < len(data):
                 next_char = data[end_idx]
-                if next_char == '-':
+                if next_char == "-":
                     continue
-                if next_char == '.':
+                if next_char == ".":
                     if "states." not in match.group(0).lower():
                         continue
 
-            remaining_text = data[match.end(1):].lstrip()
-            if remaining_text.startswith('('):
+            remaining_text = data[match.end(1) :].lstrip()
+            if remaining_text.startswith("("):
                 continue
 
-            results.append({
-                "line": line_no or 0,
-                "entity_id": entity_id,
-                "item_type": expected_item_type,
-                "is_key": False,
-                "key_name": key_name,
-                **current_context
-            })
+            results.append(
+                {
+                    "line": line_no or 0,
+                    "entity_id": entity_id,
+                    "item_type": expected_item_type,
+                    "is_key": False,
+                    "key_name": key_name,
+                    "is_automation_context": current_context.is_active,
+                    "parent_type": current_context.parent_type,
+                    "parent_id": current_context.parent_id,
+                    "parent_alias": current_context.parent_alias,
+                }
+            )
 
         # Check for Services (e.g. "service: light.turn_on" inside a string template)
         matches_svc = list(_SERVICE_PATTERN.finditer(data))
         for match in matches_svc:
             service_id = match.group(1)
 
-            results.append({
-                "line": line_no or 0,
-                "entity_id": service_id,
-                "item_type": 'service',
-                "is_key": False,
-                "key_name": key_name,
-                **current_context
-            })
+            results.append(
+                {
+                    "line": line_no or 0,
+                    "entity_id": service_id,
+                    "item_type": "service",
+                    "is_key": False,
+                    "key_name": key_name,
+                    "is_automation_context": current_context.is_active,
+                    "parent_type": current_context.parent_type,
+                    "parent_id": current_context.parent_id,
+                    "parent_alias": current_context.parent_alias,
+                }
+            )
 
 
 def _parse_config_entries_file(
@@ -403,12 +455,12 @@ def _parse_config_entries_file(
             continue
 
         # Create Context
-        context = {
-            "is_automation_context": True,
-            "parent_type": domain,
-            "parent_alias": entry.get("title"),
-            "parent_id": entry.get("entry_id"),
-        }
+        context = ParserContext(
+            is_active=True,
+            parent_type=domain,
+            parent_alias=entry.get("title"),
+            parent_id=entry.get("entry_id"),
+        )
 
         # Recursive Search on this entry only
         _recursive_search(
