@@ -71,6 +71,7 @@ def main():
     parser.add_argument("--db-path", default="watchman.db", help="Path to SQLite database")
     parser.add_argument("--no-files", action='store_true', help="Hide the list of processed files")
     parser.add_argument("--no-items", action='store_true', help="Hide the list of found items")
+    parser.add_argument("--stable-output", action='store_true', help="Exclude changing data (ID, Scan Date) from output for regression testing")
     parser.add_argument("--debug", action='store_true', help="Enable debug logging to debug.log")
 
     if len(sys.argv) == 1 and sys.stdin.isatty():
@@ -112,8 +113,17 @@ def main():
         print_header("Processed Files")
         rows = client.get_processed_files()
         # rows: [(file_id, path, file_type, entity_count, scan_date), ...]
-        # table expects: ["ID", "Path", "Type", "Count", "Scan Date"]
-        print_table(["ID", "Path", "Type", "Count", "Scan Date"], rows, max_width=60)
+        
+        headers = ["ID", "Path", "Type", "Count", "Scan Date"]
+        
+        if args.stable_output:
+            # Filter out ID (0) and Scan Date (4)
+            # Row structure: file_id, path, file_type, entity_count, scan_date
+            # Indices to keep: 1, 2, 3
+            headers = ["Path", "Type", "Count"]
+            rows = [ (r[1], r[2], r[3]) for r in rows ]
+        
+        print_table(headers, rows, max_width=60)
 
     # Fetch all items to compute summary and display table
     all_items = client.get_found_items('all')
