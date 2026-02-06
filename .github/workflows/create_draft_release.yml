@@ -1,0 +1,81 @@
+name: Create Draft Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  draft_release:
+    name: ✏️ Draft Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⤵️ Check out code from GitHub
+        uses: actions/checkout@v4
+        with:
+          # MANDATORY: fetch-depth: 0
+          # Otherwise, git won't see previous tags and cannot build the changelog
+          fetch-depth: 0
+
+      - name: 🔢 Read version from manifest
+        id: get_version
+        shell: bash
+        run: |
+          v=$(jq -r .version custom_components/watchman/manifest.json)
+          echo "Detected version: $v"
+          echo "VERSION=$v" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Check if tag already exists
+        id: check_tag
+        shell: bash
+        run: |
+          if git rev-parse "v${{ steps.get_version.outputs.VERSION }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📝 Generate Changelog
+        if: steps.check_tag.outputs.exists == 'false'
+        id: changelog
+        shell: bash
+        run: |
+          # 1. Try to find the latest reachable tag in history
+          # 2>/dev/null suppresses errors if no tags exist (first release)
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          echo "Generating changelog..."
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tags found. Listing all commits."
+            # If no tags exist, list all commits from the beginning
+            git log --pretty=format:"- %s (%h)" > RELEASE_NOTES.txt
+          else
+            echo "Last tag was: $PREVIOUS_TAG"
+            echo "Listing commits from $PREVIOUS_TAG to HEAD"
+            # List commits from the last tag to HEAD
+            git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"- %s (%h)" > RELEASE_NOTES.txt
+          fi
+
+          # Output to console for debugging
+          cat RELEASE_NOTES.txt
+
+      - name: 🚀 Create or Update Draft Release
+        # Run draft creation ONLY if the tag does not exist yet (new version or existing draft)
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: v${{ steps.get_version.outputs.VERSION }}
+          draft: true
+          prerelease: false
+
+          # DISABLE the standard generator since we use our own custom file
+          generate_release_notes: false
+
+          # Point to our generated file
+          body_path: RELEASE_NOTES.txt

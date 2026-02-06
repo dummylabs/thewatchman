@@ -1,0 +1,29 @@
+# see parser rules in heuristics.md file
+# H:10 Automation Context
+# Items with 'trigger' and 'action' are identified as automations.
+
+- alias: "Morning Routine"
+  trigger:
+    - platform: state
+      # H:5 List vs Single
+      # Parser handles single string entity_id
+      entity_id: binary_sensor.motion_sensor # Valid entity
+
+  action:
+    # H:3 Service Keys
+    # 'service' key identifies a service call
+    - service: light.turn_on # Valid service
+      target:
+        # H:5 List vs Single
+        # Parser handles list of strings
+        entity_id:
+          - light.living_room # Valid entity in list
+          - light.kitchen # Valid entity in list
+
+- alias: "Night Routine"
+  trigger: []
+  action:
+    # H:3 Service Keys (New 'action' syntax)
+    - action: alarm_control_panel.arm_home # Valid service/action
+      target:
+        entity_id: alarm_control_panel.home

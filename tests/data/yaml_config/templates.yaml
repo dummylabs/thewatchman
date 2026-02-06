@@ -1,0 +1,29 @@
+# see parser rules in heuristics.md file
+# H:11 Embedded Services
+# Service calls inside strings (templates) are detected via regex.
+
+value_template: >
+  {% if is_state('binary_sensor.door', 'on') %}
+    # H:11 regex matches "service: <domain>.<service>"
+    service: light.turn_on
+    entity_id: light.hallway
+  {% endif %}
+
+# H:16 States Prefix
+# The parser strips 'states.' to find the real entity ID.
+
+sensor:
+  - platform: template
+    sensors:
+      solar_angle:
+        # H:16 'states.sun.sun' -> extracted as 'sun.sun'
+        value_template: "{{ states.sun.sun.attributes.elevation }}"
+
+      other_check:
+        # H:16 'states.binary_sensor.garage.state' -> extracted as 'binary_sensor.garage'
+        value_template: "{{ states.binary_sensor.garage.state == 'on' }}"
+
+# H:11 Embedded Action (New syntax)
+action_template: >
+  # H:11 matches "action: <domain>.<service>"
+  action: switch.toggle

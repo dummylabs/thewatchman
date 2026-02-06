@@ -1,0 +1,12 @@
+automation:
+  - id: 'test_anchor_duplication'
+    alias: Test Anchor Duplication
+    trigger: []
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: &ref_entity light.anchored_light
+      - delay: "00:00:01"
+      - service: light.turn_off
+        target:
+          entity_id: *ref_entity

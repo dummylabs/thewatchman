@@ -1,0 +1,11 @@
+# Real automation snippet
+- alias: "Attic Ventilation"
+  id: "c2153826-fa86-4448-91a5-53791f86a5f5"
+  trigger:
+    - platform: state
+      entity_id:
+        - input_boolean.mode_cleaning_house
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.fan

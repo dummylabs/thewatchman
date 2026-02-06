@@ -1,0 +1,11 @@
+# Test file for custom domain injection
+# This service uses a domain 'fake_custom_domain' which is not in the standard list.
+# It should only be detected if 'fake_custom_domain' is injected via hass.services.
+
+automation:
+  - alias: "Test Custom Domain"
+    trigger: []
+    action:
+      - service: fake_custom_domain.my_service
+        data:
+          some_param: 123

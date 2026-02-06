@@ -1,0 +1,12 @@
+# serializer version: 1
+# name: test_stats_structure_integrity
+  tuple(
+    1,
+    list([
+      'duration',
+      'ignored_files_count',
+      'processed_files_count',
+      'timestamp',
+    ]),
+  )
+# ---

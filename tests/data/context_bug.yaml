@@ -1,0 +1,16 @@
+automation:
+  - id: '123456789'
+    alias: "Nested Context Automation"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.test
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.test
+                state: 'on'
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.living_room

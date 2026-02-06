@@ -1,170 +1,176 @@
-"""https://github.com/dummylabs/thewatchman§"""
-from datetime import timedelta
-import logging
-import os
-import time
-import json
-import voluptuous as vol
-from homeassistant.loader import async_get_integration
-from homeassistant.helpers import config_validation as cv
-from homeassistant.components import persistent_notification
-from homeassistant.util import dt as dt_util
-from homeassistant.helpers.event import async_track_point_in_utc_time
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.typing import HomeAssistantType
-from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+"""The Watchman integration."""
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
-    EVENT_SERVICE_REGISTERED,
-    EVENT_SERVICE_REMOVED,
-    EVENT_STATE_CHANGED,
-    EVENT_CALL_SERVICE,
-    STATE_UNKNOWN,
 )
-
-from .coordinator import WatchmanCoordinator
-
-from .utils import (
-    is_service,
-    report,
-    parse,
-    table_renderer,
-    text_renderer,
-    get_config,
-    get_report_path,
-)
+from homeassistant.core import Event, HomeAssistant
+from homeassistant.loader import async_get_integration
 
 from .const import (
+    CONF_COLUMNS_WIDTH,
+    CONF_FRIENDLY_NAMES,
+    CONF_HEADER,
+    CONF_IGNORED_FILES,
+    CONF_IGNORED_ITEMS,
+    CONF_IGNORED_STATES,
+    CONF_REPORT_PATH,
+    CONF_SECTION_APPEARANCE_LOCATION,
+    CONF_STARTUP_DELAY,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
+    DB_FILENAME,
+    DEFAULT_DELAY,
+    DEFAULT_OPTIONS,
+    DEFAULT_REPORT_FILENAME,
     DOMAIN,
     DOMAIN_DATA,
-    DEFAULT_HEADER,
-    CONF_IGNORED_FILES,
-    CONF_HEADER,
-    CONF_REPORT_PATH,
-    CONF_IGNORED_ITEMS,
-    CONF_SERVICE_NAME,
-    CONF_SERVICE_DATA,
-    CONF_SERVICE_DATA2,
-    CONF_INCLUDED_FOLDERS,
-    CONF_CHECK_LOVELACE,
-    CONF_IGNORED_STATES,
-    CONF_CHUNK_SIZE,
-    CONF_CREATE_FILE,
-    CONF_SEND_NOTIFICATION,
-    CONF_PARSE_CONFIG,
-    CONF_COLUMNS_WIDTH,
-    CONF_STARTUP_DELAY,
-    CONF_FRIENDLY_NAMES,
-    CONF_ALLOWED_SERVICE_PARAMS,
-    CONF_TEST_MODE,
-    EVENT_AUTOMATION_RELOADED,
-    EVENT_SCENE_RELOADED,
-    TRACKED_EVENT_DOMAINS,
-    MONITORED_STATES,
+    LOCK_FILENAME,
     PLATFORMS,
-    VERSION,
+    REPORT_SERVICE_NAME,
+    STATE_SAFE_MODE,
+    STATE_WAITING_HA,
 )
+from .coordinator import WatchmanCoordinator
+from .hub import WatchmanHub
+from .services import WatchmanServicesSetup
+from .utils.logger import _LOGGER
+from .utils.utils import get_config
 
-_LOGGER = logging.getLogger(__name__)
+type WMConfigEntry = ConfigEntry[WMData]
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Optional(CONF_REPORT_PATH): cv.string,
-                vol.Optional(CONF_IGNORED_FILES): cv.ensure_list,
-                vol.Optional(CONF_IGNORED_ITEMS): cv.ensure_list,
-                vol.Optional(CONF_HEADER, default=DEFAULT_HEADER): cv.string,
-                vol.Optional(CONF_SERVICE_NAME): cv.string,
-                vol.Optional(CONF_SERVICE_DATA): vol.Schema({}, extra=vol.ALLOW_EXTRA),
-                vol.Optional(CONF_INCLUDED_FOLDERS): cv.ensure_list,
-                vol.Optional(CONF_CHECK_LOVELACE, default=False): cv.boolean,
-                vol.Optional(CONF_CHUNK_SIZE, default=3500): cv.positive_int,
-                vol.Optional(CONF_IGNORED_STATES): [
-                    "missing",
-                    "unavailable",
-                    "unknown",
-                ],
-                vol.Optional(CONF_COLUMNS_WIDTH): cv.ensure_list,
-                vol.Optional(CONF_STARTUP_DELAY, default=0): cv.positive_int,
-                vol.Optional(CONF_FRIENDLY_NAMES, default=False): cv.boolean,
-            }
+
+@dataclass
+class WMData:
+    """Watchman runtime data."""
+
+    coordinator: WatchmanCoordinator
+    hub: WatchmanHub
+
+async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) -> bool:
+    """Set up this integration using UI."""
+    from .const import DB_FILENAME, LEGACY_DB_FILENAME
+
+    legacy_db_path = Path(hass.config.path(".storage", LEGACY_DB_FILENAME))
+    db_path = Path(hass.config.path(".storage", DB_FILENAME))
+
+    # One-time migration: rename watchman.db to watchman_v2.db
+    if not db_path.exists() and legacy_db_path.exists():
+        _LOGGER.info(
+            "Migrating legacy database %s to %s", LEGACY_DB_FILENAME, DB_FILENAME
         )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
+        legacy_db_path.rename(db_path)
 
-
-async def async_setup(hass: HomeAssistantType, config: dict):
-    """Set up is called when Home Assistant is loading our component."""
-    if config.get(DOMAIN) is None:
-        # We get here if the integration is set up using config flow
-        return True
-
-    hass.data.setdefault(DOMAIN_DATA, config[DOMAIN])
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": SOURCE_IMPORT}, data=hass.data[DOMAIN_DATA]
-        )
+    integration = await async_get_integration(hass, DOMAIN)
+    hub = WatchmanHub(hass, str(db_path))
+    await hub.async_init()
+    coordinator = WatchmanCoordinator(
+        hass,
+        _LOGGER,
+        config_entry=config_entry,
+        hub=hub,
+        version=str(integration.version),
     )
-    # Return boolean to indicate that initialization was successful.
-    return True
+    await coordinator.async_load_stats()
+    config_entry.runtime_data = WMData(coordinator, hub)
 
+    async def async_on_home_assistant_started(event: Event | None) -> None:  # pylint: disable=unused-argument
+        """Update watchman sensors and start listening to HA events when Home Assistant started."""
+        # Guard Clause: Check if integration is still loaded
+        if DOMAIN_DATA not in hass.data or hass.data[DOMAIN_DATA].get("config_entry_id") != config_entry.entry_id:
+            _LOGGER.debug("Skipping async_on_home_assistant_started: Integration unloaded.")
+            return
 
-async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
-    """Set up this integration using UI"""
-    _LOGGER.debug(entry.options)
-    _LOGGER.debug("Home assistant path: %s", hass.config.path(""))
+        # prime the coordinator with cached data immediately to minimize startup delay
+        try:
+            _LOGGER.debug("HA is ready. Prime coordinator with cached data.")
+            parsed_entities = await hub.async_get_parsed_entities()
+            parsed_services = await hub.async_get_parsed_services()
+            initial_data = await coordinator.async_process_parsed_data(
+                parsed_entities, parsed_services
+            )
+            coordinator.async_set_updated_data(initial_data)
+        except Exception as e:
+            _LOGGER.error(f"Failed to prime coordinator with cached data: {e}")
 
-    coordinator = WatchmanCoordinator(hass, _LOGGER, name=entry.title)
-    coordinator.async_set_updated_data(None)
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
+        if coordinator.safe_mode:
+            _LOGGER.info(
+                "Watchman is in Safe Mode. Skipping event subscriptions and initial scan."
+            )
+            return
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    hass.data[DOMAIN]["coordinator"] = coordinator
-    hass.data[DOMAIN_DATA] = entry.options  # TODO: refactor
+        coordinator.subscribe_to_events(config_entry)
+        _LOGGER.debug("Subscribed to HA events.")
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        if event:
+            startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
+            _LOGGER.debug(
+                f"Watchman started during HA startup). Initial parse in: {startup_delay}s."
+            )
+        else:
+            startup_delay = DEFAULT_DELAY
+            _LOGGER.debug(
+                f"Watchman installed (HA running). Initial parse in: {startup_delay}s."
+            )
 
-    entry.async_on_unload(entry.add_update_listener(update_listener))
-    await add_services(hass)
-    await add_event_handlers(hass)
+        coordinator.request_parser_rescan(reason="startup", delay=startup_delay)
+
+    _LOGGER.info("Watchman integration started [%s]", coordinator.version)
+
+    # Check for previous crash
+    lock_path = Path(hass.config.path(".storage", LOCK_FILENAME))
+
+    def check_crash() -> bool:
+        if lock_path.exists():
+            _LOGGER.error(
+                "Previous crash detected (lock file found). Watchman is starting in Safe Mode."
+            )
+            lock_path.unlink(missing_ok=True)
+            return True
+        return False
+
+    if await hass.async_add_executor_job(check_crash):
+        coordinator.update_status(STATE_SAFE_MODE)
+
+    hass.data[DOMAIN_DATA] = {"config_entry_id": config_entry.entry_id}
+    hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+
+    config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+    WatchmanServicesSetup(hass, config_entry)
+
     if hass.is_running:
-        # integration reloaded or options changed via UI
-        parse_config(hass, reason="changes in watchman configuration")
-        await coordinator.async_config_entry_first_refresh()
+        # HA is already up and running, don't need to wait until it is booted
+        _LOGGER.debug("Home assistant is up, proceed with async_on_home_assistant_started")
+        await async_on_home_assistant_started(None)
     else:
-        # first run, home assistant is loading
-        # parse_config will be scheduled once HA is fully loaded
-        _LOGGER.info("Watchman started [%s]", VERSION)
+        # integration started during HA startup, wait until it is fully loaded
+        _LOGGER.debug("Waiting for Home Assistant to be up and running...")
+        if not coordinator.safe_mode:
+            config_entry.runtime_data.coordinator.update_status(STATE_WAITING_HA)
 
-
-#    resources = hass.data["lovelace"]["resources"]
-#    await resources.async_get_info()
-#    for itm in resources.async_items():
-#        _LOGGER.debug(itm)
+        # do not use async_listen_once here to make unsubscribe callback valid even after the event fires,
+        # preventing the "unknown job listener" warning on entry unload.
+        unsub = hass.bus.async_listen(EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started)
+        config_entry.async_on_unload(unsub)
 
     return True
 
-
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
-    """Reload integration when options changed"""
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload integration when options changed."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(
-    hass: HomeAssistant, config_entry
-):  # pylint: disable=unused-argument
-    """Handle integration unload"""
-    for cancel_handle in hass.data[DOMAIN].get("cancel_handlers", []):
-        if cancel_handle:
-            cancel_handle()
+async def async_unload_entry(hass: HomeAssistant, config_entry: WMConfigEntry) -> bool:  # pylint: disable=unused-argument
+    """Handle integration unload."""
+    if hasattr(config_entry, "runtime_data") and config_entry.runtime_data:
+        await config_entry.runtime_data.coordinator.async_shutdown()
 
-    if hass.services.has_service(DOMAIN, "report"):
-        hass.services.async_remove(DOMAIN, "report")
+    if hass.services.has_service(DOMAIN, REPORT_SERVICE_NAME):
+        hass.services.async_remove(DOMAIN, REPORT_SERVICE_NAME)
 
     unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
@@ -183,270 +189,139 @@ async def async_unload_entry(
     return unload_ok
 
 
-async def add_services(hass: HomeAssistant):
-    """adds report service"""
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate ConfigEntry persistent data to a new version."""
+    if config_entry.version > CONFIG_ENTRY_VERSION:
+        # the user has downgraded from a future version
+        _LOGGER.error(
+            "Unable to migrate Watchman entry from version %d.%d. If integration version was downgraded, either reinstall or use backup to restore its data.",
+            config_entry.version,
+            config_entry.minor_version,
+        )
+        return False
 
-    async def async_handle_report(call):
-        """Handle the service call"""
-        config = hass.data.get(DOMAIN_DATA, {})
-        path = get_report_path(hass, config.get(CONF_REPORT_PATH, None))
-        send_notification = call.data.get(CONF_SEND_NOTIFICATION, False)
-        create_file = call.data.get(CONF_CREATE_FILE, True)
-        test_mode = call.data.get(CONF_TEST_MODE, False)
-        # validate service params
-        for param in call.data:
-            if param not in CONF_ALLOWED_SERVICE_PARAMS:
-                await async_notification(
-                    hass,
-                    "Watchman error",
-                    f"Unknown service " f"parameter: `{param}`.",
-                    error=True,
-                )
+    if config_entry.version == 1:
+        # migrate from ConfigEntry.options to ConfigEntry.data
+        _LOGGER.info(
+            "Start Watchman configuration entry migration to version 2. Source data: %s",
+            config_entry.options,
+        )
+        data = DEFAULT_OPTIONS
 
-        if not (send_notification or create_file):
-            message = (
-                "Either `send_nofification` or `create_file` should be set to `true` "
-                "in service parameters."
+        data[CONF_IGNORED_STATES] = config_entry.options.get(CONF_IGNORED_STATES, [])
+
+        if CONF_IGNORED_ITEMS in config_entry.options:
+            data[CONF_IGNORED_ITEMS] = ",".join(
+                str(x) for x in config_entry.options[CONF_IGNORED_ITEMS]
             )
-            await async_notification(hass, "Watchman error", message, error=True)
 
-        if call.data.get(CONF_PARSE_CONFIG, False):
-            parse_config(hass, reason="service call")
-
-        if send_notification:
-            chunk_size = call.data.get(CONF_CHUNK_SIZE, config.get(CONF_CHUNK_SIZE))
-            service = call.data.get(CONF_SERVICE_NAME, None)
-            service_data = call.data.get(CONF_SERVICE_DATA, None)
-
-            if service_data and not service:
-                await async_notification(
-                    hass,
-                    "Watchman error",
-                    "Missing `service` parameter. The `data` parameter can only be used "
-                    "in conjunction with `service` parameter.",
-                    error=True,
-                )
-
-            if onboarding(hass, service, path):
-                await async_notification(
-                    hass,
-                    "🖖 Achievement unlocked: first report!",
-                    f"Your first watchman report was stored in `{path}` \n\n "
-                    "TIP: set `service` parameter in configuration.yaml file to "
-                    "receive report via notification service of choice. \n\n "
-                    "This is one-time message, it will not bother you in the future.",
-                )
-            else:
-                await async_report_to_notification(
-                    hass, service, service_data, chunk_size
-                )
-
-        if create_file:
-            try:
-                await async_report_to_file(hass, path, test_mode=test_mode)
-            except OSError as exception:
-                await async_notification(
-                    hass,
-                    "Watchman error",
-                    f"Unable to write report: {exception}",
-                    error=True,
-                )
-
-    hass.services.async_register(DOMAIN, "report", async_handle_report)
-
-
-async def add_event_handlers(hass: HomeAssistant):
-    """add event handlers"""
-
-    async def async_schedule_refresh_states(hass, delay):
-        """schedule refresh of the sensors state"""
-        now = dt_util.utcnow()
-        next_interval = now + timedelta(seconds=delay)
-        async_track_point_in_utc_time(hass, async_delayed_refresh_states, next_interval)
-
-    async def async_delayed_refresh_states(timedate):  # pylint: disable=unused-argument
-        """refresh sensors state"""
-        # parse_config should be invoked beforehand
-        coordinator = hass.data[DOMAIN]["coordinator"]
-        await coordinator.async_refresh()
-
-    async def async_on_home_assistant_started(event):  # pylint: disable=unused-argument
-        parse_config(hass, reason="HA restart")
-        startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
-        await async_schedule_refresh_states(hass, startup_delay)
-
-    async def async_on_configuration_changed(event):
-        typ = event.event_type
-        if typ == EVENT_CALL_SERVICE:
-            domain = event.data.get("domain", None)
-            service = event.data.get("service", None)
-            if domain in TRACKED_EVENT_DOMAINS and service in [
-                "reload_core_config",
-                "reload",
-            ]:
-                parse_config(hass, reason="configuration changes")
-                coordinator = hass.data[DOMAIN]["coordinator"]
-                await coordinator.async_refresh()
-
-        elif typ in [EVENT_AUTOMATION_RELOADED, EVENT_SCENE_RELOADED]:
-            parse_config(hass, reason="configuration changes")
-            coordinator = hass.data[DOMAIN]["coordinator"]
-            await coordinator.async_refresh()
-
-    async def async_on_service_changed(event):
-        service = f"{event.data['domain']}.{event.data['service']}"
-        if service in hass.data[DOMAIN].get("service_list", []):
-            _LOGGER.debug("Monitored service changed: %s", service)
-            coordinator = hass.data[DOMAIN]["coordinator"]
-            await coordinator.async_refresh()
-
-    async def async_on_state_changed(event):
-        """refresh monitored entities on state change"""
-
-        def state_or_missing(state_id):
-            """return missing state if entity not found"""
-            return "missing" if not event.data[state_id] else event.data[state_id].state
-
-        if event.data["entity_id"] in hass.data[DOMAIN].get("entity_list", []):
-            ignored_states = get_config(hass, CONF_IGNORED_STATES, [])
-            old_state = state_or_missing("old_state")
-            new_state = state_or_missing("new_state")
-            checked_states = set(MONITORED_STATES) - set(ignored_states)
-            if new_state in checked_states or old_state in checked_states:
-                _LOGGER.debug("Monitored entity changed: %s", event.data["entity_id"])
-                coordinator = hass.data[DOMAIN]["coordinator"]
-                await coordinator.async_refresh()
-
-    # hass is not started yet, schedule config parsing once it loaded
-    if not hass.is_running:
-        hass.bus.async_listen_once(
-            EVENT_HOMEASSISTANT_STARTED, async_on_home_assistant_started
-        )
-
-    hdlr = []
-    hdlr.append(
-        hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
-    )
-    hdlr.append(
-        hass.bus.async_listen(EVENT_AUTOMATION_RELOADED, async_on_configuration_changed)
-    )
-    hdlr.append(
-        hass.bus.async_listen(EVENT_SCENE_RELOADED, async_on_configuration_changed)
-    )
-    hdlr.append(
-        hass.bus.async_listen(EVENT_SERVICE_REGISTERED, async_on_service_changed)
-    )
-    hdlr.append(hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed))
-    hdlr.append(hass.bus.async_listen(EVENT_STATE_CHANGED, async_on_state_changed))
-    hass.data[DOMAIN]["cancel_handlers"] = hdlr
-
-
-def parse_config(hass: HomeAssistant, reason=None):
-    """parse home assistant configuration files"""
-    assert hass.data.get(DOMAIN_DATA)
-    start_time = time.time()
-    included_folders = get_included_folders(hass)
-    ignored_files = hass.data[DOMAIN_DATA].get(CONF_IGNORED_FILES, None)
-
-    entity_list, service_list, files_parsed, files_ignored = parse(
-        hass, included_folders, ignored_files, hass.config.config_dir
-    )
-    hass.data[DOMAIN]["entity_list"] = entity_list
-    hass.data[DOMAIN]["service_list"] = service_list
-    hass.data[DOMAIN]["files_parsed"] = files_parsed
-    hass.data[DOMAIN]["files_ignored"] = files_ignored
-    hass.data[DOMAIN]["parse_duration"] = time.time() - start_time
-    _LOGGER.info(
-        "%s files parsed and %s files ignored in %.2fs. due to %s",
-        files_parsed,
-        files_ignored,
-        hass.data[DOMAIN]["parse_duration"],
-        reason,
-    )
-
-
-def get_included_folders(hass):
-    """gather the list of folders to parse"""
-    folders = []
-    config_folders = [hass.config.config_dir]
-
-    if DOMAIN_DATA in hass.data:
-        config_folders = hass.data[DOMAIN_DATA].get("included_folders")
-        if not config_folders:
-            config_folders = [hass.config.config_dir]
-
-    for fld in config_folders:
-        folders.append(os.path.join(fld, "**/*.yaml"))
-
-    if DOMAIN_DATA in hass.data and hass.data[DOMAIN_DATA].get(CONF_CHECK_LOVELACE):
-        folders.append(os.path.join(hass.config.config_dir, ".storage/**/lovelace*"))
-
-    return folders
-
-
-async def async_report_to_file(hass, path, test_mode):
-    """save report to a file"""
-    coordinator = hass.data[DOMAIN]["coordinator"]
-    await coordinator.async_refresh()
-    report_chunks = report(hass, table_renderer, chunk_size=0, test_mode=test_mode)
-    # OSError exception is handled in async_handle_report
-    with open(path, "w", encoding="utf-8") as report_file:
-        for chunk in report_chunks:
-            report_file.write(chunk)
-
-
-async def async_report_to_notification(hass, service_str, service_data, chunk_size):
-    """send report via notification service"""
-    if not service_str:
-        service_str = get_config(hass, CONF_SERVICE_NAME, None)
-        service_data = get_config(hass, CONF_SERVICE_DATA2, None)
-
-    if not service_str:
-        await async_notification(
-            hass,
-            "Watchman Error",
-            "You should specify `service` parameter (in integration options or as `service` "
-            "parameter) in order to send report via notification",
-        )
-        return
-
-    if not is_service(hass, service_str):
-        await async_notification(
-            hass,
-            "Watchman Error",
-            f"{service_str} is not a valid service for notification",
-        )
-    domain = service_str.split(".")[0]
-    service = ".".join(service_str.split(".")[1:])
-
-    data = {} if service_data is None else json.loads(service_data)
-
-    coordinator = hass.data[DOMAIN]["coordinator"]
-    await coordinator.async_refresh()
-    report_chunks = report(hass, text_renderer, chunk_size)
-    for chunk in report_chunks:
-        data["message"] = chunk
-        # blocking=True ensures execution order
-        if not await hass.services.async_call(domain, service, data, blocking=True):
-            _LOGGER.error(
-                "Unable to call service %s.%s due to an error.", domain, service
+        if CONF_IGNORED_FILES in config_entry.options:
+            data[CONF_IGNORED_FILES] = ",".join(
+                str(x) for x in config_entry.options[CONF_IGNORED_FILES]
             )
-            break
+
+        if CONF_FRIENDLY_NAMES in config_entry.options:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES] = (
+                config_entry.options[CONF_FRIENDLY_NAMES]
+            )
+
+        data[CONF_SECTION_APPEARANCE_LOCATION][CONF_REPORT_PATH] = (
+            config_entry.options.get(
+                CONF_REPORT_PATH, hass.config.path(DEFAULT_REPORT_FILENAME)
+            )
+        )
+
+        if CONF_HEADER in config_entry.options:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_HEADER] = config_entry.options[
+                CONF_HEADER
+            ]
+
+        if CONF_COLUMNS_WIDTH in config_entry.options:
+            data[CONF_SECTION_APPEARANCE_LOCATION][CONF_COLUMNS_WIDTH] = ",".join(
+                str(x) for x in config_entry.options[CONF_COLUMNS_WIDTH]
+            )
+
+        if CONF_STARTUP_DELAY in config_entry.options:
+            data[CONF_STARTUP_DELAY] = config_entry.options[CONF_STARTUP_DELAY]
+
+        _LOGGER.info(
+            "Successfully migrated Watchman configuration entry from version %d.%d. to version %d.%d",
+            config_entry.version,
+            config_entry.minor_version,
+            CONFIG_ENTRY_VERSION,
+            CONFIG_ENTRY_MINOR_VERSION,
+        )
+        hass.config_entries.async_update_entry(
+            config_entry,
+            data=data,
+            options={},
+            minor_version=CONFIG_ENTRY_MINOR_VERSION,
+            version=CONFIG_ENTRY_VERSION,
+        )
+        return True
+
+    if config_entry.version == CONFIG_ENTRY_VERSION:
+        data = {**config_entry.data}
+        current_minor = config_entry.minor_version
+
+        # Sequential migration logic for minor versions
+        if current_minor < 2:
+            _LOGGER.info("Migrating Watchman entry to minor version 2")
+
+            # Enforce minimum startup delay
+            current_delay = data.get(CONF_STARTUP_DELAY, 0)
+            min_delay = DEFAULT_OPTIONS[CONF_STARTUP_DELAY]
+            if current_delay < min_delay:
+                _LOGGER.info(
+                    "Enforcing minimum startup delay of %ss (was %ss)",
+                    min_delay,
+                    current_delay,
+                )
+                data[CONF_STARTUP_DELAY] = min_delay
+
+            current_minor = 2
+
+        if current_minor != config_entry.minor_version:
+            hass.config_entries.async_update_entry(
+                config_entry,
+                data=data,
+                minor_version=current_minor,
+                version=CONFIG_ENTRY_VERSION,
+            )
+            _LOGGER.info(
+                "Successfully migrated Watchman configuration entry to version %d.%d",
+                config_entry.version,
+                current_minor,
+            )
+
+    return True
 
 
-async def async_notification(hass, title, message, error=False, n_id="watchman"):
-    """Show a persistent notification"""
-    persistent_notification.async_create(
-        hass,
-        message,
-        title=title,
-        notification_id=n_id,
-    )
-    if error:
-        raise HomeAssistantError(message.replace("`", ""))
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle removal of an entry."""
+    from .const import DB_FILENAME, LEGACY_DB_FILENAME, LOCK_FILENAME, STORAGE_KEY
 
+    db_path = hass.config.path(".storage", DB_FILENAME)
+    journal_path = f"{db_path}-journal"
+    lock_path = hass.config.path(".storage", LOCK_FILENAME)
+    stats_path = hass.config.path(".storage", STORAGE_KEY)
 
-def onboarding(hass, service, path):
-    """check if the user runs report for the first time"""
-    service = service or get_config(hass, CONF_SERVICE_NAME, None)
-    return not (service or os.path.exists(path))
+    # Legacy files
+    legacy_db_path = hass.config.path(".storage", LEGACY_DB_FILENAME)
+    legacy_wal_path = f"{legacy_db_path}-wal"
+    legacy_shm_path = f"{legacy_db_path}-shm"
+
+    def remove_files() -> None:
+        Path(db_path).unlink(missing_ok=True)
+        Path(journal_path).unlink(missing_ok=True)
+        Path(lock_path).unlink(missing_ok=True)
+        Path(stats_path).unlink(missing_ok=True)
+        # Cleanup legacy
+        Path(legacy_db_path).unlink(missing_ok=True)
+        Path(legacy_wal_path).unlink(missing_ok=True)
+        Path(legacy_shm_path).unlink(missing_ok=True)
+
+    await hass.async_add_executor_job(remove_files)
+    _LOGGER.info("Watchman database file removed: %s", db_path)
+    _LOGGER.info("Watchman journal file removed: %s", journal_path)
+    _LOGGER.info("Watchman stats file removed: %s", stats_path)

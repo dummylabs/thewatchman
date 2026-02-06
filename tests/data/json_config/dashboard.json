@@ -1,0 +1,26 @@
+# see parser rules in heuristics.md file
+# .json will be ignored by parser (H:14)
+{
+  "title": "Home",
+  "views": [
+    {
+      "title": "Main",
+      "cards": [
+        {
+          "type": "entity",
+          "entity": "sensor.dashboard_sensor"
+        },
+        {
+          "type": "button",
+          "tap_action": {
+            "action": "call-service",
+            "service": "light.dashboard_toggle",
+            "target": {
+              "entity_id": "light.dashboard_light"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

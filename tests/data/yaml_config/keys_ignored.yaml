@@ -1,0 +1,18 @@
+# see parser rules in heuristics.md file
+# H:8 Ignored Keys
+# Content under 'url', 'example', 'description' is ignored.
+
+documentation:
+  description: >
+    You can use light.example_entity in your config.
+    # H:8 light.example_entity is Ignored because it is under 'description' key.
+
+  url: "https://home-assistant.io/integrations/sensor.test"
+  # H:8 sensor.test is Ignored (under 'url')
+
+  example:
+    service: switch.demo_service
+    # H:8 switch.demo_service is Ignored (under 'example')
+
+real_config:
+  service: notify.telegram # Valid (not under ignored key)

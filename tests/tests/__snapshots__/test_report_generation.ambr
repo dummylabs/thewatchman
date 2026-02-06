@@ -1,0 +1,27 @@
+# serializer version: 1
+# name: test_report_generation_snapshot
+  '''
+  -== Watchman Report ==- 
+  
+  -== Missing 1 action(s) from 6 found in your config:
+  +--------------------------------+----------+--------------------------------------------------------------+
+  | Action ID                      | State    | Location                                                     |
+  +--------------------------------+----------+--------------------------------------------------------------+
+  | script.non_existent_action     | missing  | test_report_generation.yaml:56                               |
+  +--------------------------------+----------+--------------------------------------------------------------+
+  
+  -== Missing 3 entity(ies) from 5 found in your config:
+  +--------------------------------+----------+--------------------------------------------------------------+
+  | Entity ID                      | State    | Location                                                     |
+  +--------------------------------+----------+--------------------------------------------------------------+
+  | binary_sensor.motion_sensor    | unavail  | test_report_generation.yaml:26                               |
+  | switch.missing_switch          | missing  | test_report_generation.yaml:33                               |
+  | input_boolean.unknown_boolean  | unknown  | test_report_generation.yaml:50                               |
+  +--------------------------------+----------+--------------------------------------------------------------+
+  
+  -== Report created on 01 Jan 2026 12:00:00
+  -== Parsed 1 files in 1.23s., ignored 0 files 
+  -== Generated in: 0.12s. Validated in: 5.00s.
+  
+  '''
+# ---

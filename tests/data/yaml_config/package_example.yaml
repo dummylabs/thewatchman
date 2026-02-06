@@ -1,0 +1,48 @@
+# see parser rules in heuristics.md file
+# Home Assistant Package Example
+# This file demonstrates a package structure where multiple domains (automation, script, sensor)
+# coexist in a single file. This tests the parser's ability to handle mixed contexts.
+
+# 1. Automation Domain
+automation:
+  - alias: "Package Automation"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.package_trigger # Valid entity
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.package_light
+
+# 2. Script Domain
+script:
+  package_script:
+    alias: "Package Script"
+    sequence:
+      - service: notify.persistent_notification
+        data:
+          message: "Package script ran"
+
+# 3. Sensor Domain
+sensor:
+  - platform: template
+    sensors:
+      package_sensor:
+        value_template: "{{ states('sensor.package_source') }}"
+
+# 4. Switch Domain
+switch:
+  - platform: template
+    switches:
+      package_switch:
+        turn_on:
+          service: switch.turn_on
+          target:
+            entity_id: switch.package_target
+        turn_off:
+          service: switch.turn_off
+          target:
+            entity_id: switch.package_target
+# H:10 Context Switching
+# The parser should correctly identify 'automation' context for the first block,
+# 'script' context for the second, and generic context for the rest.

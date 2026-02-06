@@ -1,0 +1,34 @@
+# see parser rules in heuristics.md file
+# H:1 Underscore Suffix
+# Entities ending in '_' are ignored (treated as vars).
+variable_assignment:
+  entity_id: sensor.temp_var_ # Ignored
+
+# H:2 Function Calls
+# Identifiers followed by '(' are ignored.
+template_logic:
+  value: "{{ is_state('sensor.valid_one', 'on') }}" # sensor.valid_one is valid
+  logic: "{{ float(sensor.ignored_func_call) }}" # H:2 sensor definition in parenthesis, valid
+  complex: "{{ my_lib.sensor.function(123) }}" # H:2 function call  -> Ignored
+
+# H:6 String Concatenation
+# Entities surrounded by +, ~, %, .format are ignored.
+concatenation:
+  - "{{ 'sensor.' + 'constructed_id' }}" # H:6 Ignored
+  - "{{ 'light.living_' ~ 'room' }}" # H:6 Ignored
+  - "{{ 'val' + 'sensor.placeholder' + 'val' }}" # H:6 Ignored (quoted entity in concatenation)
+
+# H:7 Wildcards
+# Entity IDs followed by '*' are ignored (glob patterns).
+customize_glob:
+  "light.*": # H:7 Ignored
+    icon: mdi:lightbulb
+  "sensor.temperature_*": # H:7 Ignored
+    device_class: temperature
+
+# H:15 Bundled Ignores
+# Specific known patterns are ignored.
+system_events:
+  - event: timer.finished # H:15 Ignored (in bundled list)
+  - event: date.pixel_update # H:15 Ignored (date.*)
+  - entity_id: timer.kitchen # Valid (timer.* is not fully ignored, only specific states like timer.finished)

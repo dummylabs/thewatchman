@@ -1,7 +1,10 @@
 .DS_Store
 .vscode
 sync_repo.sh
-custom_components/watchman/sensor.py
+deploy.sh
+deploy_ha.sh
+watchman.db
+cli/test*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -31,6 +34,10 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Home Assistant configuration
+config/*
+!config/configuration.yaml
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

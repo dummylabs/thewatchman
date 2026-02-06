@@ -1,0 +1,9 @@
+# see parser rules in heuristics.md file
+This file has a .txt extension.
+Even if it contains:
+service: light.invalid_file_test
+entity_id: sensor.invalid_file_test
+
+# H:14 File Type Detection
+# This file should be ignored entirely because it is not .yaml, .yml, or .json
+# and does not look like a JSON structure (starts with text).

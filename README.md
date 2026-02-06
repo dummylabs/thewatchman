@@ -3,105 +3,120 @@
 ![version](https://img.shields.io/github/v/release/dummylabs/thewatchman)
 [![Community Forum][forum-shield]][forum]
 
-The world around us is constantly changing and so is Home Assistant. How often have you found yourself in a situation when your automations had stopped working because some entities become permanently unavailable or services changed their names? For example, Home Assistant companion app can easily change the name of its services and sensors it exposes to Home Assistant if you changed the device name in the app configuration. The watchman is an attempt to control such unwelcome changes and make you able to react proactively, before some critical automation gets broken.
+Home Assistant setups evolve over time—entities can disappear, and services/actions may be renamed by integrations. Watchman helps you spot these changes early by scanning your configuration for references to missing or renamed entities, so you can fix issues before automations break.
 
 [Discussion on Home Assistant Community Forum](https://community.home-assistant.io/t/watchman-keeps-track-of-missing-entities-and-services-in-your-config-files/390391)
 
 ## Quick start
-
 1. Go to the "Integrations" section on HACS, click "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS".
-2. Restart Home Assistant, go to Settings->Devices and Services->Add Integration and select Watchman integration. If integration not found, try to empty your browser cache and reload page.
-3. Go to Developer Tools -> Services, type `watchman` and select `Watchman: report` service then press "Call Service" button. Check `watchman_report.txt` file in your configuration directory.
+2. Restart Home Assistant, go to Settings->Devices & Services->Add Integration and select Watchman integration. If integration not found, try to empty your browser cache and reload page.
+3. Go to Developer Tools -> Actions, type `watchman` and select `Watchman: report` action then press "Perform Action" button. Check `watchman_report.txt` file in your configuration directory.
 
 Refer to the [Configuration section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
 ## What does it do
-The watchman is a custom integration for Home Assistant, which collects all the Home Assistant entities (sensors, timers, input_selects, etc.) mentioned in your yaml configuration files as well as all the services. Having a list of all entities, the integration checks their actual state one by one and reports those are not available or missing. For services it checks whether service is available in the HA service registry. The report can be stored as a nice-looking text table or it can be sent via notification service of choice (unless it is missing too :). The [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) is given below.
+Watchman is a custom integration for Home Assistant that scans your YAML configuration files and collects referenced entities (sensors, timers, input_select, etc.) and services/actions. It then checks each entity’s current state and reports those that are missing or unavailable. For services/actions, it verifies that they exist in Home Assistant’s registry. The result can be saved as a nicely formatted text table or sent via your preferred notification method (unless the notification target itself is missing 😄). See an [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) below.
 
-The integration has very simple internals, it knows nothing about complex relationships and dependencies among yaml configuration files as well as nothing about the semantics of entities and automations. It parses yaml files line by line and tries to guess references either to an entity or to a service, based on the regular expression heuristics. The above means the integration can give both false positives (something which looks like a duck, swims like a duck, and quacks like a duck, but is not) and false negatives (when some entity in a configuration file was not detected by the integration). To ignore false positives `ignored_items` parameter can be used (see Configuration section below), improvements for false negatives are a goal for future releases.
+Watchman intentionally keeps the parsing logic lightweight. It doesn’t build a full model of your configuration or try to understand dependencies between files, automations, and templates. Instead, it reads YAML files line by line and uses regex-based heuristics to detect entity and service/action references. Because of this, it may produce false positives (something looks like a reference, but isn’t) and false negatives (a real reference isn’t detected). You can silence false positives using Ignored entities and actions (see the Configuration section). Reducing false negatives is an ongoing improvement area.
 
+## What is does not do
+Watchman does not try to discover every missing or unavailable entity in your Home Assistant instance. It only reports entities and services/actions that it can find referenced in your YAML configuration (automations, scripts, dashboards, templates, etc.).
 
-## Configuration
-Integration settings are available in Settings->Devices & Services->Watchman->Configure.
+## Configuration Options
+Watchman configuration is currently split between two locations:
+
+ - Integration Options: Used for general setup. Path: Settings > Devices & Services > Watchman > Configure (General settings marked with ⚙️ below).
+ - Device Controls: Used for dynamic settings (e.g., ignored labels). Path: Settings > Devices & Services > Devices > Watchman (Dynamic settings marked with 🎛️ below).
+ 
+ The distinction between static and dynamic configuration is provisional and may change in future updates.
 
 [![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/)
 
-Option | Description | Default
+Option | Description | Example
 ------------ | ------------- | -------------
-Notification service | Home assistant notification service to send report via, e.g. `notify.telegram`. | `None`
-Notification service data | A json object with additional notification service parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
-Included folders | Comma-separated list of folders to scan for entities and services recursively. | `/config`
-Custom header for the report | Custom header for watchman report. | `"-== Watchman Report ==-"`
-Report location | Report location and filename. | `"/config/watchman_report.txt"`
-Ignored entities and services | Comma-separated list of items to ignore. The entity/service will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-entities-and-services-option-example) below. | `None`
-Ignored entity states | Comma-separated list of entity states which should be excluded from the report. Possible values are: `missing`, `unavailable`, `unknown`. | `None`
-Message chunk size | Maximum message size in bytes. Some notification services, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
-Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `None`
-Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`
-Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/services may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
-Add friendly names | Add friendly name of the entity to the report whenever possible. | `False`
-Parse dashboards UI | Parse Dashboards UI (ex-Lovelace) configuration data stored in `.storage` folder besides of yaml configuration. | `False`
-
+⚙️ Folders to watch | Comma-separated list of folders to scan for entities and actions recursively. | `/config`
+⚙️ Ignored entities and actions | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman?tab=readme-ov-file#ignored-entities-and-actions-formely-known-as-services-option-example) below. | `sensor.my_sensor1, sensor.my_sensor2`
+🎛️ Ignored labels (Device Controls) | A configuration entity (`text.watchman_ignored_labels`) used to define a comma-separated list of label names. Any entity tagged with these labels will be excluded from the report. Exposing this as a configuration entity allows you to manage ignored items dynamically via automations.  | `ignore_watchman`
+⚙️ Exclude entity states | Select which states will be excluded from the report | Checkboxes in UI
+⚙️ Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `*/blueprints/*, */custom_components/*, */esphome/*`
+⚙️ Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/actions may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
+⚙️ Exclude entities used by disabled automations | If enabled, entities referenced only by disabled automations will be excluded from the report. | UI flag
+⚙️ Report location | Report location and filename. | `/config/watchman_report.txt`
+⚙️ Custom header for the report | Custom header for watchman report. | `-== Watchman Report ==-`
+⚙️ Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`
+⚙️ Add friendly names | Add friendly name of the entity to the report whenever possible. | UI flag
 
 ### Ignored files option example
 * Ignore a file: `*/automations.yaml`
 * Ignore all files in the folder: `/config/esphome/*`
 * Ignore several folders: `/config/custom_components/*, /config/appdaemon/*, /config/www/*`
-<img src="./images/ignored_files_ui.png" width=50%>
+<img src="https://raw.githubusercontent.com/dummylabs/thewatchman/main/images/ignored_files_ui.png" width=50%>
 
-### Ignored entities and services option example
+### Ignored entities and actions example
 * Ignore an entity: `person.dummylabs`
 * Ignore everything in sensor domain: `sensor.*`
-* Ignore any entity/service which name ends with "_ble": `*.*_ble`
+* Ignore any entity/action which name ends with "_ble": `*.*_ble`
 
-### Send report via telegram bot
-* *Notification service*: `telegram_bot.send_message`
-* *Notification service data*: `{"parse_mode":"html"}`
+## Report Action Parameters
+The text version of the report can be generated using `watchman.report` action from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be changed in the UI configuration. A long report can be split into several messages (chunks) due to limitations imposed by some notification actions (e.g., telegram). Action behaviour can be altered with additional optional parameters:
 
-## Watchman.report service
-The text version of the report can be generated using `watchman.report` service from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be altered by `report_path` configuration option. A long report will be split into several messages (chunks) due to limitations imposed by some notification services (e.g., telegram). Service behaviour can be altered with additional optional parameters:
+Parameter | YAML key | Description | Default
+------------ | ------------- | -------------| -------------
+Force configuration parsing |`parse_config`| Forces watchman to parse Home Assistant configuration files and rebuild entity and actions list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration. | `False`
+Send report as notification |`action`| Home assistant notification action to send report via, e.g. `persistent_notification.create`. See compatibility note below.| ``
+Notification action data |`data`| A json object with additional notification action parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
+Message chunk size |`chunk_size`| Maximum message size in bytes. Some notification actions, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
 
- - `create_file` create text version of the report (optional, default=true)
- - `send_notification` send report via notification service (optional, default=false)
- - `service` notification service name (optional, overrides eponymous parameter from integration settings)
- - `data` notification service data (optional, overrides eponymous parameter from integration settings)
- - `parse_config` see below (optional, default=false)
- - `chunk_size` (optional, default is 3500 or whatever specified in integration settings)
 
-The parameter `service` allows sending report text via notification service of choice. Along with `data` and `chunk_size` it overrides integration settings.
-
-`parse_config` forces watchman to parse Home Assistant configuration files and rebuild entity and services list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration.
-Also see [Advanced usage examples](https://github.com/dummylabs/thewatchman#advanced-usage-examples) section at the bottom of this document.
-
-### Call service from Home Assistant UI
-<img src="./images/service_example.png" width=70%>
-
-### Extra notification service parameters example
+### A useless example sending report as persitent notification
 ```yaml
-service: watchman.report
-create_file: false
+action: watchman.report
 data:
-  service: telegram_bot.send_message
-  data: # additional parameters for your notification service
-    parse_mode: html
-    target: 111111111 # can be omitted, see telegram_bot documentation
+  parse_config: true
+  action: persistent_notification.create
+  data:
+    title: Watchman Report
+  chunk_size: 3500
+  create_file: true`
 ```
 
 ## Sensors
-Besides of the report, a few sensors will be added to Home Assistant:
 
-- sensor.watchman_missing_entities
-- sensor.watchman_missing_services
-- sensor.watchman_last_updated
+> [!NOTE]
+> Versions prior to 0.6.4 had a sensor named `sensor.watchman_missing_services`. Latest versions use another name: `sensor.watchman_missing_actions` if integration was installed from scratch (new user).
+> Existing users who upgraded from previous versions will have old sensor name to preserve compatibilty with their scripts and dashboards. They can rename sensor themselves or just remove integration and install it again.
+
+Besides of the report, integration provides a few diagnostic sensors which can be used within automations or dashboards:
+Sensor                             | Meaning
+---------------------------------- | -------------
+`sensor.watchman_status`           | See "Status meanings" below.
+`sensor.watchman_last_parse`       | Date and time of last parse. Usually it only occurs during HA restart or when HA configuration is reloaded.
+`sensor.watchman_missing_entities` | Number of flagged entities in the report.
+`sensor.watchman_missing_actions`  | Number of flagged actions in the report.
+`sensor.watchman_last_updated`     | Date and time of the last update for the sensors above. Watchman sensors update whenever a configured entity changes status (e.g., becomes unavailable, goes missing, or returns to a functional state).
+`sensor.watchman_parse_duration`   | Time taken for the last parse attempt. This value helps monitor system performance to ensure that Watchman operates efficiently without over-consuming system resources.
+`sensor.watchman_processed_files`  | The number of configuration files processed by Wathcman. 
+`sensor.watchman_ignored_files`    | The number of ignored configuration files.
+
+## Status Meanings
+The status indicates what Watchman is currently doing:
+
+- **Idle**: Doing nothing; everything is working fine.
+- **Waiting for HA**: Occurs after a reboot. Watchman waits for HA to fully load before starting monitoring.
+- **Parsing**: Watchman is parsing your configuration. The first run may take some time, but subsequent runs use cached results and should take only fractions of a second.
+- **Pending**: Parser will start parsing soon.
+- **Safe Mode**: Watchman detected that Home Assistant restarted during an unfinished parse, which might indicate a freezing problem. It will not process events, sensors, or files.
+Tip: Safe Mode can be disabled by deleting the watchman.lock (or watchman_dev.lock) file in the .storage folder, or simply by reinstalling the integration.
+
 
 ## Example of a watchman report
-Please note that the ASCII table format is only used when report is saved to a file. For notification services watchman uses plain text list due to presentation limitations.
+Please note that the ASCII table format is only used when report is saved to a file. For notification actions watchman uses plain text list due to presentation limitations.
 ```
 -== WATCHMAN REPORT ==-
 
--== Missing 1 service(s) from 38 found in your config:
+-== Missing 1 action(s) from 38 found in your config:
 +--------------------------------+---------+------------------------------------------+
-| Service                        | State   | Location                                 |
+| Action                         | State   | Location                                 |
 +--------------------------------+---------+------------------------------------------+
 | xiaomi_miio.vacuum_goto        | missing | automations.yaml:599,605                 |
 +--------------------------------+---------+------------------------------------------+
@@ -119,63 +134,20 @@ Please note that the ASCII table format is only used when report is saved to a f
 -== Parsed 200 files in 0.96s., ignored 66 files
 -== Generated in: 0.01s. Validated in: 0.00s.
 ```
-The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/service state and generate text version of the report.
+The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/action state and generate text version of the report.
 
-## Markdown card example
-Watchman sensors `sensor.watchman_missing_entities` and `sensor.watchman_missing_services` have additional set of attributes which makes it possible to create your own report using a lovelace card. Below is an example of missing entities report for the Lovelace markdown card:
+## Youtube Reviews
+### Everything Smart Home channel
+[![Watch the video](https://img.youtube.com/vi/XKD5vBZLKgE/0.jpg)](https://www.youtube.com/watch?v=XKD5vBZLKgE)
 
-```yaml
-type: markdown
-content: >-
-  <h2> <ha-icon icon='mdi:shield-half-full'></ha-icon> Watchman report</h2>
-  <h3>Missing Entities: {{ states.sensor.watchman_missing_entities.state }} </h3>
-  {%- for item in state_attr("sensor.watchman_missing_entities", "entities") %}
-  <hr> <table><tr> <td>
-  <ha-icon icon='mdi:
-  {%- if item.state=="missing"-%}cloud-alert'
-  {%- elif item.state=="unavail" -%}cloud-off-outline' {%- else-%}cloud-question'
-  {%- endif -%} ></ha-icon>
-  {{ item.id }} [{{item.state}}] <a title="{{item.occurrences}}">
-  {{item.occurrences.split('/')[-1].split(':')[0]}}</a>
-  </td></tr></table>
-  {%- endfor %}
-card_mod:
-  style:
-    ha-markdown:
-      $: |
-        ha-markdown-element:first-of-type hr{
-          border-color: #303030;
-        }
+### mostlychris channel
+[![Watch the video](https://img.youtube.com/vi/E489fTZHywI/0.jpg)](https://www.youtube.com/watch?v=E489fTZHywI)
 
-```
-Important considerations:
-1. Make sure you are in code editor mode before pasting this code into the markdown card
-2. `card_mod` section is optional and requires a [custom lovelace card](https://github.com/thomasloven/lovelace-card-mod) to be installed for extra styling
-3. Put mouse pointer over a file name to see full path to a file and line numbers
-4. To display line numbers in the report just remove `.split(':')[0]` from the card template
+### Smart Home Australia channel
+[![Watch the video](https://img.youtube.com/vi/J41HYbtBsbQ/0.jpg)](https://www.youtube.com/watch?v=J41HYbtBsbQ)
 
-<img src="./images/markdown_card_example.png" width=50%>
-
-The code for the services report looks very similar:
-
-```yaml
-type: markdown
-content: >-
-  <h2 class="some"> <ha-icon icon='mdi:shield-half-full'></ha-icon> Watchman report</h2>
-  <h3> Missing Services: {{ states.sensor.watchman_missing_services.state }} </h3>
-  {%- for item in state_attr("sensor.watchman_missing_services", "services") %}
-  <hr><table><tr> <td>  <ha-icon icon='mdi:cloud-alert'></ha-icon> {{ item.id }}
-  <a title="{{item.occurrences}}">{{item.occurrences.split('/')[-1].split(':')[0]}}</a>
-  </td></tr></table>
-  {%- endfor %}
-card_mod:
-  style:
-    ha-markdown:
-      $: |
-        ha-markdown-element:first-of-type hr{
-          border-color: #303030;
-        }
-```
+### Smart Home Makers channel
+[![Watch the video](https://img.youtube.com/vi/iHQYs-YA2uo/0.jpg)](https://www.youtube.com/watch?v=iHQYs-YA2uo)
 
 Alternatively you can display missing entities in a markdown card grouped by page:
 ```yaml
@@ -253,6 +225,8 @@ homeassistant:
   allowlist_external_dirs:
     - /config/
 ```
+### Sascha Brockel channel
+[![Watch the video](https://img.youtube.com/vi/qYHMoTlheuA/0.jpg)](https://www.youtube.com/watch?v=qYHMoTlheuA)
 
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
 [forum]: https://community.home-assistant.io/t/watchman-keeps-track-of-missing-entities-and-services-in-your-config-files/390391

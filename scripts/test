@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# usage:
+# script/test - run all tests
+# script/test tests/test_regex.py - run specific test
+# script/test --cov-report=html - make htmlcov folder with coverage report
+
+set -e
+cd "$(dirname "$0")/.."
+
+if [ $# -eq 0 ]; then
+    python3 -m pytest -x tests
+else
+    python3 -m pytest -x "$@"
+fi

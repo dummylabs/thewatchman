@@ -1,31 +1,62 @@
-// See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
-	//"image": "ludeeus/container:integration-debian",
-	"image": "ghcr.io/ludeeus/devcontainer/integration:stable",
-	"name": "Blueprint integration development",
-	"context": "..",
-	"appPort": [
-		"9123:8123"
-	],
-	"postCreateCommand": "container install",
-	"extensions": [
-		"ms-python.python",
-		"github.vscode-pull-request-github",
-		"ryanluker.vscode-coverage-gutters",
-		"ms-python.vscode-pylance"
-	],
-	"settings": {
-		"files.eol": "\n",
-		"editor.tabSize": 4,
-		"terminal.integrated.shell.linux": "/bin/bash",
-		"python.pythonPath": "/usr/bin/python3",
-		"python.analysis.autoSearchPaths": false,
-		"python.linting.pylintEnabled": true,
-		"python.linting.enabled": true,
-		"python.formatting.provider": "black",
-		"editor.formatOnPaste": false,
-		"editor.formatOnSave": true,
-		"editor.formatOnType": true,
-		"files.trimTrailingWhitespace": true
-	}
+  "name": "ludeeus/integration_blueprint",
+  "build": {
+    "dockerfile": "Dockerfile",
+  },
+
+  //"postCreateCommand": "scripts/setup && echo 'vscode:password' | sudo chpasswd",
+  "postCreateCommand": "sudo mkdir -p /home/vscode/.cache/pip && sudo chown -R vscode:vscode /home/vscode/.cache && scripts/setup && echo 'vscode:password' | sudo chpasswd",
+
+  "runArgs": ["-p", "2222:2222", "-p", "8123:8123"],
+  "forwardPorts": [8123],
+  "portsAttributes": {
+    "8123": {
+      "label": "Home Assistant",
+      "onAutoForward": "notify",
+    },
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "github.vscode-pull-request-github",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ryanluker.vscode-coverage-gutters",
+        "mhutchie.git-graph",
+      ],
+      "settings": {
+        "files.eol": "\n",
+        "editor.tabSize": 4,
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": false,
+        "files.trimTrailingWhitespace": true,
+        "python.analysis.typeCheckingMode": "basic",
+        "python.analysis.autoImportCompletions": true,
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+        },
+      },
+    },
+  },
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest",
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest",
+      "profile": "minimal",
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+  },
+  "mounts": [
+    // git configuration from local machine
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    // cache for whl files (internal docker volume)
+    // to remove cache use `docker volume rm pip-cache`
+    "source=pip-cache,target=/home/vscode/.cache/pip,type=volume",
+  ],
 }

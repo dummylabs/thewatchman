@@ -1,0 +1,11 @@
+sensor:
+  - platform: template
+    sensors:
+      test1_unknown:
+        value_template: "{{ states('sensor.test1_unknown') }}"
+      test2_missing:
+        value_template: "{{ states('sensor.test2_missing') }}"
+      test3_unavail:
+        value_template: "{{ states('sensor.test3_unavail') }}"
+      test4_avail:
+        value_template: "{{ states('sensor.test4_avail') }}"

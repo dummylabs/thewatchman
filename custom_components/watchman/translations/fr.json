@@ -1,0 +1,82 @@
+{
+    "config": {
+        "abort": {
+            "single_instance_allowed": "Une seule instance de Watchman est autorisée"
+        },
+        "step": {}
+    },
+    "options": {
+        "error": {
+            "invalid_included_folders": "included_folders doit être une liste de dossiers de configuration séparés par des virgules",
+            "invalid_columns_width": "La largeur de la colonne du rapport doit être une liste de 3 entiers positifs",
+            "malformed_json": "Les données d'action de notification doivent être un dictionnaire JSON valide",
+            "unknown_service": "Action inconnue : `{service}`",
+            "invalid_report_path": "L'emplacement du fichier de rapport n'est pas valide, le chemin n'existe pas"
+        },
+        "step": {
+            "init": {
+                "title": "Paramètres de Watchman",
+                "data": {
+                    "included_folders": "Dossiers à surveiller :",
+                    "ignored_items": "Entités et actions ignorées :",
+                    "ignored_states": "Exclure du rapport les entités avec les états ci-dessous :",
+                    "exclude_disabled_automation": "Exclure les entités utilisées uniquement par des automatisations désactivées",
+                    "ignored_files": "Fichiers ignorés (séparés par des virgules):",
+                    "check_lovelace": "Analyser les tableaux de bord contrôlés par l'interface utilisateur",
+                    "startup_delay": "Délai de démarrage pour l'initialisation des capteurs Watchman"
+                },
+                "data_description": {
+                    "included_folders": "Liste séparée par des virgules des dossiers dans lesquels Watchman doit rechercher les fichiers de configuration",
+                    "ignored_items": "Liste séparée par des virgules des entités et des actions exclues du suivi",
+                    "ignored_states": "Liste séparée par des virgules des États exclus du suivi",
+                    "ignored_files": "Liste séparée par des virgules des fichiers de configuration exclus du suivi"
+                },
+                "sections": {
+                    "appearance_location_options": {
+                        "name": "Signaler l'apparence et l'emplacement",
+                        "data": {
+                            "columns_width": "Liste des largeurs des colonnes du rapport, par exemple 30, 7, 60",
+                            "report_header": "En-tête personnalisé pour le rapport",
+                            "report_path": "Emplacement du fichier de rapport, par exemple /config/report.txt",
+                            "friendly_names": "Ajouter des noms conviviaux d'entité au rapport"
+                        }
+                    }
+                },
+                "description": "[Aide pour les paramètres on settings]({url})"
+            }
+        }
+    },
+    "services": {
+        "report": {
+            "name": "Rapport",
+            "description": "Exécuter le rapport Watchman",
+            "fields": {
+                "create_file": {
+                    "name": "Créer un rapport de fichier",
+                    "description": "Si le fichier de rapport doit être créé (généralement vrai)"
+                },
+                "action": {
+                    "name": "Envoyer le rapport comme notification",
+                    "description": "Action de notification facultative pour envoyer un rapport via (e.g. `persistent_notification.create`)"
+                },
+                "data": {
+                    "name": "Paramètres des données d'action de notification",
+                    "description": "Paramètres facultatifs pour l'action de notification (e.g. `titre : Rapport`)"
+                },
+                "parse_config": {
+                    "name": "Force l'analyse de la configuration",
+                    "description": "Analyser les fichiers de configuration avant de générer le rapport. Cette opération est généralement effectuée automatiquement par Watchman ; cette option n'est donc généralement pas requise."
+                },
+                "chunk_size": {
+                    "name": "Taille du segment du message de notification",
+                    "description": "Taille maximale des messages (en octets). Certains services de notification limitent la taille maximale des messages. Si la taille du rapport dépasse chunk_size, il sera envoyé dans plusieurs notifications ultérieures (facultatif)."
+                }
+            },
+            "sections": {
+                "advanced_options": {
+                    "name": "Options avancées"
+                }
+            }
+        }
+    }
+}

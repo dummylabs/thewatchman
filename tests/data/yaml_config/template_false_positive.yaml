@@ -1,0 +1,12 @@
+# This looks like an automation (has trigger/action) but is a template
+trigger:
+  - platform: time_pattern
+    minutes: /1
+action:
+  - service: todo.get_items
+    target:
+      entity_id: todo.cleaning
+    response_variable: mylist
+binary_sensor:
+  - name: task_clean_bedroom
+    state: "{{ true }}"
