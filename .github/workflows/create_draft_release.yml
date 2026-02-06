@@ -17,7 +17,9 @@ jobs:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Важно для доступа к истории тегов
+          # MANDATORY: fetch-depth: 0
+          # Otherwise, git won't see previous tags and cannot build the changelog
+          fetch-depth: 0
 
       - name: 🔢 Read version from manifest
         id: get_version
@@ -32,14 +34,38 @@ jobs:
         shell: bash
         run: |
           if git rev-parse "v${{ steps.get_version.outputs.VERSION }}" >/dev/null 2>&1; then
-            echo "Tag v${{ steps.get_version.outputs.VERSION }} already exists."
             echo "exists=true" >> $GITHUB_OUTPUT
           else
-            echo "Tag not found. Proceeding."
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: 📝 Generate Changelog
+        if: steps.check_tag.outputs.exists == 'false'
+        id: changelog
+        shell: bash
+        run: |
+          # 1. Try to find the latest reachable tag in history
+          # 2>/dev/null suppresses errors if no tags exist (first release)
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          echo "Generating changelog..."
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tags found. Listing all commits."
+            # If no tags exist, list all commits from the beginning
+            git log --pretty=format:"- %s (%h)" > RELEASE_NOTES.txt
+          else
+            echo "Last tag was: $PREVIOUS_TAG"
+            echo "Listing commits from $PREVIOUS_TAG to HEAD"
+            # List commits from the last tag to HEAD
+            git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"- %s (%h)" > RELEASE_NOTES.txt
+          fi
+
+          # Output to console for debugging
+          cat RELEASE_NOTES.txt
+
       - name: 🚀 Create or Update Draft Release
+        # Run draft creation ONLY if the tag does not exist yet (new version or existing draft)
         if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
@@ -47,4 +73,9 @@ jobs:
           name: v${{ steps.get_version.outputs.VERSION }}
           draft: true
           prerelease: false
-          generate_release_notes: true
+
+          # DISABLE the standard generator since we use our own custom file
+          generate_release_notes: false
+
+          # Point to our generated file
+          body_path: RELEASE_NOTES.txt
