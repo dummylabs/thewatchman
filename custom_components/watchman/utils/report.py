@@ -265,7 +265,9 @@ async def async_report_to_notification(
     domain = action_str.split(".", maxsplit=1)[0]
     action = ".".join(action_str.split(".")[1:])
 
-    data = {} if service_data is None else service_data
+    data = {} if service_data is None else service_data.copy()
+    if "notification_id" not in data:
+        data["notification_id"] = "watchman_report"
 
     _LOGGER.debug(f"SERVICE_DATA {data}")
 
