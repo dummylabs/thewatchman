@@ -1,7 +1,6 @@
-"""Test Watchman Status Sensor."""
+"Test Watchman Status Sensor."
 import asyncio
 import contextlib
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -38,6 +37,9 @@ async def test_status_sensor_states(hass: HomeAssistant):
 
     # 2. Transition to PARSING: Trigger a scan
     coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
+    
+    # Speed up test by removing debouncer cooldown
+    coordinator.debouncer.cooldown = 0.0
 
     # We use an event to coordinate the check during the 'parsing' phase
     parsing_event = asyncio.Event()
@@ -48,26 +50,18 @@ async def test_status_sensor_states(hass: HomeAssistant):
     async def mocked_async_parse(*args, **kwargs):
         # Notify test that we are inside parsing
         parsing_event.set()
-        # Wait a tiny bit to ensure the test loop has a chance to run if needed,
-        # though event set is enough for us to assert.
-        # But we actually want to HOLD here until we verify the state.
-
-        # We can just return immediately, but we need to check the state "during" this call.
-        # Since we can't pause the test execution easily in the main loop while this runs
-        # (because both run on the loop), we can check the state HERE inside the mock.
-
+        
         # Check state inside the execution context
         current_state = hass.states.get(entity_id)
         assert current_state.state == STATE_PARSING, f"State during parsing should be {STATE_PARSING}"
 
-        # Call original if needed or just return (we mock it completely)
-
     with patch.object(coordinator.hub, 'async_parse', side_effect=mocked_async_parse) as mock_parse, \
             patch("custom_components.watchman.coordinator.PARSE_COOLDOWN", 0):
         # Request a rescan to ensure parsing logic is triggered
-        coordinator.request_parser_rescan(reason="Test")
+        # CRITICAL: set delay=0 to avoid default 10s delay
+        coordinator.request_parser_rescan(reason="Test", delay=0)
 
-        # Trigger an update
+        # Trigger an update (will be immediate due to debouncer cooldown=0)
         task = asyncio.create_task(coordinator.async_request_refresh())
 
         # Wait for the parsing to trigger
@@ -93,7 +87,6 @@ async def test_status_sensor_states(hass: HomeAssistant):
         await asyncio.wait_for(wait_for_idle(), timeout=2.0)
 
     state = hass.states.get(entity_id)
-    print(f"DEBUG: Final state is {state.state}")
     assert state.state == STATE_IDLE, f"State after parsing should return to {STATE_IDLE}"
 
     # 4. Transition to PENDING
@@ -103,7 +96,8 @@ async def test_status_sensor_states(hass: HomeAssistant):
     # We assume default PARSE_COOLDOWN is 60s (defined in const.py).
     # Since we just finished a parse, last_parse_time is set to now.
 
-    coordinator.request_parser_rescan(reason="Test Pending")
+    # delay=0 to ensure we don't wait 10s before checking cooldown logic
+    coordinator.request_parser_rescan(reason="Test Pending", delay=0)
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)

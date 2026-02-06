@@ -231,6 +231,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         self.hass = hass
         self.hub = hub
+        self.debouncer = debouncer
         self.last_check_duration = 0.0
         self.ignored_labels = set()
         self.checked_states = set()
