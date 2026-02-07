@@ -1,7 +1,7 @@
 # serializer version: 1
 # name: test_db_schema_integrity
   tuple(
-    2,
+    3,
     '''
       Table: found_items
       CREATE TABLE found_items (

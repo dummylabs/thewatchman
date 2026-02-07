@@ -28,11 +28,6 @@ class WatchmanHub:
         self._monitored_entities = None
         self._monitored_services = None
 
-    async def async_init(self) -> None:
-        """Initialize the hub and verify DB."""
-        # Verify DB integrity on startup
-        await self.hass.async_add_executor_job(self._parser.check_and_fix_db)
-
     @property
     def is_scanning(self) -> bool:
         """Return True if a scan is currently in progress."""

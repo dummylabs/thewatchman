@@ -22,6 +22,7 @@ from .const import (
     CONF_STARTUP_DELAY,
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
+    CURRENT_DB_SCHEMA_VERSION,
     DB_FILENAME,
     DEFAULT_DELAY,
     DEFAULT_OPTIONS,
@@ -33,6 +34,7 @@ from .const import (
     REPORT_SERVICE_NAME,
     STATE_SAFE_MODE,
     STATE_WAITING_HA,
+    STORAGE_VERSION,
 )
 from .coordinator import WatchmanCoordinator
 from .hub import WatchmanHub
@@ -66,7 +68,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
 
     integration = await async_get_integration(hass, DOMAIN)
     hub = WatchmanHub(hass, str(db_path))
-    await hub.async_init()
     coordinator = WatchmanCoordinator(
         hass,
         _LOGGER,
@@ -118,7 +119,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
 
         coordinator.request_parser_rescan(reason="startup", delay=startup_delay)
 
-    _LOGGER.info("Watchman integration started [%s]", coordinator.version)
+    _LOGGER.info(
+        "Watchman integration started [%s], DB: %s, Stats: %s",
+        coordinator.version,
+        CURRENT_DB_SCHEMA_VERSION,
+        STORAGE_VERSION,
+    )
 
     # Check for previous crash
     lock_path = Path(hass.config.path(".storage", LOCK_FILENAME))

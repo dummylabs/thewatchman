@@ -38,10 +38,11 @@ The SQLite database stores the parsing cache. Since this data is reproducible (b
 - **Implementation:** `WatchmanParser._init_db` in `parser_core.py`.
 - **Versioning:** Uses SQLite `PRAGMA user_version`. Controlled by `CURRENT_DB_SCHEMA_VERSION`.
 - **Strategy:**
-    - **Upgrade (vCurrent < vTarget):** Apply sequential SQL migrations (ALTER TABLE) inside `_migrate_db`.
-    - **Downgrade (vCurrent > vTarget):** **Hard Reset.** The system detects a newer schema version than supported, deletes the `.db` file, and rebuilds it from scratch. We do not implement downgrade logic for the cache.
+    - **Mismatch (vCurrent != vTarget):** **Hard Reset.** If the database schema version does not exactly match the code's expected version, the `.db` file is deleted and rebuilt from scratch. We treat the cache as disposable.
         
-- **Legacy Note:** Version 0.8.3-rc2 introduced a hard break by renaming the file from `watchman.db` to `watchman_v2.db`to isolate the new schema from legacy versions.
+- **Legacy Note:**
+  - Version 0.8.3-rc2 introduced a hard break by renaming the file from `watchman.db` to `watchman_v2.db`to isolate the new schema from legacy versions. Schema version was set to 2 (from "0").
+  - Version 0.8.4-rc1 increased schema version to 3 due to upgrade of parser heuristics. This required recreation of DB cache from scratch.
 
 ### 4. Statistics Migration (JSON Store)
 
