@@ -72,9 +72,6 @@ async def test_custom_domain_injection(new_test_data_dir, tmp_path):
     )
 
     # We need to get parsed items from the hub to check services
-    parsed_services = await hub.async_get_parsed_services()
-    parsed_service_list = list(parsed_services.keys())
-    # 'fake_custom_domain.my_service' should be found because 'fake_custom_domain'
-    # was provided in hass.services
-    assert "fake_custom_domain.my_service" in parsed_service_list, \
-        "Custom domain service should be detected when injected via hass"
+    parsed_services = (await hub.async_get_all_items())["services"]
+    
+    assert "fake_custom_domain.my_service" in parsed_services

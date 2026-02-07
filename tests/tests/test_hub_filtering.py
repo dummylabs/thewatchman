@@ -27,7 +27,8 @@ def test_hub_automations_filtering(hass):
     # Run
     # We need to patch get_config to avoid errors
     with patch("custom_components.watchman.utils.utils.get_config", return_value=[]):
-        parsed = hub._get_parsed_items_sync("entity")
+        all_items = hub._get_all_items_sync()
+        parsed = all_items["entities"]
     
     # Verify Automation
     assert "automation.auto_1" in parsed["sensor.in_automation"]["automations"]

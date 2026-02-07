@@ -23,7 +23,6 @@ from .const import (
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     CURRENT_DB_SCHEMA_VERSION,
-    DB_FILENAME,
     DEFAULT_DELAY,
     DEFAULT_OPTIONS,
     DEFAULT_REPORT_FILENAME,
@@ -88,8 +87,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
         # prime the coordinator with cached data immediately to minimize startup delay
         try:
             _LOGGER.debug("HA is ready. Prime coordinator with cached data.")
-            parsed_entities = await hub.async_get_parsed_entities()
-            parsed_services = await hub.async_get_parsed_services()
+            all_items = await hub.async_get_all_items()
+            parsed_entities = all_items["entities"]
+            parsed_services = all_items["services"]
             initial_data = await coordinator.async_process_parsed_data(
                 parsed_entities, parsed_services
             )

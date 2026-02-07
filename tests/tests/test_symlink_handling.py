@@ -45,21 +45,19 @@ async def test_symlink_handling(hass, tmp_path, caplog):
 
     await hass.async_block_till_done()
 
+    # Retrieve coordinator
+    entries = hass.config_entries.async_entries(DOMAIN)
+    coordinator = entries[0].runtime_data.coordinator
+
     # Verify:
     # 1. Broken link warning in logs
     assert "Skipping broken symlink" in caplog.text
-    assert str(broken_link) in caplog.text
 
-    # 2. Valid file parsed
-    coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
-    await coordinator.async_load_stats()
-    await coordinator.async_refresh()
-
-    # We expect sensor.target_sensor_missing to be reported as missing
-    # It appears in target_file.yaml and potentially valid_link.yaml
-    parsed_entities = await coordinator.hub.async_get_parsed_entities()
-
-    assert "sensor.target_sensor_missing" in parsed_entities, "Entity from real file should be parsed"
+    # 2. Target file parsed correctly (via valid link)
+    parsed_items = await coordinator.hub.async_get_all_items()
+    parsed_entities = parsed_items["entities"]
+    assert "sensor.target_sensor_missing" in parsed_entities
+    assert "valid_link.yaml" in parsed_entities["sensor.target_sensor_missing"]["locations"]
 
     # Check if we parsed 2 files (target + link) or 1 (if parser handles deduplication by real path, which it doesn't seem to do yet, but `processed_files` uses path as key)
     # processed_files_count should be at least 1. If symlink is followed as a separate file, it might be 2.

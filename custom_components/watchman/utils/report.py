@@ -64,26 +64,25 @@ async def report(
     if parse_config:
         coordinator.request_parser_rescan(reason="service call")
 
-    service_list = await coordinator.async_get_parsed_services()
+    # OPTIMIZATION: One-Pass Data Retrieval
+    all_items = await coordinator.hub.async_get_all_items()
+    service_list = all_items["services"]
+    entity_list = all_items["entities"]
 
-    exclude_disabled_automations = get_config(
-        hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False
-    )
+    # Build filter context once
+    ctx = coordinator._build_filter_context()
 
     missing_services = renew_missing_items_list(
         hass,
         service_list,
-        exclude_disabled_automations=exclude_disabled_automations,
-        ignored_labels=coordinator.ignored_labels,
+        ctx,
         item_type="action",
     )
-    entity_list = await coordinator.async_get_parsed_entities()
 
     missing_entities = renew_missing_items_list(
         hass,
         entity_list,
-        exclude_disabled_automations=exclude_disabled_automations,
-        ignored_labels=coordinator.ignored_labels,
+        ctx,
         item_type="entity",
     )
 

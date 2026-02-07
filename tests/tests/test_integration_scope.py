@@ -28,14 +28,19 @@ def scope_test_data(tmp_path):
 
     return root
 
+
 async def _get_parsed_entities(hass):
     """Helper to fetch parsed entities from coordinator."""
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
         return {}
     coordinator = entries[0].runtime_data.coordinator
-    return await coordinator.async_get_parsed_entities()
-
+    # Run parsing
+    # We don't need to trigger parsing here if it was already triggered by the test
+    # But if we want to force parse, we should use coordinator.hub
+    
+    # Actually, the parsing is async. If we just want to fetch the data:
+    return (await coordinator.hub.async_get_all_items())["entities"]
 async def test_scope_filtering_custom_folder(hass, scope_test_data, tmp_path):
     """Test that only files in included folders are parsed."""
     from custom_components.watchman.const import DEFAULT_OPTIONS

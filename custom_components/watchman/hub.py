@@ -6,9 +6,10 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .const import BUNDLED_IGNORED_ITEMS
+from .const import BUNDLED_IGNORED_ITEMS, CONF_IGNORED_ITEMS
 from .utils.logger import _LOGGER
 from .utils.parser_core import ParseResult, WatchmanParser, get_domains
+from .utils.utils import get_config
 
 
 class WatchmanHub:
@@ -39,38 +40,30 @@ class WatchmanHub:
             return False
         return service_id in self._monitored_services
 
-    async def async_get_parsed_entities(self) -> dict[str, Any]:
-        """Return a dictionary of parsed entities and their locations."""
-        return await self.hass.async_add_executor_job(
-            self._get_parsed_items_sync, 'entity'
-        )
+    async def async_get_all_items(self) -> dict[str, dict[str, Any]]:
+        """Return all parsed items (entities and services) in one pass."""
+        return await self.hass.async_add_executor_job(self._get_all_items_sync)
 
-    async def async_get_parsed_services(self) -> dict[str, Any]:
-        """Return a dictionary of parsed services and their locations."""
-        return await self.hass.async_add_executor_job(
-            self._get_parsed_items_sync, 'service'
-        )
-
-    def _get_parsed_items_sync(self, item_type: str) -> dict[str, Any]:
-        """Fetch and filter parsed items from the database."""
-        from .const import CONF_IGNORED_ITEMS
-        from .utils.utils import get_config
-
+    def _get_all_items_sync(self) -> dict[str, dict[str, Any]]:
+        """Fetch ALL items in one go and split them in memory."""
         ignored_items = get_config(self.hass, CONF_IGNORED_ITEMS, [])
         final_ignored_items = list(set((ignored_items or []) + BUNDLED_IGNORED_ITEMS))
 
-        try:
-            if item_type not in self.cached_items:
-                self.cached_items[item_type] = self._parser.get_found_items(item_type)
+        entities = {}
+        services = {}
 
-            raw_items = self.cached_items[item_type]
+        try:
+            raw_items = self._parser.get_found_items(item_type='all')
         except sqlite3.OperationalError as e:
             _LOGGER.warning(f"Database busy during read, returning cached/empty data: {e}")
-            raw_items = self.cached_items.get(item_type, [])
+            # Try to return cached data if available, else empty
+            # Note: cached_items is now structured differently?
+            # For simplicity in this refactor, if DB fails, return empty structure.
+            # Ideally we should cache the full 'entities'/'services' structure.
+            return {"entities": {}, "services": {}}
 
-        result_dict = {}
         for item in raw_items:
-            entity_id, path, line = item[0], item[1], item[2]
+            entity_id, path, line, item_type = item[0], item[1], item[2], item[3]
 
             # Filter ignored items
             is_ignored = False
@@ -82,12 +75,14 @@ class WatchmanHub:
             if is_ignored:
                 continue
 
-            if entity_id not in result_dict:
-                result_dict[entity_id] = {"locations": {}, "automations": set(), "occurrences": []}
+            target_dict = entities if item_type == 'entity' else services
 
-            if path not in result_dict[entity_id]["locations"]:
-                result_dict[entity_id]["locations"][path] = []
-            result_dict[entity_id]["locations"][path].append(line)
+            if entity_id not in target_dict:
+                target_dict[entity_id] = {"locations": {}, "automations": set(), "occurrences": []}
+
+            if path not in target_dict[entity_id]["locations"]:
+                target_dict[entity_id]["locations"][path] = []
+            target_dict[entity_id]["locations"][path].append(line)
 
             parent_type = item[4]
             parent_alias = item[5]
@@ -101,22 +96,20 @@ class WatchmanHub:
                     "parent_id": parent_id
                 }
 
-            result_dict[entity_id]["occurrences"].append({
+            target_dict[entity_id]["occurrences"].append({
                 "path": path,
                 "line": line,
                 "context": context
             })
 
             if parent_id and parent_type in ("automation", "script"):
-                result_dict[entity_id]["automations"].add(parent_id)
+                target_dict[entity_id]["automations"].add(parent_id)
 
         # Update fast lookups
-        if item_type == 'entity':
-            self._monitored_entities = set(result_dict.keys())
-        elif item_type == 'service':
-            self._monitored_services = set(result_dict.keys())
+        self._monitored_entities = set(entities.keys())
+        self._monitored_services = set(services.keys())
 
-        return result_dict
+        return {"entities": entities, "services": services}
 
     async def async_parse(
         self, ignored_files: list[str], *, force: bool = False

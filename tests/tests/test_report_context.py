@@ -60,8 +60,11 @@ async def test_report_context_inclusion(hass):
         }
     }
     
-    hub.async_get_parsed_entities = AsyncMock(return_value=parsed_entities)
-    hub.async_get_parsed_services = AsyncMock(return_value={}) # No services for this test
+    hub.async_get_all_items = AsyncMock(return_value={
+        "entities": parsed_entities,
+        "services": {}
+    })
+    hub.async_parse = AsyncMock(return_value=None)
     
     # Setup Coordinator
     entry = MagicMock()
