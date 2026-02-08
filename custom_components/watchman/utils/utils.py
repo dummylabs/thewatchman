@@ -190,8 +190,11 @@ def get_entity_state(
     return state, name
 
 
-def obfuscate_id(item_id: str) -> str:
+def obfuscate_id(item_id: Any) -> Any:
     """Obfuscate entity or action ID for logging."""
+    if isinstance(item_id, (list, tuple, set)):
+        return ", ".join([str(obfuscate_id(x)) for x in item_id])
+
     if not isinstance(item_id, str) or "." not in item_id:
         return item_id
 
@@ -201,6 +204,10 @@ def obfuscate_id(item_id: str) -> str:
 
     if len(name) <= 3:
         return f"{domain}.{name}"
+
+    if len(name) > 15:
+        # Truncate to 15 chars: 3 visible + 11 stars + '~'
+        return f"{domain}.{name[:3]}***********~"
 
     prefix = name[:3]
     suffix = name[3:]
