@@ -20,16 +20,19 @@
                     "included_folders": "Priečinky na sledovanie:",
                     "ignored_items": "Ignorované entity a akcie:",
                     "ignored_states": "Vylúčiť entity s nasledujúcimi stavmi z prehľadu:",
-                    "exclude_disabled_automation": "Vylúčiť entity použité iba v deaktivovaných automatizáciách",
+                    "exclude_disabled_automation": "Vylúčiť zakázané automatizácie",
                     "ignored_files": "Ignorované súbory (oddelené čiarkami):",
                     "check_lovelace": "Analyzovať ovládané UI ovládacie panely",
-                    "startup_delay": "Oneskorenie spustenia pre inicializáciu senzorov watchman"
+                    "startup_delay": "Oneskorenie spustenia pre inicializáciu senzorov watchman",
+                    "log_obfuscate": "Zatmavenie citlivých údajov"
                 },
                 "data_description": {
                     "included_folders": "Čiarkami oddelený zoznam priečinkov, kde by mal watchman hľadať konfiguračné súbory",
                     "ignored_items": "Čiarkami oddelený zoznam entít a akcií vylúčených zo sledovania",
                     "ignored_states": "Čiarkami oddelený zoznam stavov vylúčených zo sledovania",
-                    "ignored_files": "Čiarkami oddelený zoznam konfiguračných súborov vylúčených zo sledovania"
+                    "exclude_disabled_automation": "Vylúčiť entity použité iba v deaktivovaných automatizáciách",
+                    "ignored_files": "Čiarkami oddelený zoznam konfiguračných súborov vylúčených zo sledovania",
+                    "log_obfuscate": "Či sa majú v logoch z dôvodu ochrany osobných údajov maskovať názvy entít a služieb"
                 },
                 "sections": {
                     "appearance_location_options": {

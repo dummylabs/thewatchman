@@ -20,16 +20,19 @@
                     "included_folders": "Dossiers à surveiller :",
                     "ignored_items": "Entités et actions ignorées :",
                     "ignored_states": "Exclure du rapport les entités avec les états ci-dessous :",
-                    "exclude_disabled_automation": "Exclure les entités utilisées uniquement par des automatisations désactivées",
+                    "exclude_disabled_automation": "Exclure les automatisations désactivées",
                     "ignored_files": "Fichiers ignorés (séparés par des virgules):",
                     "check_lovelace": "Analyser les tableaux de bord contrôlés par l'interface utilisateur",
-                    "startup_delay": "Délai de démarrage pour l'initialisation des capteurs Watchman"
+                    "startup_delay": "Délai de démarrage pour l'initialisation des capteurs Watchman",
+                    "log_obfuscate": "Masquer les données sensibles"
                 },
                 "data_description": {
                     "included_folders": "Liste séparée par des virgules des dossiers dans lesquels Watchman doit rechercher les fichiers de configuration",
                     "ignored_items": "Liste séparée par des virgules des entités et des actions exclues du suivi",
                     "ignored_states": "Liste séparée par des virgules des États exclus du suivi",
-                    "ignored_files": "Liste séparée par des virgules des fichiers de configuration exclus du suivi"
+                    "exclude_disabled_automation": "Exclure les entités utilisées uniquement par des automatisations désactivées",
+                    "ignored_files": "Liste séparée par des virgules des fichiers de configuration exclus du suivi",
+                    "log_obfuscate": "Masquer les noms d'entités et de services dans les journaux pour la confidentialité"
                 },
                 "sections": {
                     "appearance_location_options": {

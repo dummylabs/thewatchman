@@ -1,9 +1,16 @@
 """Test obfuscation logic."""
 import pytest
-from custom_components.watchman.utils.utils import obfuscate_id
+from custom_components.watchman.const import CONF_LOG_OBFUSCATE
+from custom_components.watchman.utils.utils import (
+    obfuscate_id,
+    set_obfuscation_config,
+)
+from tests import async_init_integration
 
 def test_obfuscate_single_short():
     """Test existing behavior for short strings."""
+    # Ensure enabled
+    set_obfuscation_config(True)
     # len("kitchen") = 7. <= 15.
     # Existing logic: 3 visible, rest masked.
     assert obfuscate_id("light.kitchen") == "light.kit****"
@@ -15,6 +22,7 @@ def test_obfuscate_single_short():
 
 def test_obfuscate_single_long():
     """Test truncation for long strings (> 15 chars)."""
+    set_obfuscation_config(True)
     # 16 chars: "1234567890123456"
     # Should truncate to 15 chars total in name part.
     # 3 visible + 11 stars + 1 tilde = 15.
@@ -36,12 +44,14 @@ def test_obfuscate_single_long():
 
 def test_obfuscate_list():
     """Test list handling."""
+    set_obfuscation_config(True)
     inputs = ["light.kitchen", "sensor.1234567890123456"]
     expected = "light.kit****, sensor.123***********~"
     assert obfuscate_id(inputs) == expected
 
 def test_obfuscate_tuple():
     """Test tuple handling."""
+    set_obfuscation_config(True)
     inputs = ("light.kitchen", "light.living_room")
     # living_room is 11 chars. <= 15.
     # liv ********* (8 stars)
@@ -59,3 +69,43 @@ def test_obfuscate_invalid():
     """Test invalid input."""
     assert obfuscate_id(123) == 123
     assert obfuscate_id(None) is None
+
+def test_obfuscate_toggle():
+    """Test toggling obfuscation."""
+    set_obfuscation_config(True)
+    assert obfuscate_id("sensor.secret") == "sensor.sec***"
+    
+    set_obfuscation_config(False)
+    assert obfuscate_id("sensor.secret") == "sensor.secret"
+    
+    # Test list with toggle off
+    assert obfuscate_id(["sensor.secret", "light.kitchen"]) == ["sensor.secret", "light.kitchen"]
+    
+    # Restore default
+    set_obfuscation_config(True)
+
+@pytest.mark.asyncio
+async def test_integration_obfuscate_config(hass):
+    """Test integration setup with CONF_LOG_OBFUSCATE = False."""
+    # Ensure default is True (set by previous tests or module load)
+    set_obfuscation_config(True)
+    
+    config_entry = await async_init_integration(
+        hass,
+        add_params={
+            CONF_LOG_OBFUSCATE: False
+        }
+    )
+    
+    # Verify global state changed
+    assert obfuscate_id("sensor.secret") == "sensor.secret"
+    
+    # Reload with True
+    hass.config_entries.async_update_entry(
+        config_entry, data={**config_entry.data, CONF_LOG_OBFUSCATE: True}
+    )
+    await hass.config_entries.async_reload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    
+    # Verify global state changed back
+    assert obfuscate_id("sensor.secret") == "sensor.sec***"

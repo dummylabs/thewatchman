@@ -20,16 +20,19 @@
                     "included_folders": "Pastas para monitorar:",
                     "ignored_items": "Entidades e ações ignoradas:",
                     "ignored_states": "Excluir entidades com os estados abaixo do relatório:",
-                    "exclude_disabled_automation": "Excluir entidades usadas apenas por automações desativadas",
+                    "exclude_disabled_automation": "Excluir automações desativadas",
                     "ignored_files": "Arquivos ignorados (separados por vírgula):",
                     "check_lovelace": "Analisar dashboards controlados pela UI",
-                    "startup_delay": "Atraso de inicialização para a inicialização dos sensores do watchman"
+                    "startup_delay": "Atraso de inicialização para a inicialização dos sensores do watchman",
+                    "log_obfuscate": "Ofuscar dados sensíveis nos logs"
                 },
                 "data_description": {
                     "included_folders": "Lista de pastas separadas por vírgulas onde o watchman deve procurar arquivos de configuração",
                     "ignored_items": "Lista de entidades e ações separadas por vírgulas excluídas do rastreamento",
                     "ignored_states": "Lista de estados separados por vírgulas excluídos do rastreamento",
-                    "ignored_files": "Lista de arquivos de configuração separados por vírgulas excluídos do rastreamento"
+                    "exclude_disabled_automation": "Excluir entidades usadas apenas por automações desativadas",
+                    "ignored_files": "Lista de arquivos de configuração separados por vírgulas excluídos do rastreamento",
+                    "log_obfuscate": "Se os nomes de entidades e serviços devem ser ocultados nos logs para privacidade"
                 },
                 "sections": {
                     "appearance_location_options": {

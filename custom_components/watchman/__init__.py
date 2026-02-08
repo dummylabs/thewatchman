@@ -17,6 +17,7 @@ from .const import (
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
+    CONF_LOG_OBFUSCATE,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_STARTUP_DELAY,
@@ -39,7 +40,7 @@ from .coordinator import WatchmanCoordinator
 from .hub import WatchmanHub
 from .services import WatchmanServicesSetup
 from .utils.logger import _LOGGER
-from .utils.utils import get_config
+from .utils.utils import get_config, set_obfuscation_config
 
 type WMConfigEntry = ConfigEntry[WMData]
 
@@ -66,6 +67,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
         legacy_db_path.rename(db_path)
 
     integration = await async_get_integration(hass, DOMAIN)
+    
+    # Configure obfuscation
+    set_obfuscation_config(config_entry.data.get(CONF_LOG_OBFUSCATE, True))
+    
     hub = WatchmanHub(hass, str(db_path))
     coordinator = WatchmanCoordinator(
         hass,
@@ -169,6 +174,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload integration when options changed."""
+    set_obfuscation_config(entry.data.get(CONF_LOG_OBFUSCATE, True))
     if hasattr(entry, "runtime_data") and entry.runtime_data:
         _LOGGER.debug("Invalidating FilterContext cache due to update Watchman config_entry data")
         entry.runtime_data.coordinator.invalidate_filter_context()
@@ -291,6 +297,12 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
                 data[CONF_STARTUP_DELAY] = min_delay
 
             current_minor = 2
+
+        if current_minor < 3:
+            _LOGGER.info("Migrating Watchman entry to minor version 3")
+            # Default to True (enabled)
+            data[CONF_LOG_OBFUSCATE] = DEFAULT_OPTIONS.get(CONF_LOG_OBFUSCATE, True)
+            current_minor = 3
 
         if current_minor != config_entry.minor_version:
             hass.config_entries.async_update_entry(

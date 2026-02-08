@@ -14,7 +14,7 @@ DOMAIN_DATA = f"{DOMAIN}_data"
 
 
 CONFIG_ENTRY_VERSION = 2
-CONFIG_ENTRY_MINOR_VERSION = 2
+CONFIG_ENTRY_MINOR_VERSION = 3
 
 DEFAULT_REPORT_FILENAME = f"{DOMAIN}_report.txt"
 DB_FILENAME = f"{DOMAIN}_v2.db"
@@ -67,6 +67,7 @@ CONF_PARSE_CONFIG = "parse_config"
 CONF_COLUMNS_WIDTH = "columns_width"
 CONF_STARTUP_DELAY = "startup_delay"
 CONF_FRIENDLY_NAMES = "friendly_names"
+CONF_LOG_OBFUSCATE = "log_obfuscate"
 # configuration parameters allowed in watchman.report service data
 CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_SERVICE_NAME,
@@ -134,6 +135,7 @@ DEFAULT_OPTIONS = {
     CONF_EXCLUDE_DISABLED_AUTOMATION: True,
     CONF_IGNORED_FILES: "",
     CONF_STARTUP_DELAY: 30,
+    CONF_LOG_OBFUSCATE: True,
     CONF_SECTION_APPEARANCE_LOCATION: {
         CONF_HEADER: "-== Watchman Report ==-",
         CONF_REPORT_PATH: "",

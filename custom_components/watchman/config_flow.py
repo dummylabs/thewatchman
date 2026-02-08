@@ -23,6 +23,7 @@ from .const import (
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
+    CONF_LOG_OBFUSCATE,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_STARTUP_DELAY,
@@ -61,6 +62,9 @@ def _get_data_schema() -> vol.Schema:
             ): cv.positive_int,
             vol.Optional(
                 CONF_EXCLUDE_DISABLED_AUTOMATION,
+            ): cv.boolean,
+            vol.Optional(
+                CONF_LOG_OBFUSCATE,
             ): cv.boolean,
             vol.Required(CONF_SECTION_APPEARANCE_LOCATION): data_entry_flow.section(
                 vol.Schema(
@@ -167,11 +171,10 @@ class OptionsFlowHandler(OptionsFlow):
         2. To validate values entered by user (user_imput = {user_data})
            If no errors found, it should return creates_entry
         """
-        _LOGGER.debug(
-            f"-======::OptionsFlowHandler.async_step_init::======- \nuser_input= {user_input},\nentry_data={self.config_entry.data}"
-        )
 
         if user_input is not None:  # we asked to validate values entered by user
+            _LOGGER.debug("OptionsFlowHandler.async_step_init")
+            _LOGGER.debug(f"user_input= {user_input}")
             errors, placeholders = await _async_validate_input(self.hass, user_input)
             if not errors:
                 # if user cleared up `ignored files` or `ignored items` form fields
