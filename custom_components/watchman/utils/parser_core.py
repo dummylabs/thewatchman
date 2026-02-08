@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable, Generator
 import contextlib
+from dataclasses import dataclass
 import datetime
 import fnmatch
 import logging
@@ -9,8 +10,7 @@ from pathlib import Path
 import re
 import sqlite3
 import time
-from dataclasses import dataclass
-from typing import Any, Generator, TypedDict
+from typing import Any, TypedDict
 
 import anyio
 import yaml
@@ -21,18 +21,18 @@ from ..const import DB_TIMEOUT
 from .logger import _LOGGER
 from .parser_const import (
     BUNDLED_IGNORED_ITEMS,
+    CONFIG_ENTRY_DOMAINS,
     ESPHOME_ALLOWED_KEYS,
     ESPHOME_PATH_SEGMENT,
     HA_DOMAINS,
-    IGNORED_DIRS,
     IGNORED_BRANCH_KEYS,
+    IGNORED_DIRS,
     IGNORED_VALUE_KEYS,
     JSON_FILE_EXTS,
     MAX_FILE_SIZE,
     PLATFORMS,
     STORAGE_WHITELIST,
     YAML_FILE_EXTS,
-    CONFIG_ENTRY_DOMAINS,
 )
 from .yaml_loader import LineLoader
 
@@ -645,6 +645,8 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
 # --- WatchmanParser ---
 
 class WatchmanParser:
+    """Parses HA configuration files to extract entities and actions."""
+
     def __init__(self, db_path: str, executor: Callable[[Callable, Any], Awaitable[Any]] | None = None) -> None:
         self.db_path = db_path
         # default_async_executor is used by parser CLI
@@ -1054,7 +1056,7 @@ class WatchmanParser:
             _LOGGER.debug(
                 f"Phase 3 (Parse): finished in {(time.monotonic() - parse_time):.3f} sec"
             )
-            _LOGGER.debug(f"Total Scan finished in {duration:.3f} sec")
+            _LOGGER.debug(f"Total Scan finished in {duration:.3f} sec, force refresh sensors now.")
 
             current_timestamp = datetime.datetime.now().isoformat()
 
