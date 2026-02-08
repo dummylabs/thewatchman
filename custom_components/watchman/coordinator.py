@@ -188,8 +188,10 @@ def renew_missing_items_list(
             if is_entity and automations:
                 auto_id = next(iter(automations))
                 if not hass.states.get(auto_id):
-                    _LOGGER.warning(f"? Unable to locate automation: {auto_id} for {obfuscate_id(entry)}.")
+                    occurrences = data["locations"]
+                    _LOGGER.warning(f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. May be it's disabled?")
                     _LOGGER.warning(f"  Related auto: {obfuscate_id(automations)}")
+                    _LOGGER.warning(f"  Occurrences: {occurrences}")
 
     return missing_items
 
@@ -234,6 +236,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._cooldown_unsub = None
         self._delay_unsub = None
         self._unsub_state_listener: CALLBACK_TYPE | None = None
+        self._unsub_automation_listener: CALLBACK_TYPE | None = None
         self._last_parse_time = 0.0
         self._current_delay = 0
         self._version = version
@@ -301,6 +304,34 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             exclude_disabled=exclude_disabled,
         )
         return self._filter_context_cache
+
+    @callback
+    def _handle_automation_state_change(self, event: Event) -> None:
+        """Handle state changes for automations (toggles)."""
+        old_state = event.data.get("old_state")
+        new_state = event.data.get("new_state")
+        # Filter noise (attribute changes)
+        if old_state and new_state and old_state.state != new_state.state:
+            _LOGGER.debug(f"Automation state changed: {obfuscate_id(event.data['entity_id'])}")
+            self.invalidate_filter_context()
+            self.hass.async_create_task(self.async_request_refresh())
+
+    @callback
+    def _update_automation_listener(self) -> None:
+        """Update subscription to automation state changes."""
+        if self._unsub_automation_listener:
+            self._unsub_automation_listener()
+            self._unsub_automation_listener = None
+
+        automation_ids = self.hass.states.async_entity_ids("automation")
+        if automation_ids:
+            _LOGGER.debug(f"Subscribing to state changes for {len(automation_ids)} automations")
+            self._unsub_automation_listener = async_track_state_change_event(
+                self.hass, automation_ids, self._handle_automation_state_change
+            )
+        else:
+            _LOGGER.debug("No automations found to subscribe to.")
+
     async def async_load_stats(self) -> None:
         """Load stats from storage."""
         if stats := await self._store.async_load():
@@ -710,6 +741,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 if event_type == EVENT_AUTOMATION_RELOADED:
                     _LOGGER.debug("Invalidating FilterContext cache due to EVENT_AUTOMATION_RELOADED")
                     self.invalidate_filter_context()
+                    self._update_automation_listener()
                 self.request_parser_rescan(reason=str(event_type))
 
         async def async_on_service_changed(event: Event) -> None:
@@ -730,23 +762,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 if entity_id and entity_id.startswith("automation."):
                     _LOGGER.debug("Invalidating FilterContext cache due to a CRUD op. for an automation")
                     self.invalidate_filter_context()
+                    self._update_automation_listener()
                     await self.async_request_refresh()
-
-        async def async_on_automation_state_changed(event: Event) -> None:
-            # Global automation state tracking for "toggles"
-            # Filter: old_state.state != new_state.state
-            old_state = event.data.get("old_state")
-            new_state = event.data.get("new_state")
-            if old_state and new_state and old_state.state != new_state.state:
-                _LOGGER.debug("Invalidating FilterContext cache due to automation state changes")
-                self.invalidate_filter_context()
-                await self.async_request_refresh()
-
-        @callback
-        def automation_state_filter(event_data: dict[str, Any]) -> bool:
-            """Filter state change events for automations."""
-            entity_id = event_data.get("entity_id", "")
-            return isinstance(entity_id, str) and entity_id.startswith("automation.")
 
         # Config/Service/Reload events
         entry.async_on_unload(
@@ -770,11 +787,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self.hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, async_on_registry_updated)
         )
 
-        # Automation State Changes (Global)
-        entry.async_on_unload(
-            # TODO: subscribe only to list of id's of active automations (like already done for entities)
-            self.hass.bus.async_listen("state_changed", async_on_automation_state_changed, event_filter=automation_state_filter)
-        )
+        # Initial subscription to existing automations
+        self._update_automation_listener()
 
     async def async_shutdown(self) -> None:
         """Cancel any scheduled tasks and listeners."""
@@ -790,6 +804,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         if self._unsub_state_listener:
             self._unsub_state_listener()
             self._unsub_state_listener = None
+
+        if self._unsub_automation_listener:
+            self._unsub_automation_listener()
+            self._unsub_automation_listener = None
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update Watchman sensors.
