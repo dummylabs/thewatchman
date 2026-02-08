@@ -4,6 +4,9 @@ sync_repo.sh
 deploy.sh
 deploy_ha.sh
 watchman.db
+watchman_v2.db
+watchman_v2.db-journal
+watchman.lock
 cli/test*
 
 # Byte-compiled / optimized / DLL files

@@ -23,7 +23,6 @@ async def test_ignored_items_exact_match(hass: HomeAssistant):
     config_entry = await async_init_integration(
         hass,
         add_params={
-            CONF_INCLUDED_FOLDERS: ["tests/data/yaml_config"],
             CONF_IGNORED_ITEMS: ignored,
             CONF_IGNORED_STATES: [], # Ensure everything is reported as missing
         },
@@ -61,7 +60,6 @@ async def test_ignored_items_glob_match(hass: HomeAssistant):
     config_entry = await async_init_integration(
         hass,
         add_params={
-            CONF_INCLUDED_FOLDERS: ["tests/data/yaml_config"],
             CONF_IGNORED_ITEMS: ignored,
             CONF_IGNORED_STATES: [],
         },

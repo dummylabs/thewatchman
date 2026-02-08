@@ -27,3 +27,20 @@ def patch_debouncer():
 def new_test_data_dir():
     """Return the path to the new_tests/data directory."""
     return str(Path(__file__).parent.parent / "data")
+
+@pytest.fixture(autouse=True)
+def cleanup_watchman_files(new_test_data_dir):
+    """Cleanup watchman database files after tests."""
+    yield
+    storage_dir = Path(new_test_data_dir) / ".storage"
+    if not storage_dir.exists():
+        return
+
+    for filename in ["watchman.db", "watchman_v2.db", "watchman.lock"]:
+        file_path = storage_dir / filename
+        if file_path.exists():
+            file_path.unlink()
+    
+    # Also clean journal/wal/shm files
+    for path in storage_dir.glob("watchman*.db-*"):
+        path.unlink(missing_ok=True)
