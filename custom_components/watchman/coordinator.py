@@ -19,6 +19,7 @@ from homeassistant.const import (
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
+from homeassistant.helpers.entity_registry import EVENT_ENTITY_REGISTRY_UPDATED
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -69,6 +70,7 @@ parser_lock = asyncio.Lock()
 @dataclass
 class FilterContext:
     """Context object holding data for filtering missing items."""
+
     entity_registry: er.EntityRegistry
     disabled_automations: set[str]
     automation_map: dict[str, str]
@@ -123,7 +125,6 @@ def renew_missing_items_list(
     ignored_states_set = set(ctx.ignored_states)
 
     for entry, data in parsed_list.items():
-        occurrences = data["locations"]
         raw_automations = data["automations"]
         automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
 
@@ -157,7 +158,7 @@ def renew_missing_items_list(
             should_report = not is_action(hass, entry)
 
         if should_report:
-            # Shared exclusion logic
+            # exclude entities which are referenced by disabled automations only
             if ctx.exclude_disabled and automations:
                 all_parents_disabled = True
                 for parent_id in automations:
@@ -167,11 +168,18 @@ def renew_missing_items_list(
 
                 if all_parents_disabled:
                     _LOGGER.debug(
-                        f"{INDENT} {type_label} {entry} is only used by disabled automations {automations}, skipped ({occurrences})"
+                        f"- {type_label} {obfuscate_id(entry)} skipped as it is only used by disabled automations."
                     )
+                    _LOGGER.debug(
+                        f"  Related auto: {obfuscate_id(automations)}."
+                    )
+
                     continue
                 _LOGGER.debug(
-                    f"{INDENT} {type_label} {entry} is used both by enabled and disabled automations {automations}, added to the report ({occurrences})"
+                    f"+ {type_label} {obfuscate_id(entry)} added to the report as it is used both by enabled and disabled automations"
+                )
+                _LOGGER.debug(
+                    f"  Related auto: {obfuscate_id(automations)}."
                 )
 
             missing_items[entry] = data["occurrences"]
@@ -180,7 +188,8 @@ def renew_missing_items_list(
             if is_entity and automations:
                 auto_id = next(iter(automations))
                 if not hass.states.get(auto_id):
-                    _LOGGER.warning(f"Automation with id {auto_id} not found.")
+                    _LOGGER.warning(f"? Unable to locate automation: {auto_id} for {obfuscate_id(entry)}.")
+                    _LOGGER.warning(f"  Related auto: {obfuscate_id(automations)}")
 
     return missing_items
 
@@ -229,6 +238,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._current_delay = 0
         self._version = version
         self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+        self._filter_context_cache: FilterContext | None = None
 
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
@@ -242,8 +252,16 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             COORD_DATA_IGNORED_FILES: 0,
         }
 
+    def invalidate_filter_context(self) -> None:
+        """Invalidate the cached filter context."""
+        self._filter_context_cache = None
+
     def _build_filter_context(self) -> FilterContext:
         """Build the context object for filtering operations."""
+        if self._filter_context_cache:
+            return self._filter_context_cache
+
+        _LOGGER.debug("Build FilterContext object for filtering operations")
         ent_reg = er.async_get(self.hass)
         exclude_disabled = get_config(self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False)
         ignored_states = get_config(self.hass, CONF_IGNORED_STATES, [])
@@ -263,7 +281,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 for a in self.hass.states.async_all("automation")
                 if not a.state or a.state == "off"
             }
-            _LOGGER.debug(f"{INDENT}Found {len(disabled_automations)} disabled automations")
+            _LOGGER.debug(f"Found {len(disabled_automations)} disabled automations")
 
         # Normalize ignored states (e.g. unavail -> unavailable if needed, or handle in loop)
         # For now, we pass raw config list and handle mapping in the loop for backward compatibility
@@ -274,7 +292,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
              else:
                  ignored_states_mapped.append(s)
 
-        return FilterContext(
+        self._filter_context_cache = FilterContext(
             entity_registry=ent_reg,
             disabled_automations=disabled_automations,
             automation_map=automation_map,
@@ -282,7 +300,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             ignored_labels=self.ignored_labels,
             exclude_disabled=exclude_disabled,
         )
-
+        return self._filter_context_cache
     async def async_load_stats(self) -> None:
         """Load stats from storage."""
         if stats := await self._store.async_load():
@@ -631,8 +649,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         return self.data.get(COORD_DATA_PARSE_DURATION, 0.0)
 
     def update_ignored_labels(self, labels: list[str]) -> None:
-        """Update ignored labels list and refresh data."""
+        """Update ignored labels list and refresh data.
+
+        This function called when text.watchman_ignored_labels changes it's state
+        """
         self.ignored_labels = set(labels)
+        _LOGGER.debug("Invalidating FilterContext cache from update_ignored_labels")
+        self.invalidate_filter_context()
         # Only trigger refresh if we are not waiting for HA startup
         if self._status != STATE_WAITING_HA:
             self.hass.async_create_task(self.async_request_refresh())
@@ -678,14 +701,16 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         async def async_on_configuration_changed(event: Event) -> None:
             event_type = event.event_type
             if event_type == EVENT_CALL_SERVICE:
-
                 service = event.data.get("service", None)
                 if service in WATCHED_SERVICES:
                     domain = event.data.get("domain", None)
                     self.request_parser_rescan(reason=f"{domain}.{service}")
 
             elif event_type in WATCHED_EVENTS:
-                self.request_parser_rescan(reason=event_type)
+                if event_type == EVENT_AUTOMATION_RELOADED:
+                    _LOGGER.debug("Invalidating FilterContext cache due to EVENT_AUTOMATION_RELOADED")
+                    self.invalidate_filter_context()
+                self.request_parser_rescan(reason=str(event_type))
 
         async def async_on_service_changed(event: Event) -> None:
             if self.hub.is_scanning:
@@ -698,6 +723,32 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     _LOGGER.debug("Monitored service changed: %s", obfuscate_id(service))
                 await self.async_request_refresh()
 
+        async def async_on_registry_updated(event: Event) -> None:
+            if event.data.get("action") in ("create", "remove", "update"):
+                # We only care about automation changes as they affect the context map
+                entity_id = event.data.get("entity_id")
+                if entity_id and entity_id.startswith("automation."):
+                    _LOGGER.debug("Invalidating FilterContext cache due to a CRUD op. for an automation")
+                    self.invalidate_filter_context()
+                    await self.async_request_refresh()
+
+        async def async_on_automation_state_changed(event: Event) -> None:
+            # Global automation state tracking for "toggles"
+            # Filter: old_state.state != new_state.state
+            old_state = event.data.get("old_state")
+            new_state = event.data.get("new_state")
+            if old_state and new_state and old_state.state != new_state.state:
+                _LOGGER.debug("Invalidating FilterContext cache due to automation state changes")
+                self.invalidate_filter_context()
+                await self.async_request_refresh()
+
+        @callback
+        def automation_state_filter(event_data: dict[str, Any]) -> bool:
+            """Filter state change events for automations."""
+            entity_id = event_data.get("entity_id", "")
+            return isinstance(entity_id, str) and entity_id.startswith("automation.")
+
+        # Config/Service/Reload events
         entry.async_on_unload(
             self.hass.bus.async_listen(EVENT_CALL_SERVICE, async_on_configuration_changed)
         )
@@ -712,6 +763,17 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         )
         entry.async_on_unload(
             self.hass.bus.async_listen(EVENT_SERVICE_REMOVED, async_on_service_changed)
+        )
+
+        # Entity Registry Updates
+        entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, async_on_registry_updated)
+        )
+
+        # Automation State Changes (Global)
+        entry.async_on_unload(
+            # TODO: subscribe only to list of id's of active automations (like already done for entities)
+            self.hass.bus.async_listen("state_changed", async_on_automation_state_changed, event_filter=automation_state_filter)
         )
 
     async def async_shutdown(self) -> None:

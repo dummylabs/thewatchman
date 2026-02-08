@@ -33,14 +33,14 @@ async def test_startup_delay_on_ha_start(hass: HomeAssistant):
         await hass.async_block_till_done()
 
         # Check call
-        # We expect at least one call with reason="startup"
+        # We expect at least one call with reason="mandatory startup scan"
         # Since async_init_integration waits for idle, other calls might happen (like 'service_call' if services registered)
-        # But we look for the one with reason="startup"
+        # But we look for the one with reason="mandatory startup scan"
 
         calls = mock_rescan.call_args_list
         startup_call = None
         for call in calls:
-            if call.kwargs.get("reason") == "startup":
+            if call.kwargs.get("reason") == "mandatory startup scan":
                 startup_call = call
                 break
 
@@ -65,7 +65,7 @@ async def test_startup_delay_when_ha_running(hass: HomeAssistant):
         calls = mock_rescan.call_args_list
         startup_call = None
         for call in calls:
-            if call.kwargs.get("reason") == "startup":
+            if call.kwargs.get("reason") == "mandatory startup scan":
                 startup_call = call
                 break
 

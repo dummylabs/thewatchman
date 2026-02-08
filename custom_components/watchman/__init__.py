@@ -107,17 +107,19 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
         _LOGGER.debug("Subscribed to HA events.")
 
         if event:
+            # integration started during HA startup
+            # use startup delay to schedule initial parsing (usually longer)
             startup_delay = get_config(hass, CONF_STARTUP_DELAY, 0)
-            _LOGGER.debug(
-                f"Watchman started during HA startup). Initial parse in: {startup_delay}s."
-            )
         else:
+            # intergation started after installation from Devices&Services
+            # use short delay to schedule initial parsing (usually longer)
             startup_delay = DEFAULT_DELAY
-            _LOGGER.debug(
-                f"Watchman installed (HA running). Initial parse in: {startup_delay}s."
-            )
 
-        coordinator.request_parser_rescan(reason="startup", delay=startup_delay)
+        _LOGGER.debug(
+            f"Executing mandatory startup scan in: {startup_delay}s."
+        )
+
+        coordinator.request_parser_rescan(reason="mandatory startup scan", delay=startup_delay)
 
     _LOGGER.info(
         "Watchman integration started [%s], DB: %s, Stats: %s",
@@ -167,6 +169,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload integration when options changed."""
+    if hasattr(entry, "runtime_data") and entry.runtime_data:
+        _LOGGER.debug("Invalidating FilterContext cache due to update Watchman config_entry data")
+        entry.runtime_data.coordinator.invalidate_filter_context()
     await hass.config_entries.async_reload(entry.entry_id)
 
 
