@@ -188,6 +188,12 @@ def renew_missing_items_list(
             if is_entity and automations:
                 auto_id = next(iter(automations))
                 if not hass.states.get(auto_id):
+                    # Fallback: check if it's disabled in registry
+                    reg_entry = ctx.entity_registry.async_get(auto_id)
+                    if reg_entry and reg_entry.disabled_by:
+                        # Suppress warning for disabled automations
+                        continue
+
                     occurrences = data["locations"]
                     _LOGGER.warning(f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. May be it's disabled?")
                     _LOGGER.warning(f"  Related auto: {obfuscate_id(automations)}")
@@ -269,22 +275,33 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         exclude_disabled = get_config(self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False)
         ignored_states = get_config(self.hass, CONF_IGNORED_STATES, [])
 
-        # Build automation map
-        automation_map = {
-            entry.unique_id: entry.entity_id
-            for entry in ent_reg.entities.values()
-            if entry.domain == "automation"
-        }
-
-        # Build disabled automations set
+        automation_map = {}
         disabled_automations = set()
+
+
+        # 1. Registry Pass: Map unique_id and check disabled_by
+        for entry in ent_reg.entities.values():
+            if entry.domain != "automation":
+                continue
+
+            # Map unique_id to entity_id
+            automation_map[entry.unique_id] = entry.entity_id
+
+            if exclude_disabled and entry.disabled_by:
+                disabled_automations.add(entry.entity_id)
+
+        num_disabled_auto = len(disabled_automations)
+        num_off_auto = 0
+        # 2. State Pass: Check for 'off' state (covers both registry and non-registry automations)
         if exclude_disabled:
-            disabled_automations = {
-                a.entity_id
-                for a in self.hass.states.async_all("automation")
-                if not a.state or a.state == "off"
-            }
-            _LOGGER.debug(f"Found {len(disabled_automations)} disabled automations")
+            for state in self.hass.states.async_all("automation"):
+                if state.state == "off":
+                    num_off_auto += 1
+                    disabled_automations.add(state.entity_id)
+
+        if exclude_disabled:
+            _LOGGER.debug(f"Found {num_off_auto} automations in 'off' state and {num_disabled_auto} registry-disabled automations.")
+            _LOGGER.debug("They will be excluded from report due to user settings.")
 
         # Normalize ignored states (e.g. unavail -> unavailable if needed, or handle in loop)
         # For now, we pass raw config list and handle mapping in the loop for backward compatibility
