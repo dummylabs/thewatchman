@@ -159,10 +159,9 @@ def _derive_context(
     if not isinstance(node, dict):
         return parent_context
 
-    # Guard clause: If already inside an automation, preserve it.
-    # This prevents nested 'choose' or 'repeat' blocks (which look like scripts)
-    # from overwriting the automation context.
-    if parent_context.is_active and parent_context.parent_type == "automation":
+    # guard: if we are already inside a defined context (Automation or Script),
+    # do not allow nested structures (like repeat, choose) to redefine it.
+    if parent_context.is_active:
         return parent_context
 
     c_id = node.get("id")

@@ -26,6 +26,56 @@ While the configuration is cached, it must not become stale. Watchman subscribes
 * **File System events**: (Where supported) changes to the `configuration.yaml` or valid sub-directories.
 
 When these events are detected, the cached list of referenced entities is discarded and rebuilt in the background.
+
+#### **2.4. Context Propagation (The "Ownership" Model)**
+
+Unlike simple grep-like tools, Watchman needs to understand the _ownership_ of an entity. When `light.kitchen` is found, the parser must determine if it belongs to an automation, a script, or a specific helper (e.g., a Template Switch).
+
+To achieve this without a full DOM parser, we use a **Recursive Context Propagation** mechanism.
+
+**The `ParserContext` Object**
+
+An immutable data class (`ParserContext`) is passed down during the recursive traversal of the configuration tree. It holds the state of the current "container":
+
+- `parent_type`: The type of the container (e.g., `automation`, `script`, `group`).
+    
+- `parent_id`: The unique identifier (e.g., `automation.turn_on_lights`).
+    
+- `parent_alias`: The human-readable name.
+    
+- `is_active`: A boolean flag indicating if we are inside a defined context.
+    
+
+**Logic: `_derive_context`**
+
+As the parser descends into a YAML node (a dictionary), it calls `_derive_context` to decide whether to switch to a new context or inherit the current one.
+
+- **Detection:** If the parser sees keys like `trigger`+`action`, it derives an `automation` context. If it sees `sequence`, it potentially derives a `script` context.
+    
+- **Universal Guard (Context Locking):** To handle nested structures correctly, we apply a **Top-Down Locking Strategy**.
+    
+    - If the parser is _already_ inside an active context (e.g., `is_active=True` because we are inside an automation), it **strictly forbids** creating a new context.
+        
+    - This prevents control flow structures like `repeat`, `choose`, or `if` (which also contain `sequence` keys) from being misinterpreted as new, separate scripts. The entities inside these loops correctly inherit the ownership of the parent automation.
+        
+
+**Data Flow Example:**
+
+```mermaid
+graph TD
+    Root[YAML Root] -->|Ctx: None| Auto[Automation: 'Evening Lights']
+    
+    subgraph "Context: Automation"
+        Auto -->|Ctx: Active| Action[Action Block]
+        Action -->|Ctx: Active| Repeat[Repeat Loop]
+        Repeat -->|Ctx: Active| Seq[Sequence]
+        Seq -->|Ctx: Active| Entity(light.living_room)
+    end
+    
+    style Entity fill:#bfb,stroke:#333,stroke-width:2px
+    note[Entity inherits 'Evening Lights' parent via Context Propagation] --- Entity
+```
+
 ## 3. Data Flow
 The following diagram illustrates the flow of data from the file system to the final report.
 

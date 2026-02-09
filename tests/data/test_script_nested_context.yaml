@@ -1,0 +1,9 @@
+# A script with a nested repeat loop.
+# The entities inside the loop must belong to "Master Script", not "repeat".
+alias: "Master Script"
+sequence:
+  - repeat:
+      sequence:
+        - action: light.turn_on
+          target:
+            entity_id: light.inside_loop
