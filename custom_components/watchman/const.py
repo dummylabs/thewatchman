@@ -33,6 +33,7 @@ DEFAULT_DELAY = 10
 
 PACKAGE_NAME = f"custom_components.{DOMAIN}"
 REPORT_SERVICE_NAME = "report"
+LABELS_SERVICE_NAME = "set_ignored_labels"
 
 HASS_DATA_CANCEL_HANDLERS = "cancel_handlers"
 

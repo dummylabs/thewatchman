@@ -39,3 +39,15 @@ report:
           selector:
             boolean:
 
+set_ignored_labels:
+  name: Set ignored labels
+  description: Overwrite the list of labels to ignore.
+  fields:
+    labels:
+      name: Labels
+      description: List of labels to ignore.
+      required: true
+      selector:
+        label:
+          multiple: true
+

@@ -80,6 +80,16 @@
                     "name": "Opções avançadas"
                 }
             }
+        },
+        "set_ignored_labels": {
+            "name": "Definir etiquetas ignoradas",
+            "description": "Substituir a lista de etiquetas a ignorar.",
+            "fields": {
+                "labels": {
+                    "name": "Etiquetas",
+                    "description": "Lista de etiquetas a ignorar."
+                }
+            }
         }
     },
     "issues": {

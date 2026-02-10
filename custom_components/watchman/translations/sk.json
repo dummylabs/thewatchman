@@ -80,6 +80,16 @@
                     "name": "Pokročilé možnosti"
                 }
             }
+        },
+        "set_ignored_labels": {
+            "name": "Nastaviť ignorované štítky",
+            "description": "Prepísať zoznam štítkov, ktoré sa majú ignorovať.",
+            "fields": {
+                "labels": {
+                    "name": "Štítky",
+                    "description": "Zoznam štítkov na ignorovanie."
+                }
+            }
         }
     },
     "issues": {
