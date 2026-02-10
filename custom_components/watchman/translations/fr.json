@@ -81,5 +81,11 @@
                 }
             }
         }
+    },
+    "issues": {
+        "deprecated_text_entity": {
+            "title": "L'entité {entity_id} est obsolète",
+            "description": "L'utilisation de `{entity_id}` est obsolète et sera supprimée dans une future version de Watchman. Veuillez reconfigurer vos automatisations pour utiliser l'action `watchman.set_ignored_labels`."
+        }
     }
 }

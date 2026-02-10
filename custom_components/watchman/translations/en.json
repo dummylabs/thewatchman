@@ -82,6 +82,12 @@
             }
         }
     },
+    "issues": {
+        "deprecated_text_entity": {
+            "title": "Entity {entity_id} is deprecated",
+            "description": "The use of `{entity_id}` is deprecated and will be removed in a future version of Watchman. Please reconfigure your automations to use the `watchman.set_ignored_labels` action."
+        }
+    },
     "entity": {
         "sensor": {
             "last_updated": {

@@ -87,6 +87,9 @@ async def test_ignored_labels(hass, tmp_path, new_test_data_dir):
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
     await hass.async_block_till_done()
 
+    # Refresh coordinator reference as reload might have occurred
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]
+
     # Verify Results (2 missing, 1 ignored)
     assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 2
 

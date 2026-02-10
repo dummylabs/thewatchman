@@ -81,5 +81,11 @@
                 }
             }
         }
+    },
+    "issues": {
+        "deprecated_text_entity": {
+            "title": "Entita {entity_id} je zastaraná",
+            "description": "Používanie `{entity_id}` je zastarané a v budúcej verzii Watchman bude odstránené. Prekonfigurujte prosím svoje automatizácie na používanie akcie `watchman.set_ignored_labels`."
+        }
     }
 }
