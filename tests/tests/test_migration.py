@@ -72,8 +72,8 @@ async def test_migrate_v2_minor_upgrade_forces_delay(hass: HomeAssistant):
     # Should be updated to default (30)
     assert updated_data[CONF_STARTUP_DELAY] == DEFAULT_OPTIONS[CONF_STARTUP_DELAY]
     
-    # It continues to migrate to v3
-    assert kwargs["minor_version"] == 3
+    # It continues to migrate to v4
+    assert kwargs["minor_version"] == 4
     assert updated_data[CONF_LOG_OBFUSCATE] is True
 
 @pytest.mark.asyncio
@@ -100,16 +100,16 @@ async def test_migrate_v2_minor_upgrade_preserves_valid_delay(hass: HomeAssistan
     updated_data = kwargs["data"]
 
     assert updated_data[CONF_STARTUP_DELAY] == 60
-    # It continues to migrate to v3
-    assert kwargs["minor_version"] == 3
+    # It continues to migrate to v4
+    assert kwargs["minor_version"] == 4
 
 @pytest.mark.asyncio
 async def test_migrate_v2_current_version_no_op(hass: HomeAssistant):
     """Test no migration needed if version is current."""
     mock_entry = MagicMock(spec=ConfigEntry)
     mock_entry.version = 2
-    # Set to current minor version (3)
-    mock_entry.minor_version = 3
+    # Set to current minor version (4)
+    mock_entry.minor_version = 4
     mock_entry.data = {
         CONF_STARTUP_DELAY: 5 # Should remain 5 as migration logic won't run
     }
@@ -148,7 +148,8 @@ async def test_migrate_v2_minor_upgrade_adds_obfuscation(hass: HomeAssistant):
 
     assert CONF_LOG_OBFUSCATE in updated_data
     assert updated_data[CONF_LOG_OBFUSCATE] is True
-    assert kwargs["minor_version"] == 3
+    # It upgrades to 4 eventually
+    assert kwargs["minor_version"] == 4
 
 @pytest.mark.asyncio
 async def test_migrate_v2_downgrade_compatibility(hass: HomeAssistant):

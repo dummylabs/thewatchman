@@ -28,6 +28,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_EXCLUDE_DISABLED_AUTOMATION,
     CONF_IGNORED_FILES,
+    CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     COORD_DATA_ENTITY_ATTRS,
     COORD_DATA_IGNORED_FILES,
@@ -234,7 +235,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self.hub = hub
         self.debouncer = debouncer
         self.last_check_duration = 0.0
-        self.ignored_labels = set()
         self.checked_states = set()
         self._status = STATE_WAITING_HA
         self._needs_parse = False
@@ -274,6 +274,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         ent_reg = er.async_get(self.hass)
         exclude_disabled = get_config(self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False)
         ignored_states = get_config(self.hass, CONF_IGNORED_STATES, [])
+        ignored_labels = set(self.config_entry.data.get(CONF_IGNORED_LABELS, []))
 
         automation_map = {}
         disabled_automations = set()
@@ -317,7 +318,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             disabled_automations=disabled_automations,
             automation_map=automation_map,
             ignored_states=ignored_states_mapped,
-            ignored_labels=self.ignored_labels,
+            ignored_labels=ignored_labels,
             exclude_disabled=exclude_disabled,
         )
         return self._filter_context_cache
@@ -695,18 +696,6 @@ class WatchmanCoordinator(DataUpdateCoordinator):
     async def async_get_last_parse_duration(self) -> float:
         """Return duration of the last parsing."""
         return self.data.get(COORD_DATA_PARSE_DURATION, 0.0)
-
-    def update_ignored_labels(self, labels: list[str]) -> None:
-        """Update ignored labels list and refresh data.
-
-        This function called when text.watchman_ignored_labels changes it's state
-        """
-        self.ignored_labels = set(labels)
-        _LOGGER.debug("Invalidating FilterContext cache from update_ignored_labels")
-        self.invalidate_filter_context()
-        # Only trigger refresh if we are not waiting for HA startup
-        if self._status != STATE_WAITING_HA:
-            self.hass.async_create_task(self.async_request_refresh())
 
     @callback
     def _handle_state_change_event(self, event: Event) -> None:

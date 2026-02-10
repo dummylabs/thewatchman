@@ -22,6 +22,7 @@ from .const import (
     CONF_HEADER,
     CONF_IGNORED_FILES,
     CONF_IGNORED_ITEMS,
+    CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     CONF_LOG_OBFUSCATE,
     CONF_REPORT_PATH,
@@ -57,6 +58,11 @@ def _get_data_schema() -> vol.Schema:
             vol.Optional(
                 CONF_IGNORED_FILES,
             ): select,
+            vol.Optional(
+                CONF_IGNORED_LABELS,
+            ): selector.LabelSelector(
+                selector.LabelSelectorConfig(multiple=True)
+            ),
             vol.Required(
                 CONF_STARTUP_DELAY,
             ): cv.positive_int,
@@ -204,6 +210,7 @@ class OptionsFlowHandler(OptionsFlow):
                 errors,
                 placeholders,
             )
+            placeholders = dict(placeholders)
             placeholders["url"] = "https://github.com/dummylabs/thewatchman#configuration"
             return self.async_show_form(
                 step_id="init",

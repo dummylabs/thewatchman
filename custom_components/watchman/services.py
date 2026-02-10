@@ -3,18 +3,21 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import label_registry as lr
 
 from .const import (
     CONF_ACTION_NAME,
     CONF_ALLOWED_SERVICE_PARAMS,
     CONF_CHUNK_SIZE,
     CONF_CREATE_FILE,
+    CONF_IGNORED_LABELS,
     CONF_PARSE_CONFIG,
     CONF_REPORT_PATH,
     CONF_SEND_NOTIFICATION,
     CONF_SERVICE_DATA,
     CONF_SERVICE_NAME,
     DOMAIN,
+    LABELS_SERVICE_NAME,
     REPORT_SERVICE_NAME,
 )
 from .utils.logger import _LOGGER
@@ -40,6 +43,28 @@ class WatchmanServicesSetup:
             REPORT_SERVICE_NAME,
             self.async_handle_report,
             supports_response=SupportsResponse.OPTIONAL
+        )
+        self.hass.services.async_register(
+            DOMAIN,
+            LABELS_SERVICE_NAME,
+            self.async_handle_set_ignored_labels,
+        )
+
+    async def async_handle_set_ignored_labels(self, call: ServiceCall) -> None:
+        """Set ignored labels."""
+        labels = call.data.get("labels", [])
+        registry = lr.async_get(self.hass)
+        existing_labels = {l.label_id for l in registry.async_list_labels()}
+
+        invalid_labels = [l for l in labels if l not in existing_labels]
+        if invalid_labels:
+            raise ServiceValidationError(
+                f"The following labels do not exist: {', '.join(invalid_labels)}"
+            )
+
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            data={**self.config_entry.data, CONF_IGNORED_LABELS: labels}
         )
 
     async def async_handle_report(self, call: ServiceCall) -> dict[str, Any]:
@@ -89,4 +114,3 @@ class WatchmanServicesSetup:
                 )
 
         return await self.coordinator.async_get_detailed_report_data()
-
