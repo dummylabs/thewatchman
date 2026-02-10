@@ -1,0 +1,44 @@
+# False Positives (Should return empty list)
+- name: "Hyphen in filename (image)"
+  input: "/local/cleaning-robot-alert.png"
+  expected: []
+
+- name: "Hyphen in CSS class"
+  input: "class='ha-card-weather.home'"
+  expected: []
+
+- name: "Email address ( @ delimiter)"
+  input: "support@input.com"
+  expected: []
+
+- name: "URL parameters (& delimiter)"
+  input: "https://site.com?q=1&script.js=true"
+  expected: []
+
+- name: "Bash/Template variable ($ delimiter)"
+  input: "value=$sensor.value"
+  expected: []
+
+- name: "Percentage value (% delimiter)"
+  input: "width: 100%input.number"
+  expected: []
+
+- name: "Regex OR operator (Pipe delimiter)"
+  input: "reject('search', '_low_battery|switch.hue|steckdosenleiste')"
+  expected: []
+
+# Regressions / Valid Cases (Should return entities)
+- name: "Standard Entity"
+  input: "sensor.temperature"
+  expected: 
+    - "sensor.temperature"
+
+- name: "Inside Jinja template"
+  input: "{{ states('light.kitchen') }}"
+  expected: 
+    - "light.kitchen"
+
+- name: "List format"
+  input: "entities: [binary_sensor.motion]"
+  expected: 
+    - "binary_sensor.motion"

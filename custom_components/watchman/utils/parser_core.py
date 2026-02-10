@@ -93,7 +93,7 @@ _ALL_DOMAINS = get_domains()
 
 # Regex patterns to identify entitites definitions
 _ENTITY_PATTERN = re.compile(
-    r"(?:^|[^a-zA-Z0-9_./\\])(?:states\.)?((" + "|".join(_ALL_DOMAINS) + r")\.[a-z0-9_]+)",
+    r"(?:^|[^a-zA-Z0-9_./\\@$%&|-])(?:states\.)?((" + "|".join(_ALL_DOMAINS) + r")\.[a-z0-9_]+)",
     re.IGNORECASE
 )
 
