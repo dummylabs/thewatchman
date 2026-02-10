@@ -106,6 +106,98 @@ def _resolve_automations(
     return automations
 
 
+def check_single_entity_status(
+    hass: HomeAssistant,
+    entry: str,
+    data: dict[str, Any],
+    ctx: FilterContext,
+    item_type: str,
+) -> list[dict[str, Any]] | None:
+    """Check status of a single entity.
+
+    Returns occurrences list if missing/invalid, None otherwise.
+    """
+    is_entity = item_type == "entity"
+    type_label = "entity" if is_entity else "action"
+
+    occurrences = data["locations"]
+    raw_automations = data["automations"]
+    automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
+
+    if is_entity:
+        # Check if this is a valid HA action misidentified as a sensor/other entity
+        if is_action(hass, entry):
+            return None
+
+        # Check ignored labels
+        if ctx.ignored_labels:
+            reg_entry = ctx.entity_registry.async_get(entry)
+            if (
+                reg_entry
+                and hasattr(reg_entry, "labels")
+                and set(reg_entry.labels) & ctx.ignored_labels
+            ):
+                return None
+
+        state, _ = get_entity_state(hass, entry)
+
+        # Map state to config format if needed (e.g. unavailable -> unavail)
+        check_state = "unavail" if state == "unavailable" else state
+
+        if check_state in set(ctx.ignored_states):
+            return None
+
+        # Entities are reported if they are missing/unknown/etc.
+        should_report = state in ["missing", "unknown", "unavail", "disabled"]
+    else:
+        # Actions are reported if they don't exist
+        should_report = not is_action(hass, entry)
+
+    if should_report:
+        # exclude entities which are referenced by disabled automations only
+        if ctx.exclude_disabled and automations:
+            all_parents_disabled = True
+            for parent_id in automations:
+                if parent_id not in ctx.disabled_automations:
+                    all_parents_disabled = False
+                    break
+
+            if all_parents_disabled:
+                _LOGGER.debug(
+                    f"- {type_label} {obfuscate_id(entry)} skipped as it is only used by disabled automations."
+                )
+                _LOGGER.debug(
+                    f"  Related auto: {obfuscate_id(automations)}."
+                )
+                return None
+
+            _LOGGER.debug(
+                f"+ {type_label} {obfuscate_id(entry)} added to the report as it is used both by enabled and disabled automations"
+            )
+            _LOGGER.debug(
+                f"  Related auto: {obfuscate_id(automations)}."
+            )
+
+        # Entity-specific warning logic
+        if is_entity and automations:
+            auto_id = next(iter(automations))
+            if not hass.states.get(auto_id):
+                # Fallback: check if it's disabled in registry
+                reg_entry = ctx.entity_registry.async_get(auto_id)
+                should_warn = True
+                if reg_entry and reg_entry.disabled_by:
+                    should_warn = False
+
+                if should_warn:
+                    _LOGGER.warning(f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. May be it's disabled?")
+                    _LOGGER.warning(f"  Related auto: {obfuscate_id(automations)}")
+                    _LOGGER.warning(f"  Occurrences: {occurrences}")
+
+        return data["occurrences"]
+
+    return None
+
+
 def renew_missing_items_list(
     hass: HomeAssistant,
     parsed_list: dict[str, Any],
@@ -115,90 +207,16 @@ def renew_missing_items_list(
     """Refresh list of missing items using the provided FilterContext."""
     missing_items = {}
     is_entity = item_type == "entity"
-    type_label = "entity" if is_entity else "action"
 
     # Specific check for actions if 'missing' is ignored
     if not is_entity and "missing" in ctx.ignored_states:
         _LOGGER.info("MISSING state set as ignored in config, so watchman ignores missing actions.")
         return missing_items
 
-    # Adjust ignored states for entities (unavail -> unavailable mapping handled in build context ideally, but kept simple here)
-    ignored_states_set = set(ctx.ignored_states)
-
     for entry, data in parsed_list.items():
-        raw_automations = data["automations"]
-        automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
-
-        if is_entity:
-            # Check if this is a valid HA action misidentified as a sensor/other entity
-            if is_action(hass, entry):
-                continue
-
-            # Check ignored labels
-            if ctx.ignored_labels:
-                reg_entry = ctx.entity_registry.async_get(entry)
-                if (
-                    reg_entry
-                    and hasattr(reg_entry, "labels")
-                    and set(reg_entry.labels) & ctx.ignored_labels
-                ):
-                    continue
-
-            state, _ = get_entity_state(hass, entry)
-
-            # Map state to config format if needed (e.g. unavailable -> unavail)
-            check_state = "unavail" if state == "unavailable" else state
-
-            if check_state in ignored_states_set:
-                continue
-
-            # Entities are reported if they are missing/unknown/etc.
-            should_report = state in ["missing", "unknown", "unavail", "disabled"]
-        else:
-            # Actions are reported if they don't exist
-            should_report = not is_action(hass, entry)
-
-        if should_report:
-            # exclude entities which are referenced by disabled automations only
-            if ctx.exclude_disabled and automations:
-                all_parents_disabled = True
-                for parent_id in automations:
-                    if parent_id not in ctx.disabled_automations:
-                        all_parents_disabled = False
-                        break
-
-                if all_parents_disabled:
-                    _LOGGER.debug(
-                        f"- {type_label} {obfuscate_id(entry)} skipped as it is only used by disabled automations."
-                    )
-                    _LOGGER.debug(
-                        f"  Related auto: {obfuscate_id(automations)}."
-                    )
-
-                    continue
-                _LOGGER.debug(
-                    f"+ {type_label} {obfuscate_id(entry)} added to the report as it is used both by enabled and disabled automations"
-                )
-                _LOGGER.debug(
-                    f"  Related auto: {obfuscate_id(automations)}."
-                )
-
-            missing_items[entry] = data["occurrences"]
-
-            # Entity-specific warning logic
-            if is_entity and automations:
-                auto_id = next(iter(automations))
-                if not hass.states.get(auto_id):
-                    # Fallback: check if it's disabled in registry
-                    reg_entry = ctx.entity_registry.async_get(auto_id)
-                    if reg_entry and reg_entry.disabled_by:
-                        # Suppress warning for disabled automations
-                        continue
-
-                    occurrences = data["locations"]
-                    _LOGGER.warning(f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. May be it's disabled?")
-                    _LOGGER.warning(f"  Related auto: {obfuscate_id(automations)}")
-                    _LOGGER.warning(f"  Occurrences: {occurrences}")
+        result = check_single_entity_status(hass, entry, data, ctx, item_type)
+        if result is not None:
+            missing_items[entry] = result
 
     return missing_items
 
@@ -249,6 +267,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
         self._filter_context_cache: FilterContext | None = None
 
+        # Optimization: Dirty set tracking
+        self._dirty_entities: set[str] = set()
+        self._missing_entities_cache: dict[str, Any] = {}
+        self._missing_actions_cache: dict[str, Any] = {}
+        self._force_full_rescan: bool = True
+
         self.data = {
             COORD_DATA_MISSING_ENTITIES: 0,
             COORD_DATA_MISSING_ACTIONS: 0,
@@ -264,6 +288,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
     def invalidate_filter_context(self) -> None:
         """Invalidate the cached filter context."""
         self._filter_context_cache = None
+        # Invalidate filter context implies global rules changed, so force full rescan
+        self._force_full_rescan = True
 
     def _build_filter_context(self) -> FilterContext:
         """Build the context object for filtering operations."""
@@ -447,6 +473,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             ctx,
             item_type="entity",
         )
+
+        # Initialize internal cache
+        self._missing_entities_cache = entities_missing
+        self._missing_actions_cache = services_missing
+        self._force_full_rescan = False
+        self._dirty_entities.clear()
 
         # build entity attributes map for missing_entities sensor
         entity_attrs = [
@@ -671,6 +703,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             if parse_result := await self.hub.async_parse(ignored_files):
                 self._last_parse_time = time.time()
                 await self.async_save_stats(parse_result)
+                # After scan, we definitely need full rescan of items status
+                self._force_full_rescan = True
 
             # Refresh data and notify sensors
             await self.async_refresh()
@@ -704,17 +738,13 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Scan in progress, skipping state change event.")
             return
 
-        def state_or_missing(state_id: str) -> str:
-            """Return missing state if entity not found."""
-            return "missing" if not event.data[state_id] else event.data[state_id].state
+        entity_id = event.data["entity_id"]
+        # Track dirty entities
+        self._dirty_entities.add(entity_id)
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug(f"{obfuscate_id(entity_id)}, queued for refresh. Dirty: {len(self._dirty_entities)}")
 
-        old_state = state_or_missing("old_state")
-        new_state = state_or_missing("new_state")
-
-        if new_state in self.checked_states or old_state in self.checked_states:
-            if _LOGGER.isEnabledFor(logging.DEBUG):
-                _LOGGER.debug(f"Monitored entity changed: {obfuscate_id(event.data['entity_id'])} from {old_state} to {new_state}")
-            self.hass.async_create_task(self.async_request_refresh())
+        self.hass.async_create_task(self.async_request_refresh())
 
     @callback
     def async_update_entity_tracking(self) -> None:
@@ -759,16 +789,25 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             if self.hub.is_monitored_service(service):
                 if _LOGGER.isEnabledFor(logging.DEBUG):
                     _LOGGER.debug("Monitored service changed: %s", obfuscate_id(service))
+                self._force_full_rescan = True
                 await self.async_request_refresh()
 
         async def async_on_registry_updated(event: Event) -> None:
             if event.data.get("action") in ("create", "remove", "update"):
-                # We only care about automation changes as they affect the context map
                 entity_id = event.data.get("entity_id")
+
+                # 1. Automation changes -> Invalidate Context -> Full Rescan
                 if entity_id and entity_id.startswith("automation."):
                     _LOGGER.debug("Invalidating FilterContext cache due to a CRUD op. for an automation")
                     self.invalidate_filter_context()
                     self._update_automation_listener()
+                    await self.async_request_refresh()
+                    return
+
+                # 2. Monitored Entity changes -> Full Rescan
+                if entity_id and entity_id in self.hub._monitored_entities:
+                    _LOGGER.debug(f"Registry update for monitored entity {obfuscate_id(entity_id)} -> Force Full Rescan")
+                    self._force_full_rescan = True
                     await self.async_request_refresh()
 
         # Config/Service/Reload events
@@ -835,17 +874,81 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             parsed_service_list = all_items["services"]
             parsed_entity_list = all_items["entities"]
 
-            new_data = await self.async_process_parsed_data(
-                parsed_entity_list, parsed_service_list
-            )
+            ctx = self._build_filter_context()
+
+            # Logic Fork: Full vs Partial
+            if self._force_full_rescan:
+                _LOGGER.debug("Performing FULL status check.")
+                self._missing_entities_cache = renew_missing_items_list(
+                    self.hass, parsed_entity_list, ctx, item_type="entity"
+                )
+                self._missing_actions_cache = renew_missing_items_list(
+                    self.hass, parsed_service_list, ctx, item_type="action"
+                )
+                self._force_full_rescan = False
+                self._dirty_entities.clear()
+
+            elif self._dirty_entities:
+                _LOGGER.debug(f"Performing PARTIAL status check for {len(self._dirty_entities)} entities.")
+                updates = self._dirty_entities.copy()
+                self._dirty_entities.clear()
+
+                for entity_id in updates:
+                    if entity_id in parsed_entity_list:
+                        # Re-check this entity
+                        result = check_single_entity_status(
+                            self.hass, entity_id, parsed_entity_list[entity_id], ctx, item_type="entity"
+                        )
+                        if result is not None:
+                            # It is missing/invalid
+                            self._missing_entities_cache[entity_id] = result
+                        else:
+                            # It is valid/available -> remove from missing cache
+                            self._missing_entities_cache.pop(entity_id, None)
+
+            # Construct result from cache
+            entities_missing = self._missing_entities_cache
+            services_missing = self._missing_actions_cache
+
+            # build entity attributes map for missing_entities sensor
+            entity_attrs = [
+                {
+                    "id": entity,
+                    "state": state,
+                    "friendly_name": name or "",
+                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                }
+                for entity in entities_missing
+                for state, name in [get_entity_state(self.hass, entity, friendly_names=True)]
+            ]
+
+            # build service attributes map for missing_services sensor
+            service_attrs = [
+                {
+                    "id": service,
+                    "occurrences": fill(parsed_service_list[service]["locations"], 0),
+                }
+                for service in services_missing
+            ]
+
+            new_data = {
+                COORD_DATA_MISSING_ENTITIES: len(entities_missing),
+                COORD_DATA_MISSING_ACTIONS: len(services_missing),
+                COORD_DATA_LAST_UPDATE: dt_util.now(),
+                COORD_DATA_SERVICE_ATTRS: service_attrs,
+                COORD_DATA_ENTITY_ATTRS: entity_attrs,
+                COORD_DATA_PARSE_DURATION: self.data.get(COORD_DATA_PARSE_DURATION, 0.0),
+                COORD_DATA_LAST_PARSE: self.data.get(COORD_DATA_LAST_PARSE),
+                COORD_DATA_PROCESSED_FILES: self.data.get(COORD_DATA_PROCESSED_FILES, 0),
+                COORD_DATA_IGNORED_FILES: self.data.get(COORD_DATA_IGNORED_FILES, 0),
+            }
             self.data = new_data
             _LOGGER.debug(
-                f"Sensors refreshed from DB. Actions: {new_data[COORD_DATA_MISSING_ACTIONS]}, "
+                f"Sensors refreshed. Actions: {new_data[COORD_DATA_MISSING_ACTIONS]}, "
                 f"Entities: {new_data[COORD_DATA_MISSING_ENTITIES]}"
             )
+            return new_data
 
         except Exception as err:
-            _LOGGER.error(f"Error reading watchman data: {err}")
+            _LOGGER.exception(f"Error reading watchman data: {err}")
             return self.data
-        else:
-            return new_data
