@@ -172,16 +172,28 @@ def is_action(hass: HomeAssistant, entry: str) -> bool:
     """Check whether config entry is an action."""
     if not isinstance(entry, str):
         return False
-    domain, service = entry.split(".", maxsplit=1)[0], ".".join(entry.split(".")[1:])
-    return hass.services.has_service(domain, service)
+    try:
+        domain, service = split_entity_id(entry)
+    except ValueError:
+        return False
+    return bool(service) and hass.services.has_service(domain, service)
 
 
 def get_entity_state(
-    hass: HomeAssistant, entry: str, *, friendly_names: bool = False
+    hass: HomeAssistant,
+    entry: str,
+    *,
+    friendly_names: bool = False,
+    registry_entry: er.RegistryEntry | None = None,
 ) -> tuple[str, str | None]:
-    """Return entity state or 'missing' if entity does not extst."""
+    """Return entity state or 'missing' if entity does not exist."""
     entity_state = hass.states.get(entry)
-    entity_registry = er.async_get(hass)
+
+    # Use provided registry_entry if available, otherwise fetch it
+    if registry_entry is None:
+        entity_registry = er.async_get(hass)
+        registry_entry = entity_registry.async_get(entry)
+
     name = None
     if entity_state and entity_state.attributes.get("friendly_name", None):
         if friendly_names:
@@ -189,9 +201,12 @@ def get_entity_state(
 
     if not entity_state:
         state = "missing"
-        if regentry := entity_registry.async_get(entry):
-            if regentry.disabled_by:
-                state = "disabled"
+        if registry_entry is None:
+            entity_registry = er.async_get(hass)
+            registry_entry = entity_registry.async_get(entry)
+
+        if registry_entry and registry_entry.disabled_by:
+                    state = "disabled"
     else:
         state = str(entity_state.state).replace("unavailable", "unavail")
         if split_entity_id(entry)[0] == "input_button" and state == "unknown":
