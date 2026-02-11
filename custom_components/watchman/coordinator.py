@@ -125,93 +125,84 @@ def check_single_entity_status(
     ctx: FilterContext,
     item_type: str,
 ) -> list[dict[str, Any]] | None:
-    """Check status of a single entity.
+    """Check status of a single entity with cross-validation logic.
 
     Returns occurrences list if missing/invalid, None otherwise.
     """
-    is_entity = item_type == "entity"
-    type_label = "entity" if is_entity else "action"
+    is_entity_check = item_type == "entity"
 
-    occurrences = data["locations"]
+    # --- PHASE 1: STATUS RESOLUTION & CROSS-VALIDATION ---
+    current_state_val = "unknown"
+
+    if is_entity_check:
+        # 1. Primary Check
+        state_obj, _ = get_entity_state(hass, entry)
+        current_state_val = state_obj # e.g. "on", "off", "missing", "unavail"
+
+        is_missing = current_state_val in ["missing", "unknown", "unavail", "disabled"]
+
+        if is_missing:
+            # 2. Cross-Check: Is it actually a valid Action?
+            if is_action(hass, entry):
+                return None
+        else:
+            return None # Entity is healthy
+    else:
+        # 1. Primary Check
+        if is_action(hass, entry):
+            return None # Action exists
+
+        current_state_val = "missing"
+
+        # 2. Cross-Check: Is it actually a valid Entity?
+        if hass.states.get(entry) or ctx.entity_registry.async_get(entry):
+            return None
+
+    # --- PHASE 2: CONFIGURATION FILTERS ---
+    # Map 'unavailable' -> 'unavail' for config compatibility
+    check_state = "unavail" if current_state_val == "unavailable" else current_state_val
+
+    if check_state in set(ctx.ignored_states):
+        return None
+
+    if is_entity_check and ctx.ignored_labels:
+        reg_entry = ctx.entity_registry.async_get(entry)
+        if (
+            reg_entry
+            and hasattr(reg_entry, "labels")
+            and set(reg_entry.labels) & ctx.ignored_labels
+        ):
+            return None
+
+    # --- PHASE 3: CONTEXT ANALYSIS (Lazy Loading) ---
+    # Only resolve automations if we are actually going to report this item
+    locations = data["locations"]
     raw_automations = data["automations"]
     automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
 
-    if is_entity:
-        # Check if this is a valid HA action misidentified as a sensor/other entity
-        if is_action(hass, entry):
+    if ctx.exclude_disabled and automations:
+        all_parents_disabled = True
+        for parent_id in automations:
+            if parent_id not in ctx.disabled_automations:
+                all_parents_disabled = False
+                break
+
+        if all_parents_disabled:
             return None
 
-        # Check ignored labels
-        if ctx.ignored_labels:
-            reg_entry = ctx.entity_registry.async_get(entry)
-            if (
-                reg_entry
-                and hasattr(reg_entry, "labels")
-                and set(reg_entry.labels) & ctx.ignored_labels
-            ):
-                return None
+    # --- PHASE 4: WARNINGS & REPORTING ---
+    if is_entity_check and automations:
+        auto_id = next(iter(automations))
+        # Logic to warn if parent automation is missing...
+        if not hass.states.get(auto_id):
+             reg_entry = ctx.entity_registry.async_get(auto_id)
+             if not (reg_entry and reg_entry.disabled_by):
+                 _LOGGER.warning(
+                     f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. "
+                     f"Occurrences: {locations}"
+                 )
 
-        state, _ = get_entity_state(hass, entry)
-
-        # Map state to config format if needed (e.g. unavailable -> unavail)
-        check_state = "unavail" if state == "unavailable" else state
-
-        if check_state in set(ctx.ignored_states):
-            return None
-
-        # Entities are reported if they are missing/unknown/etc.
-        should_report = state in ["missing", "unknown", "unavail", "disabled"]
-    else:
-        # Actions are reported if they don't exist
-        should_report = not is_action(hass, entry)
-        if should_report:
-            # Cross-check: parser might have misidentified an entity as an action
-            if hass.states.get(entry) or ctx.entity_registry.async_get(entry):
-                return None
-
-    if should_report:
-        # exclude entities which are referenced by disabled automations only
-        if ctx.exclude_disabled and automations:
-            all_parents_disabled = True
-            for parent_id in automations:
-                if parent_id not in ctx.disabled_automations:
-                    all_parents_disabled = False
-                    break
-
-            if all_parents_disabled:
-                _LOGGER.debug(
-                    f"- {type_label} {obfuscate_id(entry)} skipped as it is only used by disabled automations."
-                )
-                _LOGGER.debug(
-                    f"  Related auto: {obfuscate_id(automations)}."
-                )
-                return None
-
-            _LOGGER.debug(
-                f"+ {type_label} {obfuscate_id(entry)} added to the report as it is used both by enabled and disabled automations"
-            )
-            _LOGGER.debug(
-                f"  Related auto: {obfuscate_id(automations)}."
-            )
-
-        # Entity-specific warning logic
-        if is_entity and automations:
-            auto_id = next(iter(automations))
-            if not hass.states.get(auto_id):
-                # Fallback: check if it's disabled in registry
-                reg_entry = ctx.entity_registry.async_get(auto_id)
-                should_warn = True
-                if reg_entry and reg_entry.disabled_by:
-                    should_warn = False
-
-                if should_warn:
-                    _LOGGER.warning(f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. May be it's disabled?")
-                    _LOGGER.warning(f"  Related auto: {obfuscate_id(automations)}")
-                    _LOGGER.warning(f"  Occurrences: {occurrences}")
-
-        return data["occurrences"]
-
-    return None
+    return data["occurrences"]
 
 
 def renew_missing_items_list(
