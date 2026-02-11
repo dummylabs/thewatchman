@@ -1,0 +1,13 @@
+{
+  "title": "Test Dashboard",
+  "views": [
+    {
+      "cards": [
+        {
+          "type": "entity",
+          "entity": "sensor.test_new"
+        }
+      ]
+    }
+  ]
+}
