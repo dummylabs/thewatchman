@@ -48,8 +48,11 @@ ESPHOME_PATH_SEGMENT = "esphome"
 # Allowed keys for ESPHome files to be considered as HA entities/services
 ESPHOME_ALLOWED_KEYS = {'service', 'action', 'entity_id'}
 
-# YAML keys which values (whole hierarchy) should be ignored
+# Keys which values (whole hierarchy) should be ignored
 IGNORED_BRANCH_KEYS = {'url', 'example', 'description', 'event_type', 'logger'}
+
+# Keys identifying an action/service call
+ACTION_KEYS = {'service', 'action', 'service_template', 'perform_action'}
 
 # Keys where the parser ignores the immediate string value (to avoid false positives)
 # but continues recursion if the value is a complex structure

@@ -164,6 +164,10 @@ def check_single_entity_status(
     else:
         # Actions are reported if they don't exist
         should_report = not is_action(hass, entry)
+        if should_report:
+            # Cross-check: parser might have misidentified an entity as an action
+            if hass.states.get(entry) or ctx.entity_registry.async_get(entry):
+                return None
 
     if should_report:
         # exclude entities which are referenced by disabled automations only

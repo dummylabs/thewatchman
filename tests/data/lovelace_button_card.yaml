@@ -1,0 +1,13 @@
+type: "custom:button-card"
+custom_fields:
+  card1:
+    card:
+      type: "custom:button-card"
+      entity: switch.pool_pump
+      tap_action:
+        action: |
+          [[[
+            var e = states["switch.pool_pump"];
+            return e.state == "off" ? 'call-service' : 'toggle'
+          ]]]
+        service: light.turn_on

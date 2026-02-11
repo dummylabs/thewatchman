@@ -35,6 +35,7 @@ from .parser_const import (
     REGEX_OPTIONAL_STATES,
     STORAGE_WHITELIST,
     YAML_FILE_EXTS,
+    ACTION_KEYS,
 )
 from .yaml_loader import LineLoader
 
@@ -120,7 +121,7 @@ def _detect_file_type(filepath: str) -> str:
     filename = path.name
     if filename in STORAGE_WHITELIST:
         return "json"
-    
+
     if filename.startswith("lovelace"):
         return "json"
 
@@ -158,6 +159,20 @@ def _is_automation(node: dict) -> bool:
 def _is_script(node: dict) -> bool:
     """Check if a node looks like a script definition."""
     return "sequence" in node
+
+
+def is_template(value: str) -> bool:
+    """Check if the string looks like a Jinja2 or JS template.
+
+    Detects explicit template markers ({{, {%, [[[) to distinguish
+    them from simple strings.
+    """
+    value = value.lstrip()
+    return (
+        value.startswith("[[[")
+        or value.startswith("{%")
+        or value.startswith("{{")
+    )
 
 
 def _derive_context(
@@ -330,9 +345,14 @@ def _recursive_search(
             # Determine expected type for value
             is_action_key = (
                 isinstance(key, str)
-                and key.lower() in ["service", "action", "service_template"]
+                and key.lower() in ACTION_KEYS
             )
             next_type = "service" if is_action_key else "entity"
+
+
+            if is_action_key and isinstance(value, str) and is_template(value):
+                # assumption: templates within action key may only contain entities, not actions
+                next_type = "entity"
 
             # Recurse
             # Calculate context for the child node
@@ -638,7 +658,7 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
         for file_path_obj in storage_path_obj.iterdir():
             if not file_path_obj.is_file():
                 continue
-            
+
             filename = file_path_obj.name
             if filename in STORAGE_WHITELIST or filename.startswith("lovelace"):
                 try:
