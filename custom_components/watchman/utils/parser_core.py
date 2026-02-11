@@ -120,24 +120,29 @@ _SERVICE_PATTERN = re.compile(
 def _detect_file_type(filepath: str) -> str:
     path = Path(filepath)
     filename = path.name
+
+    # 1. Specific JSON storage whitelist
     if filename in STORAGE_WHITELIST:
         return "json"
 
-    if filename.startswith("lovelace"):
-        return "json"
+    ext = path.suffix.lower()
 
-    # Check for ESPHome path segment
+    # 2. Check for ESPHome path segment (Specific YAML)
     if ESPHOME_PATH_SEGMENT in path.parts:
-        # Still check extension to ensure it is yaml
-        ext = path.suffix.lower()
+        # Ensure it is actually a yaml file
         if ext in YAML_FILE_EXTS:
             return "esphome_yaml"
 
-    ext = path.suffix.lower()
-
+    # 3. Standard YAML files (Prioritize over 'lovelace' prefix)
     if ext in YAML_FILE_EXTS:
         return "yaml"
 
+    # 4. Lovelace Storage files (often no extension or .json)
+    # This logic now runs only if it's NOT a YAML file.
+    if filename.startswith("lovelace"):
+        return "json"
+
+    # 5. Standard JSON files
     if ext in JSON_FILE_EXTS:
         return "json"
 
