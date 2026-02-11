@@ -75,7 +75,7 @@ class FilterContext:
     entity_registry: er.EntityRegistry
     disabled_automations: set[str]
     automation_map: dict[str, str]
-    ignored_states: list[str]
+    ignored_states: set[str]
     ignored_labels: set[str]
     exclude_disabled: bool
 
@@ -104,6 +104,44 @@ def _resolve_automations(
         # 3. Fallback
         automations.add(p_id)
     return automations
+
+
+def _is_safe_to_report(
+    hass: HomeAssistant,
+    entry: str,
+    data: dict[str, Any],
+    ctx: FilterContext,
+    is_entity_check: bool
+) -> bool:
+    """Check context (automations) to decide if item should be reported.
+
+    Returns True if item should be reported, False if it is excluded.
+    """
+    occurrences = data["locations"]
+    raw_automations = data["automations"]
+    automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
+
+    if ctx.exclude_disabled and automations:
+        all_parents_disabled = True
+        for parent_id in automations:
+            if parent_id not in ctx.disabled_automations:
+                all_parents_disabled = False
+                break
+
+        if all_parents_disabled:
+            return False
+
+    if is_entity_check and automations:
+        auto_id = next(iter(automations))
+        if not hass.states.get(auto_id):
+             reg_entry = ctx.entity_registry.async_get(auto_id)
+             if not (reg_entry and reg_entry.disabled_by):
+                 _LOGGER.warning(
+                     f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. "
+                     f"Occurrences: {occurrences}"
+                 )
+
+    return True
 
 
 def _is_available(state: Any) -> bool:
@@ -135,34 +173,29 @@ def check_single_entity_status(
     current_state_val = "unknown"
 
     if is_entity_check:
-        # 1. Primary Check
-        state_obj, _ = get_entity_state(hass, entry)
-        current_state_val = state_obj # e.g. "on", "off", "missing", "unavail"
-
+        # 1. primary check for entity status (assuming this is an entity)
+        current_state_val, _ = get_entity_state(hass, entry) # e.g. "on", "off", "missing", "unavail"
         is_missing = current_state_val in ["missing", "unknown", "unavail", "disabled"]
 
         if is_missing:
-            # 2. Cross-Check: Is it actually a valid Action?
+            # 2. cross-check: Is it actually a valid Action misidentified by parser?
             if is_action(hass, entry):
-                return None
+                return None #Action exists
         else:
             return None # Entity is healthy
     else:
-        # 1. Primary Check
+        # 1. primary check for action status (assuming this is an action)
         if is_action(hass, entry):
             return None # Action exists
 
         current_state_val = "missing"
 
-        # 2. Cross-Check: Is it actually a valid Entity?
+        # 2. Cross-Check: Is it actually a valid Entity misidentified by parser?
         if hass.states.get(entry) or ctx.entity_registry.async_get(entry):
             return None
 
     # --- PHASE 2: CONFIGURATION FILTERS ---
-    # Map 'unavailable' -> 'unavail' for config compatibility
-    check_state = "unavail" if current_state_val == "unavailable" else current_state_val
-
-    if check_state in set(ctx.ignored_states):
+    if current_state_val in ctx.ignored_states:
         return None
 
     if is_entity_check and ctx.ignored_labels:
@@ -170,37 +203,13 @@ def check_single_entity_status(
         if (
             reg_entry
             and hasattr(reg_entry, "labels")
-            and set(reg_entry.labels) & ctx.ignored_labels
+            and not ctx.ignored_labels.isdisjoint(reg_entry.labels)
         ):
             return None
 
     # --- PHASE 3: CONTEXT ANALYSIS (Lazy Loading) ---
-    # Only resolve automations if we are actually going to report this item
-    locations = data["locations"]
-    raw_automations = data["automations"]
-    automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
-
-    if ctx.exclude_disabled and automations:
-        all_parents_disabled = True
-        for parent_id in automations:
-            if parent_id not in ctx.disabled_automations:
-                all_parents_disabled = False
-                break
-
-        if all_parents_disabled:
-            return None
-
-    # --- PHASE 4: WARNINGS & REPORTING ---
-    if is_entity_check and automations:
-        auto_id = next(iter(automations))
-        # Logic to warn if parent automation is missing...
-        if not hass.states.get(auto_id):
-             reg_entry = ctx.entity_registry.async_get(auto_id)
-             if not (reg_entry and reg_entry.disabled_by):
-                 _LOGGER.warning(
-                     f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. "
-                     f"Occurrences: {locations}"
-                 )
+    if not _is_safe_to_report(hass, entry, data, ctx, is_entity_check):
+        return None
 
     return data["occurrences"]
 
@@ -339,12 +348,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         # Normalize ignored states (e.g. unavail -> unavailable if needed, or handle in loop)
         # For now, we pass raw config list and handle mapping in the loop for backward compatibility
-        ignored_states_mapped = []
+        ignored_states_mapped = set()
         for s in ignored_states:
              if s == "unavailable":
-                 ignored_states_mapped.append("unavail")
+                 ignored_states_mapped.add("unavail")
              else:
-                 ignored_states_mapped.append(s)
+                 ignored_states_mapped.add(s)
 
         self._filter_context_cache = FilterContext(
             entity_registry=ent_reg,
