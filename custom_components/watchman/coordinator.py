@@ -491,16 +491,20 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._dirty_entities.clear()
 
         # build entity attributes map for missing_entities sensor
-        entity_attrs = [
-            {
-                "id": entity,
-                "state": state,
-                "friendly_name": name or "",
-                "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
-            }
-            for entity in entities_missing
-            for state, name in [get_entity_state(self.hass, entity, friendly_names=True)]
-        ]
+        entity_attrs = []
+        for entity in entities_missing:
+            reg_entry = ctx.entity_registry.async_get(entity)
+            state, name = get_entity_state(
+                self.hass, entity, friendly_names=True, registry_entry=reg_entry
+            )
+            entity_attrs.append(
+                {
+                    "id": entity,
+                    "state": state,
+                    "friendly_name": name or "",
+                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                }
+            )
 
         # build service attributes map for missing_services sensor
         service_attrs = [
@@ -561,7 +565,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         entities_list = []
         for entity_id, occurrences in missing_entities.items():
-            state, _ = get_entity_state(self.hass, entity_id)
+            reg_entry = ctx.entity_registry.async_get(entity_id)
+            state, _ = get_entity_state(self.hass, entity_id, registry_entry=reg_entry)
             entities_list.extend(flatten_occurrences(entity_id, occurrences, state))
 
         actions_list = []
@@ -939,16 +944,20 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             services_missing = self._missing_actions_cache
 
             # build entity attributes map for missing_entities sensor
-            entity_attrs = [
-                {
-                    "id": entity,
-                    "state": state,
-                    "friendly_name": name or "",
-                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
-                }
-                for entity in entities_missing
-                for state, name in [get_entity_state(self.hass, entity, friendly_names=True)]
-            ]
+            entity_attrs = []
+            for entity in entities_missing:
+                reg_entry = ctx.entity_registry.async_get(entity)
+                state, name = get_entity_state(
+                    self.hass, entity, friendly_names=True, registry_entry=reg_entry
+                )
+                entity_attrs.append(
+                    {
+                        "id": entity,
+                        "state": state,
+                        "friendly_name": name or "",
+                        "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                    }
+                )
 
             # build service attributes map for missing_services sensor
             service_attrs = [

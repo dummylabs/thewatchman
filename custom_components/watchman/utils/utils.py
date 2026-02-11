@@ -87,7 +87,7 @@ def get_entry(hass: HomeAssistant) -> Any:
     )
 
 
-def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any:
+def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any: # noqa: PLR0911
     """Get configuration value from ConfigEntry."""
     if DOMAIN_DATA not in hass.data:
         return default
@@ -189,11 +189,6 @@ def get_entity_state(
     """Return entity state or 'missing' if entity does not exist."""
     entity_state = hass.states.get(entry)
 
-    # Use provided registry_entry if available, otherwise fetch it
-    if registry_entry is None:
-        entity_registry = er.async_get(hass)
-        registry_entry = entity_registry.async_get(entry)
-
     name = None
     if entity_state and entity_state.attributes.get("friendly_name", None):
         if friendly_names:
@@ -206,7 +201,7 @@ def get_entity_state(
             registry_entry = entity_registry.async_get(entry)
 
         if registry_entry and registry_entry.disabled_by:
-                    state = "disabled"
+            state = "disabled"
     else:
         state = str(entity_state.state).replace("unavailable", "unavail")
         if split_entity_id(entry)[0] == "input_button" and state == "unknown":
