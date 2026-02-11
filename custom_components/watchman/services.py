@@ -96,7 +96,9 @@ class WatchmanServicesSetup:
             # Blocking wait for a fresh scan
             await self.coordinator.async_force_parse()
         else:
-            # Just refresh sensors from existing DB (in case something changed externally)
+            # FIX: Ensure sensors perform a FULL check to match the generated report,
+            # ignoring the incremental optimization.
+            self.coordinator._force_full_rescan = True
             await self.coordinator.async_request_refresh()
 
         # call notification action even when send notification = False

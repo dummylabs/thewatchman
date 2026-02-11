@@ -106,6 +106,18 @@ def _resolve_automations(
     return automations
 
 
+def _is_available(state: Any) -> bool:
+    """Check if state is available/active.
+
+    Missing/Unavailable: None, "unavailable", "unknown", "missing"
+    Active: Any other state
+    """
+    if state is None:
+        return False
+    val = state.state if hasattr(state, "state") else str(state)
+    return val not in ("unavailable", "unknown", "missing", "None")
+
+
 def check_single_entity_status(
     hass: HomeAssistant,
     entry: str,
@@ -738,11 +750,25 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Scan in progress, skipping state change event.")
             return
 
+        old_state = event.data.get("old_state")
+        new_state = event.data.get("new_state")
+
+        # 1. Ignore Attribute Changes (same state value)
+        if old_state and new_state and old_state.state == new_state.state:
+            return
+
+        # 2. Availability Check
+        if _is_available(old_state) == _is_available(new_state):
+            # Status quo regarding availability (Active->Active or Missing->Missing), ignore.
+            return
+
         entity_id = event.data["entity_id"]
         # Track dirty entities
         self._dirty_entities.add(entity_id)
         if _LOGGER.isEnabledFor(logging.DEBUG):
-            _LOGGER.debug(f"{obfuscate_id(entity_id)}, queued for refresh. Dirty: {len(self._dirty_entities)}")
+            old_s = old_state.state if old_state else "None"
+            new_s = new_state.state if new_state else "None"
+            _LOGGER.debug(f"⚡{obfuscate_id(entity_id)} ({old_s}->{new_s}), queued for refresh. Dirty: {len(self._dirty_entities)}")
 
         self.hass.async_create_task(self.async_request_refresh())
 
@@ -806,7 +832,11 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
                 # 2. Monitored Entity changes -> Full Rescan
                 if entity_id and entity_id in self.hub._monitored_entities:
-                    _LOGGER.debug(f"Registry update for monitored entity {obfuscate_id(entity_id)} -> Force Full Rescan")
+                    # Optimization Note: While we could technically use incremental update here
+                    # (by adding to dirty_entities), we opt for a full rescan to guarantee
+                    # consistency when metadata changes. This covers low-frequency administrative
+                    # actions like changing labels, disabling entities, or renaming IDs.
+                    _LOGGER.debug(f"⚡Registry update for monitored entity {obfuscate_id(entity_id)} -> Force Full Rescan")
                     self._force_full_rescan = True
                     await self.async_request_refresh()
 
@@ -878,7 +908,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
             # Logic Fork: Full vs Partial
             if self._force_full_rescan:
-                _LOGGER.debug("Performing FULL status check.")
+                _LOGGER.debug("Coordinator: performing FULL status check.")
                 self._missing_entities_cache = renew_missing_items_list(
                     self.hass, parsed_entity_list, ctx, item_type="entity"
                 )
@@ -889,7 +919,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 self._dirty_entities.clear()
 
             elif self._dirty_entities:
-                _LOGGER.debug(f"Performing PARTIAL status check for {len(self._dirty_entities)} entities.")
+                _LOGGER.debug(f"Coordinator: performing PARTIAL status check for {len(self._dirty_entities)} entities.")
                 updates = self._dirty_entities.copy()
                 self._dirty_entities.clear()
 
@@ -944,7 +974,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             }
             self.data = new_data
             _LOGGER.debug(
-                f"Sensors refreshed. Actions: {new_data[COORD_DATA_MISSING_ACTIONS]}, "
+                f"Coordinator: sensors refreshed. Actions: {new_data[COORD_DATA_MISSING_ACTIONS]}, "
                 f"Entities: {new_data[COORD_DATA_MISSING_ENTITIES]}"
             )
             return new_data

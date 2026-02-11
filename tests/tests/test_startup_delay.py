@@ -40,7 +40,7 @@ async def test_startup_delay_on_ha_start(hass: HomeAssistant):
         calls = mock_rescan.call_args_list
         startup_call = None
         for call in calls:
-            if call.kwargs.get("reason") == "mandatory startup scan":
+            if call.kwargs.get("reason") == "integration reload":
                 startup_call = call
                 break
 
@@ -65,7 +65,7 @@ async def test_startup_delay_when_ha_running(hass: HomeAssistant):
         calls = mock_rescan.call_args_list
         startup_call = None
         for call in calls:
-            if call.kwargs.get("reason") == "mandatory startup scan":
+            if call.kwargs.get("reason") == "integration reload":
                 startup_call = call
                 break
 

@@ -48,6 +48,8 @@ async def test_incremental_update(hass, tmp_path):
 @pytest.mark.asyncio
 async def test_interleaved_events(hass, tmp_path, caplog):
     """Test race condition: Dirty set followed by Global Context change triggers Full Rescan."""
+    import logging
+    caplog.set_level(logging.DEBUG, logger="custom_components.watchman")
     # 1. Setup
     config_dir = tmp_path / "config"
     config_dir.mkdir()
@@ -95,7 +97,7 @@ async def test_interleaved_events(hass, tmp_path, caplog):
         assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 0, "Entities should be found (0 missing)"
         
         # Check logs for Full Rescan path
-        assert "Performing FULL status check." in caplog.text
+        assert "performing FULL status check." in caplog.text
         # Mock verification (optional if logs checked, but good double check)
         assert mock_renew.called, "Full rescan SHOULD happen"
         

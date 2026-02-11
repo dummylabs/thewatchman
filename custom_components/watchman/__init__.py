@@ -124,7 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: WMConfigEntry) ->
             f"Executing mandatory startup scan in: {startup_delay}s."
         )
 
-        coordinator.request_parser_rescan(reason="mandatory startup scan", delay=startup_delay)
+        coordinator.request_parser_rescan(reason="integration reload", delay=startup_delay)
 
     _LOGGER.info(
         "Watchman integration started [%s], DB: %s, Stats: %s",
