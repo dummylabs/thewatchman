@@ -33,6 +33,7 @@ from .parser_const import (
     REGEX_ENTITY_BOUNDARY,
     REGEX_ENTITY_SUFFIX,
     REGEX_OPTIONAL_STATES,
+    REGEX_STRICT_SERVICE,
     STORAGE_WHITELIST,
     YAML_FILE_EXTS,
     ACTION_KEYS,
@@ -173,6 +174,78 @@ def is_template(value: str) -> bool:
         or value.startswith("{%")
         or value.startswith("{{")
     )
+
+
+def _scan_string_for_entities(
+    content: str,
+    results: list[FoundItem],
+    line_no: int,
+    key_name: str | None,
+    context: ParserContext,
+    entity_pattern: re.Pattern,
+    expected_item_type: str = "entity",
+) -> None:
+    """Scan a string for entities using various heuristics."""
+    matches = list(entity_pattern.finditer(content))
+    for match in matches:
+        entity_id = match.group(1)
+
+        if _is_part_of_concatenation(content, match):
+            continue
+
+        if match.end(1) < len(content) and content[match.end(1)] == "*":
+            continue
+
+        if entity_id.endswith("_"):
+            continue
+
+        # Word Boundary Check (Heuristic 18)
+        end_idx = match.end(1)
+        if end_idx < len(content):
+            next_char = content[end_idx]
+            if next_char == "-":
+                continue
+            if next_char == ".":
+                if "states." not in match.group(0).lower():
+                    continue
+
+        remaining_text = content[match.end(1) :].lstrip()
+        if remaining_text.startswith("("):
+            continue
+
+        results.append(
+            {
+                "line": line_no or 0,
+                "entity_id": entity_id,
+                "item_type": expected_item_type,
+                "is_key": False,
+                "key_name": key_name,
+                "is_automation_context": context.is_active,
+                "parent_type": context.parent_type,
+                "parent_id": context.parent_id,
+                "parent_alias": context.parent_alias,
+            }
+        )
+
+
+def _yield_template_lines(content: str) -> Generator[tuple[str, str, int], None, None]:
+    """Yields lines from a template with their heuristic type and line offset.
+
+    Yields:
+        (line_content, item_type, line_offset_index)
+    """
+    for i, line in enumerate(content.splitlines()):
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+
+        # Reuse is_template to avoid DRY violation
+        if is_template(line_stripped):
+            yield line_stripped, "entity", i
+        elif REGEX_STRICT_SERVICE.match(line_stripped):
+            yield line_stripped, "service", i
+        else:
+            yield line_stripped, "entity", i
 
 
 def _derive_context(
@@ -349,11 +422,6 @@ def _recursive_search(
             )
             next_type = "service" if is_action_key else "entity"
 
-
-            if is_action_key and isinstance(value, str) and is_template(value):
-                # assumption: templates within action key may only contain entities, not actions
-                next_type = "entity"
-
             # Recurse
             # Calculate context for the child node
             child_ctx = current_context
@@ -407,47 +475,50 @@ def _recursive_search(
             if not key_name or str(key_name).lower() not in ESPHOME_ALLOWED_KEYS:
                 return
 
+        # Handle Action Templates
+        if expected_item_type == "service" and is_template(data):
+            for line, line_type, offset in _yield_template_lines(data):
+                # Calculate precise line number
+                current_line = (line_no or 0) + offset
+
+                if line_type == "service":
+                    # Add directly as service
+                    results.append(
+                        {
+                            "line": current_line,
+                            "entity_id": line,
+                            "item_type": "service",
+                            "is_key": False,
+                            "key_name": key_name,
+                            "is_automation_context": current_context.is_active,
+                            "parent_type": current_context.parent_type,
+                            "parent_id": current_context.parent_id,
+                            "parent_alias": current_context.parent_alias,
+                        }
+                    )
+                else:
+                    # Scan for entities within this line
+                    _scan_string_for_entities(
+                        line,
+                        results,
+                        current_line,
+                        key_name,
+                        current_context,
+                        entity_pattern,
+                    )
+            return  # Done processing this string
+
+        # Standard Processing
         # Check for Entities
-        matches = list(entity_pattern.finditer(data))
-        for match in matches:
-            entity_id = match.group(1)
-
-            if _is_part_of_concatenation(data, match):
-                continue
-
-            if match.end(1) < len(data) and data[match.end(1)] == "*":
-                continue
-
-            if entity_id.endswith("_"):
-                continue
-
-            # Word Boundary Check (Heuristic 18)
-            end_idx = match.end(1)
-            if end_idx < len(data):
-                next_char = data[end_idx]
-                if next_char == "-":
-                    continue
-                if next_char == ".":
-                    if "states." not in match.group(0).lower():
-                        continue
-
-            remaining_text = data[match.end(1) :].lstrip()
-            if remaining_text.startswith("("):
-                continue
-
-            results.append(
-                {
-                    "line": line_no or 0,
-                    "entity_id": entity_id,
-                    "item_type": expected_item_type,
-                    "is_key": False,
-                    "key_name": key_name,
-                    "is_automation_context": current_context.is_active,
-                    "parent_type": current_context.parent_type,
-                    "parent_id": current_context.parent_id,
-                    "parent_alias": current_context.parent_alias,
-                }
-            )
+        _scan_string_for_entities(
+            data,
+            results,
+            line_no or 0,
+            key_name,
+            current_context,
+            entity_pattern,
+            expected_item_type,
+        )
 
         # Check for Services (e.g. "service: light.turn_on" inside a string template)
         matches_svc = list(_SERVICE_PATTERN.finditer(data))
