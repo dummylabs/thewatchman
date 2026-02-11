@@ -8,6 +8,8 @@ def test_is_template():
     assert is_template("  [[[ code ]]]") is True
     assert is_template("{{ state }}") is True
     assert is_template("{% if True %}") is True
+    assert is_template("light.turn_{{ state }}") is True
+    assert is_template("action: > \n {# comment #} \n light.turn_on") is True
     assert is_template("plain_string") is False
     assert is_template("service: light.turn_on") is False
 

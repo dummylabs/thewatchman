@@ -163,16 +163,16 @@ def _is_script(node: dict) -> bool:
 
 
 def is_template(value: str) -> bool:
-    """Check if the string looks like a Jinja2 or JS template.
+    """Check if the string contains Jinja2 or JS template markers.
 
-    Detects explicit template markers ({{, {%, [[[) to distinguish
-    them from simple strings.
+    Detects markers anywhere in the string to handle inline templates.
     """
-    value = value.lstrip()
+    # Fast string search is more efficient than regex for this
     return (
-        value.startswith("[[[")
-        or value.startswith("{%")
-        or value.startswith("{{")
+        "{{" in value
+        or "{%" in value
+        or "{#" in value
+        or "[[[" in value
     )
 
 
