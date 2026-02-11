@@ -59,3 +59,9 @@ CONFIG_ENTRY_DOMAINS = {'group', 'template'}
 
 # Directories to skip during recursive scan
 IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome', '.storage', 'tmp', 'blueprints', 'media', 'share', 'www', 'trash'}
+
+# Regex building blocks for entity detection
+# Forbidden prefixes: letters, numbers, _, ., /, \, @, $, %, &, |, -
+REGEX_ENTITY_BOUNDARY = r"(?:^|[^a-zA-Z0-9_./\\@$%&|-])"
+REGEX_OPTIONAL_STATES = r"(?:states\.)?"
+REGEX_ENTITY_SUFFIX = r"\.[a-z0-9_]+"

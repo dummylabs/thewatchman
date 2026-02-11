@@ -31,6 +31,9 @@ from .parser_const import (
     JSON_FILE_EXTS,
     MAX_FILE_SIZE,
     PLATFORMS,
+    REGEX_ENTITY_BOUNDARY,
+    REGEX_ENTITY_SUFFIX,
+    REGEX_OPTIONAL_STATES,
     STORAGE_WHITELIST,
     YAML_FILE_EXTS,
 )
@@ -91,11 +94,18 @@ def get_domains(hass: HomeAssistant | None = None) -> list[str]:
 
 _ALL_DOMAINS = get_domains()
 
+def _compile_entity_pattern(domains: list[str]) -> re.Pattern:
+    """Compile entity regex from a list of domains (factory method)."""
+    domain_part = "|".join(domains)
+    pattern = (
+        f"{REGEX_ENTITY_BOUNDARY}{REGEX_OPTIONAL_STATES}(({domain_part})"
+        f"{REGEX_ENTITY_SUFFIX})"
+    )
+    return re.compile(pattern, re.IGNORECASE)
+
+
 # Regex patterns to identify entitites definitions
-_ENTITY_PATTERN = re.compile(
-    r"(?:^|[^a-zA-Z0-9_./\\@$%&|-])(?:states\.)?((" + "|".join(_ALL_DOMAINS) + r")\.[a-z0-9_]+)",
-    re.IGNORECASE
-)
+_ENTITY_PATTERN = _compile_entity_pattern(_ALL_DOMAINS)
 
 # Regex patterns to identify actions (services) definitions
 _SERVICE_PATTERN = re.compile(
@@ -887,14 +897,11 @@ class WatchmanParser:
         try:
             # --- Phase 0: Setup ---
             # Build Entity Pattern
-            entity_pattern = _ENTITY_PATTERN
-            if custom_domains:
-                entity_pattern = re.compile(
-                    r"(?:^|[^a-zA-Z0-9_.])(?:states\.)?(("
-                    + "|".join(custom_domains)
-                    + r")\.[a-z0-9_]+)",
-                    re.IGNORECASE,
-                )
+            entity_pattern = (
+                _compile_entity_pattern(custom_domains)
+                if custom_domains
+                else _ENTITY_PATTERN
+            )
 
             # --- Phase 1: Async File Scanning ---
             _LOGGER.debug(
