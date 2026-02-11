@@ -168,37 +168,35 @@ def check_single_entity_status(
     Returns occurrences list if missing/invalid, None otherwise.
     """
     is_entity_check = item_type == "entity"
+    current_state_val = "unknown"
+    is_healthy = False
 
     # --- PHASE 1: STATUS RESOLUTION & CROSS-VALIDATION ---
-    current_state_val = "unknown"
-
     if is_entity_check:
-        # 1. primary check for entity status (assuming this is an entity)
-        current_state_val, _ = get_entity_state(hass, entry) # e.g. "on", "off", "missing", "unavail"
-        is_missing = current_state_val in ["missing", "unknown", "unavail", "disabled"]
+        # 1. Primary Check
+        current_state_val, _ = get_entity_state(hass, entry)
+        is_healthy = current_state_val not in ["missing", "unknown", "unavail", "disabled"]
 
-        if is_missing:
-            # 2. cross-check: Is it actually a valid Action misidentified by parser?
-            if is_action(hass, entry):
-                return None #Action exists
-        else:
-            return None # Entity is healthy
-    else:
-        # 1. primary check for action status (assuming this is an action)
-        if is_action(hass, entry):
-            return None # Action exists
-
-        current_state_val = "missing"
-
-        # 2. Cross-Check: Is it actually a valid Entity misidentified by parser?
-        if hass.states.get(entry) or ctx.entity_registry.async_get(entry):
+        if not is_healthy and is_action(hass, entry):
+            # 2. Cross-Check: Is it actually a valid Action?
             return None
+    elif is_action(hass, entry):
+        # 1. Primary Check
+        is_healthy = True
+    else:
+        current_state_val = "missing"
+        # 2. Cross-Check: Is it actually a valid Entity?
+        if hass.states.get(entry) or ctx.entity_registry.async_get(entry):
+            is_healthy = True
+
+    if is_healthy:
+        return None
 
     # --- PHASE 2: CONFIGURATION FILTERS ---
     if current_state_val in ctx.ignored_states:
         return None
 
-    if is_entity_check and ctx.ignored_labels:
+    if ctx.ignored_labels:
         reg_entry = ctx.entity_registry.async_get(entry)
         if (
             reg_entry
