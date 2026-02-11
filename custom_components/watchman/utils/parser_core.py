@@ -477,9 +477,14 @@ def _recursive_search(
 
         # Handle Action Templates
         if expected_item_type == "service" and is_template(data):
+            # Check if this is a block scalar (starts with > or |)
+            # If so, the content physically starts on the next line relative to line_no
+            is_block_scalar = getattr(data, "style", None) in (">", "|")
+            base_offset = 1 if is_block_scalar else 0
+
             for line, line_type, offset in _yield_template_lines(data):
                 # Calculate precise line number
-                current_line = (line_no or 0) + offset
+                current_line = (line_no or 0) + offset + base_offset
 
                 if line_type == "service":
                     # Add directly as service

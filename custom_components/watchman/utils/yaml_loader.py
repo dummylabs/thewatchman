@@ -6,14 +6,15 @@ import yaml
 # Custom YAML Loader with Line Numbers
 
 class StringWithLine(str):
-    """String subclass that holds the line number and tag info."""
+    """String subclass that holds the line number, tag info, and scalar style."""
 
     def __new__(
-        cls, value: str, line: int, *, is_tag: bool = False
+        cls, value: str, line: int, *, is_tag: bool = False, style: str | None = None
     ) -> Self:
         obj = str.__new__(cls, value)
         obj.line = line
         obj.is_tag = is_tag
+        obj.style = style  # Store the style (e.g., '"', "'", '>', '|')
         return obj
 
 class LineLoader(yaml.SafeLoader):
@@ -22,7 +23,8 @@ class LineLoader(yaml.SafeLoader):
     def construct_scalar(self, node: yaml.ScalarNode) -> Any:
         value = super().construct_scalar(node)
         if isinstance(value, str):
-            return StringWithLine(value, node.start_mark.line + 1)
+            # Pass node.style to the string object
+            return StringWithLine(value, node.start_mark.line + 1, style=node.style)
         return value
 
     def flatten_mapping(self, node: yaml.MappingNode) -> None:
@@ -62,7 +64,8 @@ LineLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG, LineLo
 def default_ctor(loader: yaml.Loader, tag_suffix: str, node: yaml.ScalarNode) -> Any:
     value = loader.construct_scalar(node)
     if isinstance(value, str):
-        return StringWithLine(value, node.start_mark.line + 1, is_tag=True)
+        # Pass node.style here as well
+        return StringWithLine(value, node.start_mark.line + 1, is_tag=True, style=node.style)
     return value
 
 yaml.add_multi_constructor('!', default_ctor, Loader=LineLoader)

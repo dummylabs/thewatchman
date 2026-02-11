@@ -91,14 +91,19 @@ def test_multiline_action_template():
     item_on = next(i for i in items if i["entity_id"] == "input_boolean.turn_on")
     item_shutdown = next(i for i in items if i["entity_id"] == "input_boolean.ha_shutdown")
     
-    # Debug output showed:
+    # Debug output showed (before fix):
     # line_no=12 for the first action block
     # input_boolean.turn_off: offset=1 -> line 13
     # input_boolean.turn_on: offset=3 -> line 15
     # input_boolean.ha_shutdown: line 19
     
-    assert item_off["line"] == 13
-    assert item_on["line"] == 15
+    # After fix (+1 for block scalar):
+    # input_boolean.turn_off: 12 + 1 + 1 = 14
+    # input_boolean.turn_on: 12 + 3 + 1 = 16
+    # input_boolean.ha_shutdown: line 19 (remains unchanged as it is not a block scalar)
+    
+    assert item_off["line"] == 14
+    assert item_on["line"] == 16
     assert item_shutdown["line"] == 19
 
     # These should be detected as services because they match _STRICT_SERVICE_PATTERN 
