@@ -1,0 +1,19 @@
+{
+  "key": "lovelace",
+  "data": {
+    "config": {
+      "views": [
+        {
+          "cards": [
+            {
+              "type": "glance",
+              "entities": [
+                "sensor.test_main"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
