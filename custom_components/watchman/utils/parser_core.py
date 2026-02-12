@@ -19,6 +19,7 @@ from homeassistant.core import HomeAssistant
 from ..const import DB_TIMEOUT
 from .logger import _LOGGER
 from .parser_const import (
+    ACTION_KEYS,
     BUNDLED_IGNORED_ITEMS,
     CONFIG_ENTRY_DOMAINS,
     ESPHOME_ALLOWED_KEYS,
@@ -34,9 +35,8 @@ from .parser_const import (
     REGEX_ENTITY_SUFFIX,
     REGEX_OPTIONAL_STATES,
     REGEX_STRICT_SERVICE,
-    STORAGE_WHITELIST,
+    STORAGE_WHITELIST_PATTERNS,
     YAML_FILE_EXTS,
-    ACTION_KEYS,
 )
 from .yaml_loader import LineLoader
 
@@ -81,7 +81,7 @@ def get_domains(hass: HomeAssistant | None = None) -> list[str]:
     """Return a list of valid domains."""
     platforms = PLATFORMS
     try:
-        from homeassistant.const import Platform
+        from homeassistant.const import Platform #noqa: PLC0415, I001
         platforms = [platform.value for platform in Platform]
     except ImportError:
         pass
@@ -120,29 +120,24 @@ _SERVICE_PATTERN = re.compile(
 def _detect_file_type(filepath: str) -> str:
     path = Path(filepath)
     filename = path.name
-
-    # 1. Specific JSON storage whitelist
-    if filename in STORAGE_WHITELIST:
-        return "json"
-
     ext = path.suffix.lower()
 
-    # 2. Check for ESPHome path segment (Specific YAML)
+    # 1. Check for ESPHome path segment (Specific YAML)
     if ESPHOME_PATH_SEGMENT in path.parts:
         # Ensure it is actually a yaml file
         if ext in YAML_FILE_EXTS:
             return "esphome_yaml"
 
-    # 3. Standard YAML files (Prioritize over 'lovelace' prefix)
+    # 2. Standard YAML files (Prioritize over 'lovelace' prefix)
     if ext in YAML_FILE_EXTS:
         return "yaml"
 
-    # 4. Lovelace Storage files (often no extension or .json)
-    # This logic now runs only if it's NOT a YAML file.
-    if filename.startswith("lovelace"):
-        return "json"
+    # 3. Specific JSON storage whitelist
+    for pattern in STORAGE_WHITELIST_PATTERNS:
+        if fnmatch.fnmatch(filename, pattern):
+            return "json"
 
-    # 5. Standard JSON files
+    # 4. Standard JSON files
     if ext in JSON_FILE_EXTS:
         return "json"
 
@@ -676,8 +671,26 @@ async def default_async_executor(func: Callable, *args: Any) -> Any:
     """Default executor that runs the synchronous function in a thread."""
     return await asyncio.to_thread(func, *args)
 
+
+def _is_file_ignored(path_obj: Path, cwd: Path, ignored_patterns: list[str]) -> bool:
+    """Check if file path matches any ignored pattern."""
+    abs_path_str = str(path_obj)
+    try:
+        rel_path_cwd = str(path_obj.relative_to(cwd))
+    except ValueError:
+        rel_path_cwd = abs_path_str
+
+    for pattern in ignored_patterns:
+        if fnmatch.fnmatch(abs_path_str, pattern) or fnmatch.fnmatch(
+            rel_path_cwd, pattern
+        ):
+            _LOGGER.debug(f"Parser: file {abs_path_str} skipped due to ignored pattern")
+            return True
+    return False
+
+
 def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
-    """Synchronous, blocking file scanner using os.walk.
+    """Scan files syncronously using os.walk (blocking).
 
     Executed as a single job in the executor.
     """
@@ -698,22 +711,7 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
             if abs_path_obj.suffix.lower() not in YAML_FILE_EXTS:
                 continue
 
-            # User ignore patterns
-            abs_path_str = str(abs_path_obj)
-            try:
-                rel_path_cwd = str(abs_path_obj.relative_to(cwd))
-            except ValueError:
-                rel_path_cwd = abs_path_str
-
-            is_ignored = False
-            for pattern in ignored_patterns:
-                if fnmatch.fnmatch(abs_path_str, pattern) or fnmatch.fnmatch(
-                    rel_path_cwd, pattern
-                ):
-                    is_ignored = True
-                    break
-
-            if is_ignored:
+            if _is_file_ignored(abs_path_obj, cwd, ignored_patterns):
                 ignored_count += 1
                 continue
 
@@ -722,16 +720,16 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
                 stat_res = abs_path_obj.stat()
                 scanned_files.append(
                     {
-                        "path": abs_path_str,
+                        "path": str(abs_path_obj),
                         "mtime": stat_res.st_mtime,
                         "size": stat_res.st_size,
                     }
                 )
             except OSError as e:
                 if abs_path_obj.is_symlink():
-                    _LOGGER.warning(f"Skipping broken symlink: {abs_path_str}")
+                    _LOGGER.warning(f"Skipping broken symlink: {abs_path_obj}")
                 else:
-                    _LOGGER.error(f"Error accessing file {abs_path_str}: {e}")
+                    _LOGGER.error(f"Error accessing file {abs_path_obj}: {e}")
 
     # 2. Targeted scan of .storage
     storage_path_obj = Path(root_path) / ".storage"
@@ -741,7 +739,18 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
                 continue
 
             filename = file_path_obj.name
-            if filename in STORAGE_WHITELIST or filename.startswith("lovelace"):
+
+            is_whitelisted = False
+            for pattern in STORAGE_WHITELIST_PATTERNS:
+                if fnmatch.fnmatch(filename, pattern):
+                    is_whitelisted = True
+                    break
+
+            if is_whitelisted:
+                if _is_file_ignored(file_path_obj, cwd, ignored_patterns):
+                    ignored_count += 1
+                    continue
+
                 try:
                     stat_res = file_path_obj.stat()
                     scanned_files.append(
@@ -932,14 +941,14 @@ class WatchmanParser:
 
             # --- Phase 1: Async File Scanning ---
             _LOGGER.debug(
-                f"Phase 1 (Scan): Starting scan of {root_path} with patterns {ignored_files}"
+                f"Parser (Scan): Starting scan of {root_path} with ignore patterns: {ignored_files}"
             )
             scan_time = time.monotonic()
             files_scanned, ignored_count = await self._async_scan_files(
                 root_path, ignored_files
             )
             _LOGGER.debug(
-                f"Phase 1 (Scan): Found {len(files_scanned)} files in {(time.monotonic() - scan_time):.3f} sec"
+                f"Parser (Scan): Found {len(files_scanned)} files in {(time.monotonic() - scan_time):.3f} sec"
             )
 
             # --- Phase 2: Reconciliation (DB Check) ---
@@ -1000,7 +1009,7 @@ class WatchmanParser:
                     actual_file_ids.append(file_id)
 
             _LOGGER.debug(
-                f"Phase 2 (Reconciliation): Identified {len(files_to_parse)} files to parse ({total_size_to_parse} bytes). Skipped {skipped_count}. Took {(time.monotonic() - reconcile_time):.3f} sec"
+                f"Parser (Reconciliation): Identified {len(files_to_parse)} files to parse ({total_size_to_parse} bytes). Skipped {skipped_count}. Took {(time.monotonic() - reconcile_time):.3f} sec"
             )
 
             # --- Phase 3: Sequential Parsing & Persistence ---
@@ -1087,9 +1096,9 @@ class WatchmanParser:
             # Update last parse stats
             duration = time.monotonic() - start_time
             _LOGGER.debug(
-                f"Phase 3 (Parse): finished in {(time.monotonic() - parse_time):.3f} sec"
+                f"Parser (Parsing): finished in {(time.monotonic() - parse_time):.3f} sec"
             )
-            _LOGGER.debug(f"Total Scan finished in {duration:.3f} sec, force refresh sensors now.")
+            _LOGGER.debug(f"Parser: total scan finished in {duration:.3f} sec, force refresh sensors now.")
 
             current_timestamp = datetime.datetime.now().isoformat()
 

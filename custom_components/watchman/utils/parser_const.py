@@ -7,9 +7,9 @@ import re
 YAML_FILE_EXTS = {'.yaml', '.yml'}
 JSON_FILE_EXTS = {'.config_entries'}
 
-# For MVP, .storage is ignored completely if in _IGNORED_DIRS
-# Lovelace files (lovelace*) are detected dynamically by the parser
-STORAGE_WHITELIST = {'core.config_entries'}
+# .storage folder is ignored completely if in _IGNORED_DIRS
+# but whitelisted files in .storage are detected dynamically by the parser
+STORAGE_WHITELIST_PATTERNS = {'core.config_entries', 'lovelace*'}
 MAX_FILE_SIZE = 500 * 1024  # 500 KB
 
 # A fallback list of Home Assistant entity platforms for the CLI parser.
