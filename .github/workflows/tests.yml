@@ -38,6 +38,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Run tests (Stable HA)
+        env:
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
         run: ./scripts/test_ha.py
 
   test-beta:
@@ -64,4 +66,6 @@ jobs:
           python-version: "3.14"
 
       - name: Run tests (Beta HA)
+        env:
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
         run: ./scripts/test_ha.py rc
