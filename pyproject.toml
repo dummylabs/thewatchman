@@ -5,7 +5,7 @@ description = "thewatchman"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "homeassistant==2025.4.4",
+    "homeassistant>=2025.4.4",
     "prettytable>=3.17.0",
 ]
 
