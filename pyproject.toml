@@ -29,6 +29,7 @@ testpaths = [
     "tests",
 ]
 asyncio_mode = "auto"
+addopts = "-p no:xdist"
 
 [tool.ruff]
 #line-length = 88
