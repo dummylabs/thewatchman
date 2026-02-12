@@ -23,37 +23,41 @@ async def test_default_notification_id(hass, tmp_path):
     hass.config.path = MagicMock(side_effect=mock_path)
     hass.config.config_dir = str(config_dir)
 
-    await async_init_integration(hass, add_params={})
+    config_entry = await async_init_integration(hass, add_params={})
 
-    # Capture calls to persistent_notification.create
-    captured_data = []
+    try:
+        # Capture calls to persistent_notification.create
+        captured_data = []
 
-    async def mock_persistent_notification(call):
-        captured_data.append(call.data)
+        async def mock_persistent_notification(call):
+            captured_data.append(call.data)
 
-    hass.services.async_register("persistent_notification", "create", mock_persistent_notification)
+        hass.services.async_register("persistent_notification", "create", mock_persistent_notification)
 
-    # Call watchman.report WITHOUT providing notification_id
-    data = {
-        "action": "persistent_notification.create",
-        "create_file": False,
-        "data": {
-            "title": "Test Title"
-            # No notification_id here
+        # Call watchman.report WITHOUT providing notification_id
+        data = {
+            "action": "persistent_notification.create",
+            "create_file": False,
+            "data": {
+                "title": "Test Title"
+                # No notification_id here
+            }
         }
-    }
 
-    await hass.services.async_call(
-        DOMAIN,
-        "report",
-        service_data=data,
-        blocking=True
-    )
+        await hass.services.async_call(
+            DOMAIN,
+            "report",
+            service_data=data,
+            blocking=True
+        )
 
-    assert len(captured_data) > 0, "persistent_notification.create was not called"
+        assert len(captured_data) > 0, "persistent_notification.create was not called"
 
-    call_data = captured_data[0]
+        call_data = captured_data[0]
 
-    # This assertion should FAIL before the fix
-    assert call_data.get("notification_id") == "watchman_report", \
-        f"Expected default notification_id='watchman_report', got '{call_data.get('notification_id')}'"
+        # This assertion should FAIL before the fix
+        assert call_data.get("notification_id") == "watchman_report", \
+            f"Expected default notification_id='watchman_report', got '{call_data.get('notification_id')}'"
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

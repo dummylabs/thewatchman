@@ -27,18 +27,22 @@ async def test_startup_event_listener(hass, tmp_path):
         with patch("custom_components.watchman.coordinator.WatchmanCoordinator.subscribe_to_events") as mock_add_handlers:
 
             # Initialize integration
-            await async_init_integration(hass, add_params={CONF_INCLUDED_FOLDERS: [str(config_dir)]})
+            config_entry = await async_init_integration(hass, add_params={CONF_INCLUDED_FOLDERS: [str(config_dir)]})
 
-            # Since hass is NOT running, handlers should NOT be added yet
-            mock_add_handlers.assert_not_called()
+            try:
+                # Since hass is NOT running, handlers should NOT be added yet
+                mock_add_handlers.assert_not_called()
 
-            # Fire startup event
-            hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
-            await hass.async_block_till_done()
+                # Fire startup event
+                hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+                await hass.async_block_till_done()
 
-            # Advance time to trigger delayed refresh
-            async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1))
-            await hass.async_block_till_done()
+                # Advance time to trigger delayed refresh
+                async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1))
+                await hass.async_block_till_done()
 
-            # Now handlers SHOULD be added
-            mock_add_handlers.assert_called_once()
+                # Now handlers SHOULD be added
+                mock_add_handlers.assert_called_once()
+            finally:
+                await hass.config_entries.async_unload(config_entry.entry_id)
+                await hass.async_block_till_done()

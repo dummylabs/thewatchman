@@ -71,30 +71,34 @@ async def test_report_context_inclusion(hass):
     entry.title = "Watchman"
     coordinator = WatchmanCoordinator(hass, None, entry, hub, version="1.0.0")
     
-    # Mock get_config to allow everything
-    def get_config_side_effect(hass, key, default=None):
-        return default
+    try:
+        # Mock get_config to allow everything
+        def get_config_side_effect(hass, key, default=None):
+            return default
 
-    with patch("custom_components.watchman.coordinator.get_config", side_effect=get_config_side_effect):
-        # By default hass.states.get returns None (missing) which is what we want
-        
-        report_data = await coordinator.async_get_detailed_report_data()
-        
-        missing_entities = report_data["missing_entities"]
-        
-        # Verify Sensor Context
-        sensor_entry = next((e for e in missing_entities if e["id"] == "sensor.test_sensor"), None)
-        assert sensor_entry is not None, "Sensor entry missing from report"
-        assert sensor_entry["context"]["parent_type"] == "automation"
-        assert sensor_entry["context"]["parent_alias"] == "Kitchen Lights"
-        
-        # Verify Light Context
-        light_entry = next((e for e in missing_entities if e["id"] == "light.living_room"), None)
-        assert light_entry is not None, "Light entry missing from report"
-        assert light_entry["context"]["parent_type"] == "script"
-        assert light_entry["context"]["parent_alias"] == "Good Night"
-        
-        # Verify No Context
-        no_context_entry = next((e for e in missing_entities if e["id"] == "sensor.no_context"), None)
-        assert no_context_entry is not None, "No context entry missing from report"
-        assert no_context_entry["context"] is None
+        with patch("custom_components.watchman.coordinator.get_config", side_effect=get_config_side_effect):
+            # By default hass.states.get returns None (missing) which is what we want
+            
+            report_data = await coordinator.async_get_detailed_report_data()
+            
+            missing_entities = report_data["missing_entities"]
+            
+            # Verify Sensor Context
+            sensor_entry = next((e for e in missing_entities if e["id"] == "sensor.test_sensor"), None)
+            assert sensor_entry is not None, "Sensor entry missing from report"
+            assert sensor_entry["context"]["parent_type"] == "automation"
+            assert sensor_entry["context"]["parent_alias"] == "Kitchen Lights"
+            
+            # Verify Light Context
+            light_entry = next((e for e in missing_entities if e["id"] == "light.living_room"), None)
+            assert light_entry is not None, "Light entry missing from report"
+            assert light_entry["context"]["parent_type"] == "script"
+            assert light_entry["context"]["parent_alias"] == "Good Night"
+            
+            # Verify No Context
+            no_context_entry = next((e for e in missing_entities if e["id"] == "sensor.no_context"), None)
+            assert no_context_entry is not None, "No context entry missing from report"
+            assert no_context_entry["context"] is None
+    finally:
+        await coordinator.async_shutdown()
+        await hass.async_block_till_done()

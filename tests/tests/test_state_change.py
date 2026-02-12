@@ -28,7 +28,7 @@ async def test_entity_state_change_tracking(hass, tmp_path):
     hass.states.async_set("sensor.test_monitored_sensor", "on")
 
     # Initialize integration pointing to our temp config
-    await async_init_integration(
+    config_entry = await async_init_integration(
         hass,
         add_params={
             CONF_INCLUDED_FOLDERS: str(config_dir),
@@ -36,51 +36,55 @@ async def test_entity_state_change_tracking(hass, tmp_path):
         },
     )
 
-    # Allow initial scan to complete
-    await hass.async_block_till_done()
+    try:
+        # Allow initial scan to complete
+        await hass.async_block_till_done()
 
-    # 2. Verify Initial State
-    # Watchman should have parsed the file and found 'sensor.test_monitored_sensor'
-    # Since state is 'on', missing entities should be 0.
+        # 2. Verify Initial State
+        # Watchman should have parsed the file and found 'sensor.test_monitored_sensor'
+        # Since state is 'on', missing entities should be 0.
 
-    from homeassistant.helpers import entity_registry as er
-    entity_registry = er.async_get(hass)
-    entity_id = next(e.entity_id for e in entity_registry.entities.values() if e.unique_id.endswith(SENSOR_MISSING_ENTITIES))
+        from homeassistant.helpers import entity_registry as er
+        entity_registry = er.async_get(hass)
+        entity_id = next(e.entity_id for e in entity_registry.entities.values() if e.unique_id.endswith(SENSOR_MISSING_ENTITIES))
 
-    missing_sensor = hass.states.get(entity_id)
-    assert missing_sensor is not None
-    assert missing_sensor.state == "0", "Initial missing count should be 0"
+        missing_sensor = hass.states.get(entity_id)
+        assert missing_sensor is not None
+        assert missing_sensor.state == "0", "Initial missing count should be 0"
 
-    # 3. Trigger: Change state to unavailable
-    hass.states.async_set("sensor.test_monitored_sensor", "unavailable")
+        # 3. Trigger: Change state to unavailable
+        hass.states.async_set("sensor.test_monitored_sensor", "unavailable")
 
-    # Allow event processing and debounced refresh (10s default cooldown)
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
-    await hass.async_block_till_done()
+        # Allow event processing and debounced refresh (10s default cooldown)
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
+        await hass.async_block_till_done()
 
-    # 4. Verify Updated State
-    # Watchman should detect the state change for the monitored entity and trigger a refresh
-    missing_sensor = hass.states.get(entity_id)
-    assert missing_sensor.state == "1", "Missing count should update to 1 after entity becomes unavailable"
+        # 4. Verify Updated State
+        # Watchman should detect the state change for the monitored entity and trigger a refresh
+        missing_sensor = hass.states.get(entity_id)
+        assert missing_sensor.state == "1", "Missing count should update to 1 after entity becomes unavailable"
 
-    # Verify attributes
-    assert "sensor.test_monitored_sensor" in str(missing_sensor.attributes), \
-        "The unavailable sensor should be listed in attributes"
+        # Verify attributes
+        assert "sensor.test_monitored_sensor" in str(missing_sensor.attributes), \
+            "The unavailable sensor should be listed in attributes"
 
-    # 5. Recovery: Change state back to on
-    hass.states.async_set("sensor.test_monitored_sensor", "on")
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
-    await hass.async_block_till_done()
+        # 5. Recovery: Change state back to on
+        hass.states.async_set("sensor.test_monitored_sensor", "on")
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
+        await hass.async_block_till_done()
 
-    missing_sensor = hass.states.get(entity_id)
-    assert missing_sensor.state == "0", "Missing count should return to 0 after entity recovers"
+        missing_sensor = hass.states.get(entity_id)
+        assert missing_sensor.state == "0", "Missing count should return to 0 after entity recovers"
 
-    # 6. Removal: Remove the state entirely
-    # Watchman should treat a missing state as 'missing' and increment the counter
-    hass.states.async_remove("sensor.test_monitored_sensor")
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
-    await hass.async_block_till_done()
+        # 6. Removal: Remove the state entirely
+        # Watchman should treat a missing state as 'missing' and increment the counter
+        hass.states.async_remove("sensor.test_monitored_sensor")
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
+        await hass.async_block_till_done()
 
-    missing_sensor = hass.states.get(entity_id)
-    assert missing_sensor.state == "1", "Missing count should become 1 after entity state is removed"
-    assert "sensor.test_monitored_sensor" in str(missing_sensor.attributes)
+        missing_sensor = hass.states.get(entity_id)
+        assert missing_sensor.state == "1", "Missing count should become 1 after entity state is removed"
+        assert "sensor.test_monitored_sensor" in str(missing_sensor.attributes)
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

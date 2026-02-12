@@ -28,27 +28,31 @@ async def test_safe_mode_activates(hass: HomeAssistant, tmp_path):
     # Mock hass.config.path to ensure the integration finds our lock file
     with patch.object(hass.config, "path", side_effect=lambda *args: str(config_dir.joinpath(*args))):
         # Initialize integration
-        await async_init_integration(
+        config_entry = await async_init_integration(
             hass,
             add_params={
                 CONF_INCLUDED_FOLDERS: str(config_dir),
             },
         )
 
-    # Get coordinator
-    coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
+    try:
+        # Get coordinator
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    # Verify Safe Mode
-    assert coordinator.safe_mode is True
-    assert coordinator.status == STATE_SAFE_MODE
+        # Verify Safe Mode
+        assert coordinator.safe_mode is True
+        assert coordinator.status == STATE_SAFE_MODE
 
-    # Verify Status Sensor
-    from homeassistant.helpers import entity_registry as er
-    ent_reg = er.async_get(hass)
-    status_entity_id = next(e.entity_id for e in ent_reg.entities.values() if e.unique_id.endswith(SENSOR_STATUS))
+        # Verify Status Sensor
+        from homeassistant.helpers import entity_registry as er
+        ent_reg = er.async_get(hass)
+        status_entity_id = next(e.entity_id for e in ent_reg.entities.values() if e.unique_id.endswith(SENSOR_STATUS))
 
-    state = hass.states.get(status_entity_id)
-    assert state.state == STATE_SAFE_MODE
+        state = hass.states.get(status_entity_id)
+        assert state.state == STATE_SAFE_MODE
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
 
 async def test_safe_mode_prevents_parsing(hass: HomeAssistant, tmp_path):
     """Test that safe mode prevents parsing."""
@@ -62,11 +66,15 @@ async def test_safe_mode_prevents_parsing(hass: HomeAssistant, tmp_path):
          patch.object(hass.config, "path", side_effect=lambda *args: str(config_dir.joinpath(*args))):
 
         # Initialize integration
-        await async_init_integration(hass)
+        config_entry = await async_init_integration(hass)
 
-        # Verify status is safe mode
-        coordinator = hass.data[DOMAIN][hass.config_entries.async_entries(DOMAIN)[0].entry_id]
-        assert coordinator.safe_mode
+        try:
+            # Verify status is safe mode
+            coordinator = hass.data[DOMAIN][config_entry.entry_id]
+            assert coordinator.safe_mode
 
-        # Ensure parse was NOT called
-        mock_parse.assert_not_called()
+            # Ensure parse was NOT called
+            mock_parse.assert_not_called()
+        finally:
+            await hass.config_entries.async_unload(config_entry.entry_id)
+            await hass.async_block_till_done()

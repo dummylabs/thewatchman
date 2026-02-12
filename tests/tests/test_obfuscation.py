@@ -97,15 +97,19 @@ async def test_integration_obfuscate_config(hass):
         }
     )
     
-    # Verify global state changed
-    assert obfuscate_id("sensor.secret") == "sensor.secret"
-    
-    # Reload with True
-    hass.config_entries.async_update_entry(
-        config_entry, data={**config_entry.data, CONF_LOG_OBFUSCATE: True}
-    )
-    await hass.config_entries.async_reload(config_entry.entry_id)
-    await hass.async_block_till_done()
-    
-    # Verify global state changed back
-    assert obfuscate_id("sensor.secret") == "sensor.sec***"
+    try:
+        # Verify global state changed
+        assert obfuscate_id("sensor.secret") == "sensor.secret"
+        
+        # Reload with True
+        hass.config_entries.async_update_entry(
+            config_entry, data={**config_entry.data, CONF_LOG_OBFUSCATE: True}
+        )
+        await hass.config_entries.async_reload(config_entry.entry_id)
+        await hass.async_block_till_done()
+        
+        # Verify global state changed back
+        assert obfuscate_id("sensor.secret") == "sensor.sec***"
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
