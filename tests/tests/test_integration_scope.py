@@ -56,7 +56,7 @@ async def test_scope_filtering_custom_folder(hass, scope_test_data, tmp_path):
     appearance[CONF_REPORT_PATH] = str(report_file)
 
     # Initialize integration with ONLY the custom folder included
-    await async_init_integration(
+    config_entry = await async_init_integration(
         hass,
         add_params={
             CONF_INCLUDED_FOLDERS: custom_folder,
@@ -65,18 +65,22 @@ async def test_scope_filtering_custom_folder(hass, scope_test_data, tmp_path):
         },
     )
 
-    # Force parse (usually happens on init, but we can call report service to be sure/refresh)
-    await hass.services.async_call(DOMAIN, "report")
-    await hass.async_block_till_done()
+    try:
+        # Force parse (usually happens on init, but we can call report service to be sure/refresh)
+        await hass.services.async_call(DOMAIN, "report")
+        await hass.async_block_till_done()
 
-    # Check internal data structures directly to verify what was parsed
-    parsed_entities = await _get_parsed_entities(hass)
+        # Check internal data structures directly to verify what was parsed
+        parsed_entities = await _get_parsed_entities(hass)
 
-    # sensor.nested_sensor SHOULD be found (it's in /custom)
-    assert "sensor.nested_sensor" in parsed_entities, f"Parsed entities: {parsed_entities.keys()}"
+        # sensor.nested_sensor SHOULD be found (it's in /custom)
+        assert "sensor.nested_sensor" in parsed_entities, f"Parsed entities: {parsed_entities.keys()}"
 
-    # sensor.root_sensor SHOULD NOT be found (it's in root, which is excluded)
-    assert "sensor.root_sensor" not in parsed_entities
+        # sensor.root_sensor SHOULD NOT be found (it's in root, which is excluded)
+        assert "sensor.root_sensor" not in parsed_entities
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
 
 async def test_scope_filtering_default_root(hass, scope_test_data, tmp_path):
     """Test that default behavior includes everything from root."""
@@ -95,7 +99,7 @@ async def test_scope_filtering_default_root(hass, scope_test_data, tmp_path):
     # We need to ensure hass.config.config_dir points to our temp root for the "default" logic to work
     # if we were testing the fallback. But here we can test explicit root inclusion.
 
-    await async_init_integration(
+    config_entry = await async_init_integration(
         hass,
         add_params={
             CONF_INCLUDED_FOLDERS: root_folder,
@@ -103,10 +107,14 @@ async def test_scope_filtering_default_root(hass, scope_test_data, tmp_path):
         },
     )
 
-    await hass.services.async_call(DOMAIN, "report")
-    await hass.async_block_till_done()
+    try:
+        await hass.services.async_call(DOMAIN, "report")
+        await hass.async_block_till_done()
 
-    parsed_entities = await _get_parsed_entities(hass)
+        parsed_entities = await _get_parsed_entities(hass)
 
-    assert "sensor.nested_sensor" in parsed_entities, f"Parsed entities: {parsed_entities.keys()}"
-    assert "sensor.root_sensor" in parsed_entities
+        assert "sensor.nested_sensor" in parsed_entities, f"Parsed entities: {parsed_entities.keys()}"
+        assert "sensor.root_sensor" in parsed_entities
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

@@ -182,8 +182,11 @@ async def test_migrate_v2_downgrade_compatibility(hass: HomeAssistant):
         mock_coordinator.safe_mode = False
         
         # Run setup
-        result = await async_setup_entry(hass, mock_entry)
-        
-        assert result is True
-        mock_forward.assert_called_once()
-        # Verify no crash
+        try:
+            result = await async_setup_entry(hass, mock_entry)
+            assert result is True
+            mock_forward.assert_called_once()
+            # Verify no crash
+        finally:
+            await hass.config_entries.async_unload(mock_entry.entry_id)
+            await hass.async_block_till_done()

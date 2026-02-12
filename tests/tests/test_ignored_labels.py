@@ -63,40 +63,44 @@ async def test_ignored_labels(hass, tmp_path, new_test_data_dir):
         }
     )
 
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
-    await coordinator.async_load_stats()
-    await coordinator.async_refresh()
+    try:
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]
+        await coordinator.async_load_stats()
+        await coordinator.async_refresh()
 
-    assert (
-        coordinator.data.get(COORD_DATA_PROCESSED_FILES) > 0
-    ), f"Parsed 0 files! Path: {config_dir}, Data: {coordinator.data}"
+        assert (
+            coordinator.data.get(COORD_DATA_PROCESSED_FILES) > 0
+        ), f"Parsed 0 files! Path: {config_dir}, Data: {coordinator.data}"
 
-    # Verify Initial Results (all 3 missing)
-    assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 3
+        # Verify Initial Results (all 3 missing)
+        assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 3
 
-    text_entity_id = "text.watchman_ignored_labels"
+        text_entity_id = "text.watchman_ignored_labels"
 
-    # Set ignored labels via text entity
-    await hass.services.async_call(
-        "text", "set_value",
-        {"entity_id": text_entity_id, "value": "ignore_watchman"},
-        blocking=True
-    )
+        # Set ignored labels via text entity
+        await hass.services.async_call(
+            "text", "set_value",
+            {"entity_id": text_entity_id, "value": "ignore_watchman"},
+            blocking=True
+        )
 
-    # Allow event processing and debounced refresh (10s default cooldown)
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
-    await hass.async_block_till_done()
+        # Allow event processing and debounced refresh (10s default cooldown)
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
+        await hass.async_block_till_done()
 
-    # Refresh coordinator reference as reload might have occurred
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
+        # Refresh coordinator reference as reload might have occurred
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    # Verify Results (2 missing, 1 ignored)
-    assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 2
+        # Verify Results (2 missing, 1 ignored)
+        assert coordinator.data[COORD_DATA_MISSING_ENTITIES] == 2
 
-    # Verify specific entities in the report
-    entity_attrs = coordinator.data.get(COORD_DATA_ENTITY_ATTRS, [])
-    missing_ids = [e["id"] for e in entity_attrs]
+        # Verify specific entities in the report
+        entity_attrs = coordinator.data.get(COORD_DATA_ENTITY_ATTRS, [])
+        missing_ids = [e["id"] for e in entity_attrs]
 
-    assert "sensor.test1_unknown" not in missing_ids, "Labeled entity should be ignored"
-    assert "sensor.test2_missing" in missing_ids
-    assert "sensor.test3_unavail" in missing_ids
+        assert "sensor.test1_unknown" not in missing_ids, "Labeled entity should be ignored"
+        assert "sensor.test2_missing" in missing_ids
+        assert "sensor.test3_unavail" in missing_ids
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

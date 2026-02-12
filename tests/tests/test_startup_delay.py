@@ -20,32 +20,36 @@ async def test_startup_delay_on_ha_start(hass: HomeAssistant):
     # Mock coordinator.request_parser_rescan to inspect arguments
     with patch("custom_components.watchman.WatchmanCoordinator.request_parser_rescan") as mock_rescan:
 
-        await async_init_integration(
+        config_entry = await async_init_integration(
             hass,
             add_params={CONF_STARTUP_DELAY: 30}
         )
 
-        # Should not be called yet
-        mock_rescan.assert_not_called()
+        try:
+            # Should not be called yet
+            mock_rescan.assert_not_called()
 
-        # Fire event
-        hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
-        await hass.async_block_till_done()
+            # Fire event
+            hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+            await hass.async_block_till_done()
 
-        # Check call
-        # We expect at least one call with reason="mandatory startup scan"
-        # Since async_init_integration waits for idle, other calls might happen (like 'service_call' if services registered)
-        # But we look for the one with reason="mandatory startup scan"
+            # Check call
+            # We expect at least one call with reason="mandatory startup scan"
+            # Since async_init_integration waits for idle, other calls might happen (like 'service_call' if services registered)
+            # But we look for the one with reason="mandatory startup scan"
 
-        calls = mock_rescan.call_args_list
-        startup_call = None
-        for call in calls:
-            if call.kwargs.get("reason") == "integration reload":
-                startup_call = call
-                break
+            calls = mock_rescan.call_args_list
+            startup_call = None
+            for call in calls:
+                if call.kwargs.get("reason") == "integration reload":
+                    startup_call = call
+                    break
 
-        assert startup_call is not None
-        assert startup_call.kwargs["delay"] == 30
+            assert startup_call is not None
+            assert startup_call.kwargs["delay"] == 30
+        finally:
+            await hass.config_entries.async_unload(config_entry.entry_id)
+            await hass.async_block_till_done()
 
 @pytest.mark.asyncio
 async def test_startup_delay_when_ha_running(hass: HomeAssistant):
@@ -55,20 +59,24 @@ async def test_startup_delay_when_ha_running(hass: HomeAssistant):
 
     with patch("custom_components.watchman.WatchmanCoordinator.request_parser_rescan") as mock_rescan:
 
-        await async_init_integration(
+        config_entry = await async_init_integration(
             hass,
             add_params={CONF_STARTUP_DELAY: 30}
         )
 
-        await hass.async_block_till_done()
+        try:
+            await hass.async_block_till_done()
 
-        calls = mock_rescan.call_args_list
-        startup_call = None
-        for call in calls:
-            if call.kwargs.get("reason") == "integration reload":
-                startup_call = call
-                break
+            calls = mock_rescan.call_args_list
+            startup_call = None
+            for call in calls:
+                if call.kwargs.get("reason") == "integration reload":
+                    startup_call = call
+                    break
 
-        assert startup_call is not None
-        # async_init_integration patches DEFAULT_DELAY to 0 for speed
-        assert startup_call.kwargs["delay"] == 0
+            assert startup_call is not None
+            # async_init_integration patches DEFAULT_DELAY to 0 for speed
+            assert startup_call.kwargs["delay"] == 0
+        finally:
+            await hass.config_entries.async_unload(config_entry.entry_id)
+            await hass.async_block_till_done()

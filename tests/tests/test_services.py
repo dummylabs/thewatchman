@@ -37,27 +37,33 @@ async def test_set_ignored_labels_service(hass: HomeAssistant):
         await hass.config_entries.async_setup(config_entry.entry_id)
         await hass.async_block_till_done()
         
-        # Test 1: Valid labels
-        await hass.services.async_call(
-            DOMAIN,
-            "set_ignored_labels",
-            {"labels": ["test", "private"]},
-            blocking=True
-        )
-        
-        # Verify config updated
-        assert config_entry.data[CONF_IGNORED_LABELS] == ["test", "private"]
-        
-        # Test 2: Invalid labels -> Exception
-        with pytest.raises(ServiceValidationError) as excinfo:
+        try:
+            # Test 1: Valid labels
             await hass.services.async_call(
                 DOMAIN,
                 "set_ignored_labels",
-                {"labels": ["test", "invalid_one"]},
+                {"labels": ["test", "private"]},
                 blocking=True
             )
-        
-        assert "The following labels do not exist: invalid_one" in str(excinfo.value)
-        
-        # Verify config NOT updated
-        assert config_entry.data[CONF_IGNORED_LABELS] == ["test", "private"]
+            await hass.async_block_till_done() # Wait for possible reload
+            
+            # Verify config updated
+            assert config_entry.data[CONF_IGNORED_LABELS] == ["test", "private"]
+            
+            # Test 2: Invalid labels -> Exception
+            with pytest.raises(ServiceValidationError) as excinfo:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "set_ignored_labels",
+                    {"labels": ["test", "invalid_one"]},
+                    blocking=True
+                )
+            await hass.async_block_till_done()
+            
+            assert "The following labels do not exist: invalid_one" in str(excinfo.value)
+            
+            # Verify config NOT updated
+            assert config_entry.data[CONF_IGNORED_LABELS] == ["test", "private"]
+        finally:
+            await hass.config_entries.async_unload(config_entry.entry_id)
+            await hass.async_block_till_done()

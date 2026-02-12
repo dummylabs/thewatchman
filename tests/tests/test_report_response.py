@@ -31,7 +31,7 @@ async def test_report_service_response(hass, new_test_data_dir, tmp_path):
     report_file = tmp_path / "watchman_report.txt"
 
     # Initialize integration
-    await async_init_integration(
+    config_entry = await async_init_integration(
         hass,
         add_params={
             CONF_INCLUDED_FOLDERS: config_dir,
@@ -41,39 +41,43 @@ async def test_report_service_response(hass, new_test_data_dir, tmp_path):
         },
     )
 
-    # Call the service and capture the response
-    response = await hass.services.async_call(
-        DOMAIN,
-        "report",
-        {"create_file": False}, # Now this should work and return data without side effects
-        blocking=True,
-        return_response=True
-    )
+    try:
+        # Call the service and capture the response
+        response = await hass.services.async_call(
+            DOMAIN,
+            "report",
+            {"create_file": False}, # Now this should work and return data without side effects
+            blocking=True,
+            return_response=True
+        )
 
-    # Verify the response structure
-    assert isinstance(response, dict)
-    assert "parse_duration" in response
-    assert "last_parse_date" in response
-    assert "ignored_files_count" in response
-    assert "processed_files_count" in response
+        # Verify the response structure
+        assert isinstance(response, dict)
+        assert "parse_duration" in response
+        assert "last_parse_date" in response
+        assert "ignored_files_count" in response
+        assert "processed_files_count" in response
 
-    assert "missing_entities" in response
-    assert "missing_actions" in response
-    assert isinstance(response["missing_entities"], list)
-    assert isinstance(response["missing_actions"], list)
+        assert "missing_entities" in response
+        assert "missing_actions" in response
+        assert isinstance(response["missing_entities"], list)
+        assert isinstance(response["missing_actions"], list)
 
-    # Check structure of list items if any exist
-    if response["missing_entities"]:
-        item = response["missing_entities"][0]
-        assert "id" in item
-        assert "state" in item
-        assert "file" in item
-        assert "line" in item
+        # Check structure of list items if any exist
+        if response["missing_entities"]:
+            item = response["missing_entities"][0]
+            assert "id" in item
+            assert "state" in item
+            assert "file" in item
+            assert "line" in item
 
-    # Verify values are reasonable
-    assert isinstance(response["parse_duration"], float)
-    assert response["processed_files_count"] >= 0
-    assert response["ignored_files_count"] >= 0
-    # timestamp might be None if no parse happened or string if it did.
-    # Since we just init, it might be None or filled depending on async_init logic.
-    # But keys should exist.
+        # Verify values are reasonable
+        assert isinstance(response["parse_duration"], float)
+        assert response["processed_files_count"] >= 0
+        assert response["ignored_files_count"] >= 0
+        # timestamp might be None if no parse happened or string if it did.
+        # Since we just init, it might be None or filled depending on async_init logic.
+        # But keys should exist.
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

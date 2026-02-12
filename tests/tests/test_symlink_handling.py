@@ -36,29 +36,33 @@ async def test_symlink_handling(hass, tmp_path, caplog):
         broken_link.symlink_to(config_dir / "non_existent.yaml")
 
     # Initialize integration
-    await async_init_integration(
+    config_entry = await async_init_integration(
         hass,
         add_params={
             CONF_INCLUDED_FOLDERS: [str(config_dir)]
         }
     )
 
-    await hass.async_block_till_done()
+    try:
+        await hass.async_block_till_done()
 
-    # Retrieve coordinator
-    entries = hass.config_entries.async_entries(DOMAIN)
-    coordinator = entries[0].runtime_data.coordinator
+        # Retrieve coordinator
+        entries = hass.config_entries.async_entries(DOMAIN)
+        coordinator = entries[0].runtime_data.coordinator
 
-    # Verify:
-    # 1. Broken link warning in logs
-    assert "Skipping broken symlink" in caplog.text
+        # Verify:
+        # 1. Broken link warning in logs
+        assert "Skipping broken symlink" in caplog.text
 
-    # 2. Target file parsed correctly (via valid link)
-    parsed_items = await coordinator.hub.async_get_all_items()
-    parsed_entities = parsed_items["entities"]
-    assert "sensor.target_sensor_missing" in parsed_entities
-    assert "valid_link.yaml" in parsed_entities["sensor.target_sensor_missing"]["locations"]
+        # 2. Target file parsed correctly (via valid link)
+        parsed_items = await coordinator.hub.async_get_all_items()
+        parsed_entities = parsed_items["entities"]
+        assert "sensor.target_sensor_missing" in parsed_entities
+        assert "valid_link.yaml" in parsed_entities["sensor.target_sensor_missing"]["locations"]
 
-    # Check if we parsed 2 files (target + link) or 1 (if parser handles deduplication by real path, which it doesn't seem to do yet, but `processed_files` uses path as key)
-    # processed_files_count should be at least 1. If symlink is followed as a separate file, it might be 2.
-    assert coordinator.data.get(COORD_DATA_PROCESSED_FILES) >= 1
+        # Check if we parsed 2 files (target + link) or 1 (if parser handles deduplication by real path, which it doesn't seem to do yet, but `processed_files` uses path as key)
+        # processed_files_count should be at least 1. If symlink is followed as a separate file, it might be 2.
+        assert coordinator.data.get(COORD_DATA_PROCESSED_FILES) >= 1
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

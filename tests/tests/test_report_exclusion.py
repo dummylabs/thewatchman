@@ -70,7 +70,7 @@ async def test_report_exclusion_integration(hass, tmp_path, snapshot, new_test_d
     hass.services.async_register("light", "turn_on", lambda x: None)
 
     # 3. Initialize Integration
-    await async_init_integration(
+    config_entry = await async_init_integration(
         hass,
         add_params={
             CONF_INCLUDED_FOLDERS: str(config_dir),
@@ -82,22 +82,26 @@ async def test_report_exclusion_integration(hass, tmp_path, snapshot, new_test_d
         },
     )
 
-    # 4. Generate Report
-    await hass.services.async_call(DOMAIN, "report")
-    await hass.async_block_till_done()
+    try:
+        # 4. Generate Report
+        await hass.services.async_call(DOMAIN, "report")
+        await hass.async_block_till_done()
 
-    # 5. Verify
-    assert report_file.exists()
-    content = report_file.read_text(encoding="utf-8")
+        # 5. Verify
+        assert report_file.exists()
+        content = report_file.read_text(encoding="utf-8")
 
-    # entity1 and action1 should be EXCLUDED as they are referenced by disabled automations
-    # and CONF_EXCLUDE_DISABLED_AUTOMATION = True
-    assert "sensor.entity1" not in content, "sensor.entity1 should be excluded"
-    assert "service.action1" not in content, "service.action1 should be excluded"
+        # entity1 and action1 should be EXCLUDED as they are referenced by disabled automations
+        # and CONF_EXCLUDE_DISABLED_AUTOMATION = True
+        assert "sensor.entity1" not in content, "sensor.entity1 should be excluded"
+        assert "service.action1" not in content, "service.action1 should be excluded"
 
-    # entity3 should be INCLUDED (in report) because it is referenced both
-    # active and disabled automation
-    assert "sensor.entity3" in content, "sensor.entity3 should be included"
+        # entity3 should be INCLUDED (in report) because it is referenced both
+        # active and disabled automation
+        assert "sensor.entity3" in content, "sensor.entity3 should be included"
 
-    # Verify snapshot
-    assert content == snapshot
+        # Verify snapshot
+        assert content == snapshot
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

@@ -28,27 +28,31 @@ async def test_ignored_items_exact_match(hass: HomeAssistant):
         },
     )
     
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
-    
-    # Check Entities
-    # sensor.skylight should be ignored
-    # switch.skylight should be reported
-    
-    entity_attrs = coordinator.data.get("entity_attrs", [])
-    missing_entity_ids = [e["id"] for e in entity_attrs]
-    
-    assert "sensor.skylight" not in missing_entity_ids, "sensor.skylight should be ignored"
-    assert "switch.skylight" in missing_entity_ids, "switch.skylight should be reported"
-    
-    # Check Services
-    # switch.turn_off should be ignored
-    # switch.turn_on should be reported
-    
-    service_attrs = coordinator.data.get("service_attrs", [])
-    missing_service_ids = [s["id"] for s in service_attrs]
-    
-    assert "switch.turn_off" not in missing_service_ids, "switch.turn_off should be ignored"
-    assert "switch.turn_on" in missing_service_ids, "switch.turn_on should be reported"
+    try:
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]
+        
+        # Check Entities
+        # sensor.skylight should be ignored
+        # switch.skylight should be reported
+        
+        entity_attrs = coordinator.data.get("entity_attrs", [])
+        missing_entity_ids = [e["id"] for e in entity_attrs]
+        
+        assert "sensor.skylight" not in missing_entity_ids, "sensor.skylight should be ignored"
+        assert "switch.skylight" in missing_entity_ids, "switch.skylight should be reported"
+        
+        # Check Services
+        # switch.turn_off should be ignored
+        # switch.turn_on should be reported
+        
+        service_attrs = coordinator.data.get("service_attrs", [])
+        missing_service_ids = [s["id"] for s in service_attrs]
+        
+        assert "switch.turn_off" not in missing_service_ids, "switch.turn_off should be ignored"
+        assert "switch.turn_on" in missing_service_ids, "switch.turn_on should be reported"
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
 
 
 @pytest.mark.asyncio
@@ -65,23 +69,27 @@ async def test_ignored_items_glob_match(hass: HomeAssistant):
         },
     )
     
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
-    
-    # Check Entities
-    # switch.skylight should be ignored (matches switch.*)
-    # sensor.skylight should be reported
-    
-    entity_attrs = coordinator.data.get("entity_attrs", [])
-    missing_entity_ids = [e["id"] for e in entity_attrs]
-    
-    assert "switch.skylight" not in missing_entity_ids, "switch.skylight should be ignored by glob"
-    assert "sensor.skylight" in missing_entity_ids, "sensor.skylight should be reported"
-    
-    # Check Services
-    # switch.turn_on and switch.turn_off should be ignored (matches switch.*)
-    
-    service_attrs = coordinator.data.get("service_attrs", [])
-    missing_service_ids = [s["id"] for s in service_attrs]
-    
-    assert "switch.turn_on" not in missing_service_ids
-    assert "switch.turn_off" not in missing_service_ids
+    try:
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]
+        
+        # Check Entities
+        # switch.skylight should be ignored (matches switch.*)
+        # sensor.skylight should be reported
+        
+        entity_attrs = coordinator.data.get("entity_attrs", [])
+        missing_entity_ids = [e["id"] for e in entity_attrs]
+        
+        assert "switch.skylight" not in missing_entity_ids, "switch.skylight should be ignored by glob"
+        assert "sensor.skylight" in missing_entity_ids, "sensor.skylight should be reported"
+        
+        # Check Services
+        # switch.turn_on and switch.turn_off should be ignored (matches switch.*)
+        
+        service_attrs = coordinator.data.get("service_attrs", [])
+        missing_service_ids = [s["id"] for s in service_attrs]
+        
+        assert "switch.turn_on" not in missing_service_ids
+        assert "switch.turn_off" not in missing_service_ids
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
