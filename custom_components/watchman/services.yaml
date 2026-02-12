@@ -1,53 +1,50 @@
 report:
-  name: Report
-  description: Run watchman report
-  fields:
-    parse_config:
-      example: true
-      default: false
-      required: false
-      selector:
-        boolean:
-    advanced_options:
-      collapsed: true
-      fields:
-        action:
-          example: "persistent_notification.create"
-          default: "persistent_notification.create"
-          required: false
-          advanced: true
-          selector:
-            text:
-        data:
-          example: "title: Watchman Report"
-          required: false
-          advanced: true
-        chunk_size:
-          example: 3500
-          default: 3500
-          required: false
-          advanced: true
-          selector:
-            number:
-              min: 0
-              max: 100000
-              mode: box
-        create_file:
-          example: true
-          default: true
-          required: false
-          selector:
-            boolean:
+    name: Report
+    description: Run watchman report
+    fields:
+        parse_config:
+            example: true
+            default: false
+            required: false
+            selector:
+                boolean:
+        advanced_options:
+            collapsed: true
+            fields:
+                action:
+                    example: "persistent_notification.create"
+                    required: false
+                    advanced: true
+                    selector:
+                        text:
+                data:
+                    example: "title: Watchman Report"
+                    required: false
+                    advanced: true
+                chunk_size:
+                    example: 3500
+                    required: false
+                    advanced: true
+                    selector:
+                        number:
+                            min: 0
+                            max: 100000
+                            mode: box
+                create_file:
+                    example: true
+                    default: true
+                    required: false
+                    selector:
+                        boolean:
 
 set_ignored_labels:
-  name: Set ignored labels
-  description: Overwrite the list of labels to ignore.
-  fields:
-    labels:
-      name: Labels
-      description: List of labels to ignore.
-      required: true
-      selector:
-        label:
-          multiple: true
-
+    name: Set ignored labels
+    description: Overwrite the list of labels to ignore.
+    fields:
+        labels:
+            name: Labels
+            description: List of labels to ignore.
+            required: true
+            selector:
+                label:
+                    multiple: true
