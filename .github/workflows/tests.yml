@@ -11,12 +11,16 @@ on:
 
 jobs:
   test:
-    name: Test (Python ${{ matrix.python-version }})
+    name: Test (Python ${{ matrix.python-version }}, HA ${{ matrix.ha-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13", "3.14"]
+        include:
+          - python-version: "3.13"
+            ha-version: "2025.4.4"
+          - python-version: "3.14"
+            ha-version: "2026.2.0"
 
     steps:
       - name: Check out code
@@ -40,7 +44,7 @@ jobs:
       - name: Run tests (Stable HA)
         env:
           PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
-        run: ./scripts/test_ha.py
+        run: ./scripts/test_ha.py ${{ matrix.ha-version }}
 
   test-beta:
     name: Test on Beta HA (Python 3.14)
