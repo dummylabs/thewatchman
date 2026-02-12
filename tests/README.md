@@ -6,6 +6,20 @@ Install uv using instructions from their site: https://docs.astral.sh/uv/getting
 `uv run pytest tests`
 
 ## Run tests on a specific HA version
+You can use the helper script to run tests against any specific Home Assistant version. This will automatically set up an isolated environment with the correct dependencies.
+
+```bash
+# Run against the default version (2025.4.4)
+./scripts/test_ha.py
+
+# Run against a specific version
+./scripts/test_ha.py 2026.1.1
+
+# Run specific tests with extra arguments
+./scripts/test_ha.py 2026.1.1 tests/tests/test_init.py -vv
+```
+
+Alternatively, using raw `uv` command:
 `uv run --with homeassistant==2026.1.0 pytest`
 
 

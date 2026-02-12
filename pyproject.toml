@@ -14,7 +14,12 @@ dev = [
     "pre-commit>=4.5.1",
     "pytest>=8.3.5",
     "pytest-homeassistant-custom-component>=0.13.236",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.25.0",
     "ruff>=0.15.0",
+    "mypy>=1.15.0",
+    "pylint>=3.3.4",
+    "colorlog>=6.9.0",
 ]
 
 [tool.pytest.ini_options]
