@@ -27,7 +27,7 @@ def test_automations_parsing(parser_client, new_test_data_dir):
 
     # Check Entities
     assert "binary_sensor.motion_sensor" in entities
-    assert "light.living_room" in entities
+    assert "light.living_room_automation" in entities
     assert "light.kitchen" in entities
     assert "alarm_control_panel.home" in entities
 
@@ -35,8 +35,8 @@ def test_automations_parsing(parser_client, new_test_data_dir):
     assert "light.turn_on" in services
     assert "alarm_control_panel.arm_home" in services # New 'action' syntax
 
-    # Verify 'light.living_room' is in automation context
-    context = parser_client.get_automation_context('light.living_room')
+    # Verify 'light.living_room_automation' is in automation context
+    context = parser_client.get_automation_context('light.living_room_automation')
     assert context is not None
     assert context["is_automation_context"] is True
     assert context["parent_type"] == "automation"

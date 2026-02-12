@@ -17,7 +17,7 @@
         # H:5 List vs Single
         # Parser handles list of strings
         entity_id:
-          - light.living_room # Valid entity in list
+          - light.living_room_automation # Valid entity in list
           - light.kitchen # Valid entity in list
 
 - alias: "Night Routine"
