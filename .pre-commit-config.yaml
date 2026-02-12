@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: pytest
         name: Run Project Tests
-        entry: uv run pytest tests
+        entry: ./scripts/test_ha.py 2025.4.4
         language: system
         stages: [pre-push]
         pass_filenames: false
