@@ -1,67 +1,65 @@
 name: Tests
 
 on:
-  push:
-    branches: [ master, main ]
-  pull_request:
-    branches: [ master, main ]
-  schedule:
-    - cron: "0 2 * * *" # Every night at 02:00 UTC
-  workflow_dispatch:
+    push:
+        branches: [master, main]
+    pull_request:
+        branches: [master, main]
+    schedule:
+        - cron: "0 2 * * *" # Every night at 02:00 UTC
+    workflow_dispatch:
 
 jobs:
-  test:
-    name: Test (Python 3.14, HA 2026.2.0)
-    runs-on: ubuntu-latest
+    test:
+        name: Test (Python 3.14, HA 2026.2.0)
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v4
 
-      - name: Install system dependencies for Pillow compilation (Python 3.14 fix)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7-dev libtiff-dev
+            - name: Install system dependencies for Pillow compilation (Python 3.14 fix)
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7-dev libtiff-dev
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+            - name: Install uv
+              uses: astral-sh/setup-uv@v5
+              with:
+                  enable-cache: true
 
-      - name: Set up Python 3.14
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
+            - name: Set up Python 3.14
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.14"
 
-      - name: Run tests (Stable HA)
-        env:
-          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
-        run: ./scripts/test_ha.py 2026.2.0
+            - name: Run tests (Stable HA)
+              run: ./scripts/test_ha.py 2026.2.0
 
-  test-beta:
-    name: Test on Beta HA (Python 3.14)
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+    test-beta:
+        name: Test on Beta HA (Python 3.14)
+        runs-on: ubuntu-latest
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v4
 
-      - name: Install system dependencies for Pillow compilation (Python 3.14 fix)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7-dev libtiff-dev
+            - name: Install system dependencies for Pillow compilation (Python 3.14 fix)
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7-dev libtiff-dev
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+            - name: Install uv
+              uses: astral-sh/setup-uv@v5
+              with:
+                  enable-cache: true
 
-      - name: Set up Python 3.14
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
+            - name: Set up Python 3.14
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.14"
 
-      - name: Run tests (Beta HA)
-        env:
-          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
-        run: ./scripts/test_ha.py rc
+            - name: Run tests (Beta HA)
+              env:
+                  PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+              run: ./scripts/test_ha.py rc
