@@ -22,6 +22,11 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Install system dependencies for Pillow compilation (Python 3.14 fix)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7-dev libtiff-dev
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -42,6 +47,11 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      - name: Install system dependencies for Pillow compilation (Python 3.14 fix)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7-dev libtiff-dev
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
