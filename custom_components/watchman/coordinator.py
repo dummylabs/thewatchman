@@ -75,7 +75,7 @@ class FilterContext:
     entity_registry: er.EntityRegistry
     disabled_automations: set[str]
     automation_map: dict[str, str]
-    ignored_states: list[str]
+    ignored_states: set[str]
     ignored_labels: set[str]
     exclude_disabled: bool
 
@@ -106,6 +106,44 @@ def _resolve_automations(
     return automations
 
 
+def _is_safe_to_report(
+    hass: HomeAssistant,
+    entry: str,
+    data: dict[str, Any],
+    ctx: FilterContext,
+    is_entity_check: bool
+) -> bool:
+    """Check context (automations) to decide if item should be reported.
+
+    Returns True if item should be reported, False if it is excluded.
+    """
+    occurrences = data["locations"]
+    raw_automations = data["automations"]
+    automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
+
+    if ctx.exclude_disabled and automations:
+        all_parents_disabled = True
+        for parent_id in automations:
+            if parent_id not in ctx.disabled_automations:
+                all_parents_disabled = False
+                break
+
+        if all_parents_disabled:
+            return False
+
+    if is_entity_check and automations:
+        auto_id = next(iter(automations))
+        if not hass.states.get(auto_id):
+             reg_entry = ctx.entity_registry.async_get(auto_id)
+             if not (reg_entry and reg_entry.disabled_by):
+                 _LOGGER.warning(
+                     f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. "
+                     f"Occurrences: {occurrences}"
+                 )
+
+    return True
+
+
 def _is_available(state: Any) -> bool:
     """Check if state is available/active.
 
@@ -118,96 +156,56 @@ def _is_available(state: Any) -> bool:
     return val not in ("unavailable", "unknown", "missing", "None")
 
 
-def check_single_entity_status(
+def check_single_entity_status( # noqa: PLR0911
     hass: HomeAssistant,
     entry: str,
     data: dict[str, Any],
     ctx: FilterContext,
     item_type: str,
 ) -> list[dict[str, Any]] | None:
-    """Check status of a single entity.
+    """Check status of a single entity with cross-validation logic.
 
     Returns occurrences list if missing/invalid, None otherwise.
     """
-    is_entity = item_type == "entity"
-    type_label = "entity" if is_entity else "action"
+    is_entity_check = item_type == "entity"
+    # reg_entry used for: disabled check, label filtering, and cross-check logic.
+    reg_entry = None
+    # --- PHASE 1: STATUS RESOLUTION ---
+    if is_entity_check:
+        # fetch reg_entry to re-use below in code
+        reg_entry = ctx.entity_registry.async_get(entry)
+        current_state, _ = get_entity_state(hass, entry, registry_entry=reg_entry)
 
-    occurrences = data["locations"]
-    raw_automations = data["automations"]
-    automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
+        # Fast exit for healthy entities
+        if current_state not in ("missing", "unknown", "unavail", "disabled"):
+            return None
 
-    if is_entity:
-        # Check if this is a valid HA action misidentified as a sensor/other entity
+        # Cross-validation: If missing, check if it's actually an action
+        if is_action(hass, entry):
+            return None
+    else: # item_type == "action"
         if is_action(hass, entry):
             return None
 
-        # Check ignored labels
-        if ctx.ignored_labels:
-            reg_entry = ctx.entity_registry.async_get(entry)
-            if (
-                reg_entry
-                and hasattr(reg_entry, "labels")
-                and set(reg_entry.labels) & ctx.ignored_labels
-            ):
-                return None
-
-        state, _ = get_entity_state(hass, entry)
-
-        # Map state to config format if needed (e.g. unavailable -> unavail)
-        check_state = "unavail" if state == "unavailable" else state
-
-        if check_state in set(ctx.ignored_states):
+        # Cross-validation: If missing, check if it's actually an entity.
+        # Check 1: State Machine
+        # Check 2: Registry
+        # fetch reg_entry to re-use below in code
+        reg_entry = ctx.entity_registry.async_get(entry)
+        if hass.states.get(entry) or reg_entry:
             return None
+    # --- PHASE 2: CONFIGURATION FILTERS ---
+    # 2. Check Ignored Labels (Applies to BOTH entities and actions)
+    # Use the pre-fetched reg_entry
+    if ctx.ignored_labels and reg_entry and hasattr(reg_entry, "labels") and \
+        not ctx.ignored_labels.isdisjoint(reg_entry.labels):
+            return None
+    # --- PHASE 3: CONTEXT ANALYSIS ---
+    # Expensive checks (parsing automations) only if everything else failed
+    if not _is_safe_to_report(hass, entry, data, ctx, is_entity_check):
+        return None
 
-        # Entities are reported if they are missing/unknown/etc.
-        should_report = state in ["missing", "unknown", "unavail", "disabled"]
-    else:
-        # Actions are reported if they don't exist
-        should_report = not is_action(hass, entry)
-
-    if should_report:
-        # exclude entities which are referenced by disabled automations only
-        if ctx.exclude_disabled and automations:
-            all_parents_disabled = True
-            for parent_id in automations:
-                if parent_id not in ctx.disabled_automations:
-                    all_parents_disabled = False
-                    break
-
-            if all_parents_disabled:
-                _LOGGER.debug(
-                    f"- {type_label} {obfuscate_id(entry)} skipped as it is only used by disabled automations."
-                )
-                _LOGGER.debug(
-                    f"  Related auto: {obfuscate_id(automations)}."
-                )
-                return None
-
-            _LOGGER.debug(
-                f"+ {type_label} {obfuscate_id(entry)} added to the report as it is used both by enabled and disabled automations"
-            )
-            _LOGGER.debug(
-                f"  Related auto: {obfuscate_id(automations)}."
-            )
-
-        # Entity-specific warning logic
-        if is_entity and automations:
-            auto_id = next(iter(automations))
-            if not hass.states.get(auto_id):
-                # Fallback: check if it's disabled in registry
-                reg_entry = ctx.entity_registry.async_get(auto_id)
-                should_warn = True
-                if reg_entry and reg_entry.disabled_by:
-                    should_warn = False
-
-                if should_warn:
-                    _LOGGER.warning(f"? Unable to locate automation: {obfuscate_id(auto_id)} for {obfuscate_id(entry)}. May be it's disabled?")
-                    _LOGGER.warning(f"  Related auto: {obfuscate_id(automations)}")
-                    _LOGGER.warning(f"  Occurrences: {occurrences}")
-
-        return data["occurrences"]
-
-    return None
+    return data["occurrences"]
 
 
 def renew_missing_items_list(
@@ -344,12 +342,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         # Normalize ignored states (e.g. unavail -> unavailable if needed, or handle in loop)
         # For now, we pass raw config list and handle mapping in the loop for backward compatibility
-        ignored_states_mapped = []
+        ignored_states_mapped = set()
         for s in ignored_states:
              if s == "unavailable":
-                 ignored_states_mapped.append("unavail")
+                 ignored_states_mapped.add("unavail")
              else:
-                 ignored_states_mapped.append(s)
+                 ignored_states_mapped.add(s)
 
         self._filter_context_cache = FilterContext(
             entity_registry=ent_reg,
@@ -493,16 +491,20 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._dirty_entities.clear()
 
         # build entity attributes map for missing_entities sensor
-        entity_attrs = [
-            {
-                "id": entity,
-                "state": state,
-                "friendly_name": name or "",
-                "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
-            }
-            for entity in entities_missing
-            for state, name in [get_entity_state(self.hass, entity, friendly_names=True)]
-        ]
+        entity_attrs = []
+        for entity in entities_missing:
+            reg_entry = ctx.entity_registry.async_get(entity)
+            state, name = get_entity_state(
+                self.hass, entity, friendly_names=True, registry_entry=reg_entry
+            )
+            entity_attrs.append(
+                {
+                    "id": entity,
+                    "state": state,
+                    "friendly_name": name or "",
+                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                }
+            )
 
         # build service attributes map for missing_services sensor
         service_attrs = [
@@ -563,7 +565,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         entities_list = []
         for entity_id, occurrences in missing_entities.items():
-            state, _ = get_entity_state(self.hass, entity_id)
+            reg_entry = ctx.entity_registry.async_get(entity_id)
+            state, _ = get_entity_state(self.hass, entity_id, registry_entry=reg_entry)
             entities_list.extend(flatten_occurrences(entity_id, occurrences, state))
 
         actions_list = []
@@ -941,16 +944,20 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             services_missing = self._missing_actions_cache
 
             # build entity attributes map for missing_entities sensor
-            entity_attrs = [
-                {
-                    "id": entity,
-                    "state": state,
-                    "friendly_name": name or "",
-                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
-                }
-                for entity in entities_missing
-                for state, name in [get_entity_state(self.hass, entity, friendly_names=True)]
-            ]
+            entity_attrs = []
+            for entity in entities_missing:
+                reg_entry = ctx.entity_registry.async_get(entity)
+                state, name = get_entity_state(
+                    self.hass, entity, friendly_names=True, registry_entry=reg_entry
+                )
+                entity_attrs.append(
+                    {
+                        "id": entity,
+                        "state": state,
+                        "friendly_name": name or "",
+                        "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                    }
+                )
 
             # build service attributes map for missing_services sensor
             service_attrs = [

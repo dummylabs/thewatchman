@@ -1,3 +1,5 @@
+import re
+
 """Constants for the parser."""
 
 # file extensions supported by parser
@@ -48,8 +50,11 @@ ESPHOME_PATH_SEGMENT = "esphome"
 # Allowed keys for ESPHome files to be considered as HA entities/services
 ESPHOME_ALLOWED_KEYS = {'service', 'action', 'entity_id'}
 
-# YAML keys which values (whole hierarchy) should be ignored
+# Keys which values (whole hierarchy) should be ignored
 IGNORED_BRANCH_KEYS = {'url', 'example', 'description', 'event_type', 'logger'}
+
+# Keys identifying an action/service call
+ACTION_KEYS = {'service', 'action', 'service_template', 'perform_action'}
 
 # Keys where the parser ignores the immediate string value (to avoid false positives)
 # but continues recursion if the value is a complex structure
@@ -62,7 +67,15 @@ CONFIG_ENTRY_DOMAINS = {'group', 'template'}
 IGNORED_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'deps', 'backups', 'custom_components', '.cache', '.esphome', '.storage', 'tmp', 'blueprints', 'media', 'share', 'www', 'trash'}
 
 # Regex building blocks for entity detection
+
 # Forbidden prefixes: letters, numbers, _, ., /, \, @, $, %, &, |, -
+
 REGEX_ENTITY_BOUNDARY = r"(?:^|[^a-zA-Z0-9_./\\@$%&|-])"
+
 REGEX_OPTIONAL_STATES = r"(?:states\.)?"
+
 REGEX_ENTITY_SUFFIX = r"\.[a-z0-9_]+"
+
+
+
+REGEX_STRICT_SERVICE = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$", re.IGNORECASE)

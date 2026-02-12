@@ -1,0 +1,6 @@
+service_template: >
+  {% if is_state('input_boolean.mode', 'on') %}
+    light.turn_on
+  {% else %}
+    script.notify_error
+  {% endif %}
