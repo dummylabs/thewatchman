@@ -5,12 +5,15 @@ on:
     branches: [ master, main ]
   pull_request:
     branches: [ master, main ]
+  schedule:
+    - cron: "0 2 * * *" # Every night at 02:00 UTC
   workflow_dispatch:
 
 jobs:
   test-devcontainer:
     name: Test in DevContainer (Python 3.13, HA 2026.2.0)
     runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,3 +29,22 @@ jobs:
           # The action will detect .devcontainer/devcontainer.json and Dockerfile
           # and execute postCreateCommand to setup dependencies
           runCmd: uv run ./scripts/test_ha.py 2026.2.0 -p no:xdist
+
+  test-beta-devcontainer:
+    name: Test on Beta HA (Python 3.13)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Git config for DevContainer mount
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run tests inside DevContainer (Beta)
+        uses: devcontainers/ci@v0.3
+        with:
+          # Run against release candidate (beta) version of HA
+          runCmd: uv run ./scripts/test_ha.py rc -p no:xdist
