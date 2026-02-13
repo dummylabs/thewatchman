@@ -1,0 +1,15 @@
+- name: "Jinja2 template prefix"
+  input: "sensor.outside_temp{{ id }}"
+  expected: []
+
+- name: "Decluttering card prefix"
+  input: "light.living_room[[ var ]]"
+  expected: []
+
+- name: "Mixed prefix"
+  input: "binary_sensor.motion{ some other content"
+  expected: []
+
+- name: "Another mixed prefix"
+  input: "switch.missing_switch[ index ]"
+  expected: []

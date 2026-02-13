@@ -203,7 +203,7 @@ def _scan_string_for_entities(
         end_idx = match.end(1)
         if end_idx < len(content):
             next_char = content[end_idx]
-            if next_char == "-":
+            if next_char in ("-", "{", "["):
                 continue
             if next_char == ".":
                 if "states." not in match.group(0).lower():
