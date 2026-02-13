@@ -1,9 +1,9 @@
 repos:
-  - repo: local
-    hooks:
-      - id: pytest
-        name: Run Project Tests
-        entry: ./scripts/test_ha.py 2025.4.4
-        language: system
-        stages: [pre-push]
-        pass_filenames: false
+    - repo: local
+      hooks:
+          - id: pytest
+            name: Run Project Tests
+            entry: ./scripts/test_local 2025.4.4
+            language: system
+            stages: [pre-push]
+            pass_filenames: false
