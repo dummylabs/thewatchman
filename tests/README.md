@@ -1,35 +1,40 @@
-# Prerequisites
+# Testing Guide
 
-Install uv using instructions from their site: https://docs.astral.sh/uv/getting-started/installation/
-
-## Run tests 
-`uv run pytest tests`
-
-## Run tests on a specific HA version
-You can use the helper script to run tests against any specific Home Assistant version. This will automatically set up an isolated environment with the correct dependencies.
+## 🚀 Running Tests Locally (Recommended)
+To ensure snapshot consistency with Linux CI, run tests using the Docker wrapper. This works on macOS, Windows, and Linux.
 
 ```bash
-# Run against the default version (2025.4.4)
-./scripts/test_ha.py
+# Run against default HA version
+./scripts/test_local
 
-# Run against a specific version
-./scripts/test_ha.py 2026.1.1
+# Run against specific version
+./scripts/test_local 2026.2.0
 
-# Run specific tests with extra arguments
-./scripts/test_ha.py 2026.1.1 tests/tests/test_init.py -vv
+# Update snapshots
+./scripts/test_local -- --snapshot-update
 ```
 
-Alternatively, using raw `uv` command:
-`uv run --with homeassistant==2026.1.0 pytest`
+This command automatically:
+1. Builds the test Docker image from `.devcontainer/Dockerfile`.
+2. Runs the tests inside an isolated Linux container.
 
+## 🐳 DevContainer Workflow
+If you open the project in VS Code DevContainer, you are already inside the Linux environment. You can use the direct runner:
+
+```bash
+./scripts/test_ha.py
+```
+
+## ⚙️ CI / Advanced
+The `scripts/test_ha.py` script is the low-level test runner. It assumes the current environment (local or container) is correctly set up with `uv`.
+
+- **CI:** Uses `scripts/test_ha.py` directly inside the GitHub Actions runner.
+- **Local (Advanced):** Use `scripts/test_ha.py` only if you are on Linux or debugging non-snapshot tests.
 
 # Useful commands
 
 Command | Description
 ------- | -----------
-`uv cache prune` | clear uv cache from unused package versions
-`uv run pytest tests` | This will run all tests in `tests/` and tell you how many passed/failed
-`uv run pytest --durations=10 --cov-report term-missing --cov=custom_components.watchman tests` | This tells `pytest` that your target module to test is `custom_components.integration_blueprint` so that it can give you a [code coverage](https://en.wikipedia.org/wiki/Code_coverage) summary, including % of code that was executed and the line numbers of missed executions.
-`uv run pytest tests/test_init.py -k test_setup_unload_and_reload_entry` | Runs the `test_setup_unload_and_reload_entry` test function located in `tests/test_init.py`
-`uv run pytest --capture=no --log-cli-level=DEBUG tests/` | Do not hide command line output and set log level to debug
-`uv run pytest --log-file=pytest1.log --log-file-level=DEBUG tests/tests/test_exclude_disabled.py` | save debug logs in pytest1.log
+`./scripts/test_local` | **Standard way to run tests**
+`./scripts/test_local -- --durations=10` | Show slowest 10 tests
+`./scripts/test_local -- tests/tests/test_init.py` | Run specific test file

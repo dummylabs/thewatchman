@@ -16,11 +16,8 @@ def run_tests(ha_version, pytest_args):
     """Run tests for a specific HA version using uv."""
     print(f"--- Preparing environment for Home Assistant {ha_version} ---")
     
-    constraints_url = get_ha_constraints(ha_version)
-    
     # We use uv run with dynamic dependencies
     # --with homeassistant==version
-    # --with-requirements constraints_url
     
     cmd = [
         "uv", "run",
@@ -28,14 +25,6 @@ def run_tests(ha_version, pytest_args):
         "--with", f"homeassistant=={ha_version}" if ha_version not in ["latest", "rc", "dev"] else "homeassistant",
         "--with", "pytest-homeassistant-custom-component",
     ]
-    
-    # Add other dev dependencies from pyproject.toml to ensure they are present
-    # but since we are running in a project, uv run should pick them up from the dev group
-    # if we don't use --no-project.
-    
-    # If we want to be absolutely sure about constraints:
-    # cmd += ["--with-requirements", constraints_url]
-    # Note: some older versions might not have package_constraints.txt or it might be named differently
     
     cmd += ["pytest"] + pytest_args
     
@@ -51,8 +40,8 @@ def run_tests(ha_version, pytest_args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tests against specific HA version")
     parser.add_argument("version", nargs="?", default="2025.4.4", help="HA version to test against (e.g. 2024.12.0)")
-    parser.add_argument("pytest_args", nargs="*", help="Arguments to pass to pytest")
     
-    args = parser.parse_args()
+    # We use parse_known_args to allow passing flags directly to pytest without --
+    args, pytest_args = parser.parse_known_args()
     
-    sys.exit(run_tests(args.version, args.pytest_args))
+    sys.exit(run_tests(args.version, pytest_args))

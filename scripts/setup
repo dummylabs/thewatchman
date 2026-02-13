@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
+# Updated setup script for uv-based workflow
 
 set -e
 
 cd "$(dirname "$0")/.."
 
-scripts/install/pip_packages "pip>=24.2"
-scripts/install/pip_packages setuptools wheel
-scripts/install/pip_packages \
-    --requirement requirements.txt \
-    --requirement requirements_test.txt
+echo "Setting up development environment with uv..."
 
-#pre-commit  install --config .github/pre-commit-config.yaml
+# Ensure uv is installed
+if ! command -v uv &> /dev/null; then
+    echo "uv could not be found. Please install uv first."
+    exit 1
+fi
+
+# Sync dependencies from pyproject.toml and uv.lock
+uv sync
+
+echo "Development environment setup complete."

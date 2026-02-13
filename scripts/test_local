@@ -1,0 +1,64 @@
+#!/bin/bash
+set -e
+
+# Constants
+IMAGE_NAME="watchman-dev-test"
+DOCKERFILE=".devcontainer/Dockerfile"
+UV_CACHE_VOLUME="watchman-uv-cache"
+VENV_DIR=".venv-docker"
+
+# Check for Docker
+if ! command -v docker &> /dev/null; then
+    echo "Error: Docker is not installed or not in PATH."
+    exit 1
+fi
+
+# Function to build image
+build_image() {
+    echo "--- Building Docker image for tests ---"
+    docker build -f "$DOCKERFILE" -t "$IMAGE_NAME" .
+}
+
+# Check arguments for --rebuild flag
+ARGS=()
+REBUILD=false
+
+for arg in "$@"; do
+    if [ "$arg" == "--rebuild" ]; then
+        REBUILD=true
+    else
+        ARGS+=("$arg")
+    fi
+done
+
+# Build logic
+if [ "$REBUILD" = true ]; then
+    build_image
+elif ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+    echo "--- Image '$IMAGE_NAME' not found. Building first time... ---"
+    build_image
+else
+    # Check if image is older than Dockerfile (basic check)
+    # Only works if we had file timestamps, but Docker doesn't easily expose this without inspect.
+    # User can use --rebuild manually.
+    echo "--- Using existing Docker image '$IMAGE_NAME' ---"
+fi
+
+echo "--- Running tests inside container ---"
+# Optimization:
+# 1. Mount uv cache volume to reuse downloaded packages
+# 2. Use a dedicated virtual environment (.venv-docker) inside the container 
+#    to avoid conflicts with local macOS/Windows .venv and enable persistence across runs.
+
+CMD="uv run ./scripts/test_ha.py ${ARGS[*]}"
+
+# Ensure .venv-docker exists (uv will create it, but good to know location)
+# We pass UV_PROJECT_ENVIRONMENT to tell uv where to put/find the venv.
+
+docker run --rm \
+    -v "$(pwd):/workspace" \
+    -w /workspace \
+    -v "$UV_CACHE_VOLUME:/root/.cache/uv" \
+    -e UV_PROJECT_ENVIRONMENT="/workspace/$VENV_DIR" \
+    "$IMAGE_NAME" \
+    bash -c "$CMD"
