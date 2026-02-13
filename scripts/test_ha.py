@@ -16,22 +16,40 @@ def run_tests(ha_version, pytest_args):
     """Run tests for a specific HA version using uv."""
     print(f"--- Preparing environment for Home Assistant {ha_version} ---")
     
-    # We use uv run with dynamic dependencies
-    # --with homeassistant==version
-    
+    # 1. Base command
     cmd = [
         "uv", "run",
         "--upgrade",
-        "--with", f"homeassistant=={ha_version}" if ha_version not in ["latest", "rc", "dev"] else "homeassistant",
-        "--with", "pytest-homeassistant-custom-component",
     ]
     
-    cmd += ["pytest"] + pytest_args
+    # 2. Version handling and prerelease flag
+    if ha_version in ["latest", "rc", "dev"]:
+        cmd.extend(["--with", "homeassistant"])
+        if ha_version in ["rc", "dev"]:
+            cmd.append("--prerelease=allow")
+    else:
+        cmd.extend(["--with", f"homeassistant=={ha_version}"])
+        
+    cmd.extend(["--with", "pytest-homeassistant-custom-component"])
     
-    print(f"Running: {' '.join(cmd)}")
+    # 3. Determine and print actual HA version
+    version_check_cmd = cmd + [
+        "python", "-c", 
+        "import homeassistant.const as hc; print(f'\\n[+] Testing against Home Assistant Version: {hc.__version__}\\n')"
+    ]
     
     try:
-        result = subprocess.run(cmd, check=True)
+        # Run version check (this also primes the environment)
+        subprocess.run(version_check_cmd, check=True)
+    except subprocess.CalledProcessError:
+        print("[-] Failed to determine Home Assistant version.")
+        
+    # 4. Run tests
+    test_cmd = cmd + ["pytest"] + pytest_args
+    print(f"Running: {' '.join(test_cmd)}")
+    
+    try:
+        result = subprocess.run(test_cmd, check=True)
         return result.returncode
     except subprocess.CalledProcessError as e:
         print(f"Tests failed with exit code {e.returncode}")
