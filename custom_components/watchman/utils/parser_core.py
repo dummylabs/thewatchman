@@ -570,8 +570,8 @@ def _parse_config_entries_file(
         # Create Context
         context = ParserContext(
             is_active=True,
-            parent_type=domain,
-            parent_alias=entry.get("title"),
+            parent_type=f"helper_{domain}",
+            parent_alias=entry.get("title") or entry.get("options", {}).get("name"),
             parent_id=entry.get("entry_id"),
         )
 
