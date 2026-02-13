@@ -3,7 +3,7 @@ repos:
       hooks:
           - id: pytest
             name: Run Project Tests
-            entry: ./scripts/test_local 2025.4.4
+            entry: ./scripts/test_local --version 2025.4.4
             language: system
             stages: [pre-push]
             pass_filenames: false

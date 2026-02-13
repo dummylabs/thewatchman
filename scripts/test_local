@@ -38,19 +38,19 @@ elif ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
     echo "--- Image '$IMAGE_NAME' not found. Building first time... ---"
     build_image
 else
-    # Check if image is older than Dockerfile (basic check)
-    # Only works if we had file timestamps, but Docker doesn't easily expose this without inspect.
-    # User can use --rebuild manually.
     echo "--- Using existing Docker image '$IMAGE_NAME' ---"
 fi
 
 echo "--- Running tests inside container ---"
-# Optimization:
-# 1. Mount uv cache volume to reuse downloaded packages
-# 2. Use a dedicated virtual environment (.venv-docker) inside the container 
-#    to avoid conflicts with local macOS/Windows .venv and enable persistence across runs.
 
-CMD="uv run ./scripts/test_ha.py ${ARGS[*]}"
+# Construct command string with proper quoting for each argument
+QUOTED_ARGS=""
+for arg in "${ARGS[@]}"; do
+    # Quote each argument to handle spaces correctly
+    QUOTED_ARGS="$QUOTED_ARGS \"$arg\""
+done
+
+CMD="uv run ./scripts/test_ha.py $QUOTED_ARGS"
 
 # Ensure .venv-docker exists (uv will create it, but good to know location)
 # We pass UV_PROJECT_ENVIRONMENT to tell uv where to put/find the venv.

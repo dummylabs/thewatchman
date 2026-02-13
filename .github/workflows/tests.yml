@@ -28,7 +28,7 @@ jobs:
         with:
           # The action will detect .devcontainer/devcontainer.json and Dockerfile
           # and execute postCreateCommand to setup dependencies
-          runCmd: uv run ./scripts/test_ha.py 2026.2.0 -p no:xdist
+          runCmd: uv run ./scripts/test_ha.py --version 2026.2.0 -p no:xdist
 
   test-beta-devcontainer:
     name: Test on Beta HA (Python 3.13)
@@ -47,4 +47,4 @@ jobs:
         uses: devcontainers/ci@v0.3
         with:
           # Run against release candidate (beta) version of HA
-          runCmd: uv run ./scripts/test_ha.py rc -p no:xdist
+          runCmd: uv run ./scripts/test_ha.py --version rc -p no:xdist

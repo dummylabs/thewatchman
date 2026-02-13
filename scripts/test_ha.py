@@ -57,9 +57,9 @@ def run_tests(ha_version, pytest_args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tests against specific HA version")
-    parser.add_argument("version", nargs="?", default="2025.4.4", help="HA version to test against (e.g. 2024.12.0)")
-    
+    parser.add_argument("--version", default="2025.4.4", help="HA version to test against (e.g. 2024.12.0)")
+
     # We use parse_known_args to allow passing flags directly to pytest without --
     args, pytest_args = parser.parse_known_args()
-    
+
     sys.exit(run_tests(args.version, pytest_args))

@@ -8,10 +8,13 @@ To ensure snapshot consistency with Linux CI, run tests using the Docker wrapper
 ./scripts/test_local
 
 # Run against specific version
-./scripts/test_local 2026.2.0
+./scripts/test_local --version 2026.2.0
+
+# Run specific test file
+./scripts/test_local tests/tests/test_init.py
 
 # Update snapshots
-./scripts/test_local -- --snapshot-update
+./scripts/test_local --snapshot-update
 ```
 
 This command automatically:
@@ -22,7 +25,7 @@ This command automatically:
 If you open the project in VS Code DevContainer, you are already inside the Linux environment. You can use the direct runner:
 
 ```bash
-./scripts/test_ha.py
+./scripts/test_ha.py --version 2026.2.0
 ```
 
 ## ⚙️ CI / Advanced
@@ -36,5 +39,5 @@ The `scripts/test_ha.py` script is the low-level test runner. It assumes the cur
 Command | Description
 ------- | -----------
 `./scripts/test_local` | **Standard way to run tests**
-`./scripts/test_local -- --durations=10` | Show slowest 10 tests
-`./scripts/test_local -- tests/tests/test_init.py` | Run specific test file
+`./scripts/test_local --durations=10` | Show slowest 10 tests
+`./scripts/test_local tests/tests/test_init.py` | Run specific test file
