@@ -1,0 +1,7 @@
+automation:
+  - alias: "Automation 1"
+    trigger:
+      - platform: state
+        entity_id: sensor.missing_entity
+    action:
+      - service: script.missing_service
