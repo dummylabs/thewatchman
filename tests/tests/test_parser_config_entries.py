@@ -102,9 +102,9 @@ def test_parse_core_config_entries(parser_client, tmp_path):
     ctx = parser_client.get_automation_context("light.kitchen_ceiling")
     assert ctx, "Context should exist for light.kitchen_ceiling"
     assert ctx["parent_alias"] == "Kitchen Group"
-    assert ctx["parent_type"] == "group"
+    assert ctx["parent_type"] == "helper_group"
     
     ctx_tmpl = parser_client.get_automation_context("binary_sensor.garage_door")
     assert ctx_tmpl, "Context should exist for binary_sensor.garage_door"
     assert ctx_tmpl["parent_alias"] == "Garage Template"
-    assert ctx_tmpl["parent_type"] == "template"
+    assert ctx_tmpl["parent_type"] == "helper_template"
