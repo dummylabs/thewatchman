@@ -209,14 +209,19 @@ def text_renderer(
 def fill(data: Any, width: int, extra: str | None = None) -> str:
     """Arrange data by table column width."""
     if data and isinstance(data, dict):
-        key, val = next(iter(data.items()))
-        out = f"{key}:{','.join([str(v) for v in val])}"
+        lines = []
+        for key, val in data.items():
+            lines.append(f"{key}:{','.join([str(v) for v in val])}")
+        out = "\n".join(lines)
     else:
         out = str(data) if not extra else f"{data} ('{extra}')"
 
-    return (
-        "\n".join([out.ljust(width) for out in wrap(out, width)]) if width > 0 else out
-    )
+    if width > 0:
+        wrapped_lines = []
+        for line in out.split("\n"):
+            wrapped_lines.extend(wrap(line, width))
+        return "\n".join([line.ljust(width) for line in wrapped_lines])
+    return out
 
 
 def get_columns_width(user_width: list[int] | None) -> list[int]:
