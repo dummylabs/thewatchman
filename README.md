@@ -10,7 +10,7 @@ Home Assistant setups evolve over time—entities can disappear, and services/ac
 ## Quick start
 1. Go to the "Integrations" section on HACS, click "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS".
 2. Restart Home Assistant, go to Settings->Devices & Services->Add Integration and select Watchman integration. If integration not found, try to empty your browser cache and reload page.
-3. Go to Developer Tools -> Actions, type `watchman` and select `Watchman: report` action then press "Perform Action" button. Check `watchman_report.txt` file in your configuration directory.
+3. Go to Developer Tools -> Actions, type `watchman` and select `Watchman: report` action then press "Perform Action" button. Examine report output or check `watchman_report.txt` file in your configuration directory.
 
 Refer to the [Configuration section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
 
