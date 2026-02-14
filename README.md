@@ -30,7 +30,7 @@ Option | Description | Example
 ------------ | ------------- | -------------
 ⚙️ Folders to watch | Comma-separated list of folders to scan for entities and actions recursively. | `/config`
 ⚙️ Ignored entities and actions | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman?tab=readme-ov-file#ignored-entities-and-actions-formely-known-as-services-option-example) below. | `sensor.my_sensor1, sensor.my_sensor2`
-⚙️ Ignored labels  | Any entity with these labels will be be excluded from the report. You can update the list of ignored labels via automation using the watchman.set_ignored_labels action.  | `ignore_watchman`
+⚙️ Ignored labels  | Any entity with these labels will be be excluded from the report. You can update the list of ignored labels via automation using the `watchman.set_ignored_labels` action.  | `ignore_watchman`
 ⚙️ Exclude entity states | Select which states will be excluded from the report | Checkboxes in UI
 ⚙️ Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `*/blueprints/*, */custom_components/*, */esphome/*`
 ⚙️ Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/actions may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
@@ -109,7 +109,7 @@ Tip: Safe Mode can be disabled by deleting the watchman.lock (or watchman_dev.lo
 Please note that the ASCII table format is only used when report is saved to a file. For notification actions watchman uses plain text list due to presentation limitations.
 ### Icons meaning:
 * 👥 - A group in UI Helpers which contains flagged entity
-* 🧩 - A template entiry in UI Helpers which contains flagged entity
+* 🧩 - A template entity in UI Helpers which contains flagged entity
 * 📄 - Regular configuration file which contains flagged entity
 
 ```
