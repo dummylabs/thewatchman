@@ -20,15 +20,9 @@ Watchman is a custom integration for Home Assistant that scans your YAML configu
 Watchman intentionally keeps the parsing logic lightweight. It doesn’t build a full model of your configuration or try to understand dependencies between files, automations, and templates. Instead, it reads YAML files line by line and uses regex-based heuristics to detect entity and service/action references. Because of this, it may produce false positives (something looks like a reference, but isn’t) and false negatives (a real reference isn’t detected). You can silence false positives using Ignored entities and actions (see the Configuration section). Reducing false negatives is an ongoing improvement area.
 
 ## What is does not do
-Watchman does not try to discover every missing or unavailable entity in your Home Assistant instance. It only reports entities and services/actions that it can find referenced in your YAML configuration (automations, scripts, dashboards, templates, etc.).
+Watchman does not try to discover every missing or unavailable entity in your Home Assistant instance. It only reports entities and services/actions that it can find referenced in your YAML configuration (automations, scripts, dashboards, templates, etc.) and limited set of JSON files in the `config/.storage` folder, e.g. UI dashboard configurations.
 
 ## Configuration Options
-Watchman configuration is currently split between two locations:
-
- - Integration Options: Used for general setup. Path: Settings > Devices & Services > Watchman > Configure (General settings marked with ⚙️ below).
- - Device Controls: Used for dynamic settings (e.g., ignored labels). Path: Settings > Devices & Services > Devices > Watchman (Dynamic settings marked with 🎛️ below).
- 
- The distinction between static and dynamic configuration is provisional and may change in future updates.
 
 [![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/)
 
@@ -36,15 +30,17 @@ Option | Description | Example
 ------------ | ------------- | -------------
 ⚙️ Folders to watch | Comma-separated list of folders to scan for entities and actions recursively. | `/config`
 ⚙️ Ignored entities and actions | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman?tab=readme-ov-file#ignored-entities-and-actions-formely-known-as-services-option-example) below. | `sensor.my_sensor1, sensor.my_sensor2`
-🎛️ Ignored labels (Device Controls) | A configuration entity (`text.watchman_ignored_labels`) used to define a comma-separated list of label names. Any entity tagged with these labels will be excluded from the report. Exposing this as a configuration entity allows you to manage ignored items dynamically via automations.  | `ignore_watchman`
+⚙️ Ignored labels  | Any entity with these labels will be be excluded from the report. You can update the list of ignored labels via automation using the watchman.set_ignored_labels action.  | `ignore_watchman`
 ⚙️ Exclude entity states | Select which states will be excluded from the report | Checkboxes in UI
 ⚙️ Ignored files | Comma-separated list of files and folders to ignore. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman#ignored-files-option-example) below. Takes precedence over *Included folders* option.| `*/blueprints/*, */custom_components/*, */esphome/*`
 ⚙️ Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/actions may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
 ⚙️ Exclude entities used by disabled automations | If enabled, entities referenced only by disabled automations will be excluded from the report. | UI flag
+⚙️ Obfuscate sensitive data in logs | By default, potentially sensitive data, such as entity IDs, are masked in debug logs. This option enables the display of full entity names and actions in log files. | UI flag 
 ⚙️ Report location | Report location and filename. | `/config/watchman_report.txt`
 ⚙️ Custom header for the report | Custom header for watchman report. | `-== Watchman Report ==-`
 ⚙️ Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`
 ⚙️ Add friendly names | Add friendly name of the entity to the report whenever possible. | UI flag
+
 
 ### Ignored files option example
 * Ignore a file: `*/automations.yaml`
@@ -62,13 +58,13 @@ The text version of the report can be generated using `watchman.report` action f
 
 Parameter | YAML key | Description | Default
 ------------ | ------------- | -------------| -------------
-Force configuration parsing |`parse_config`| Forces watchman to parse Home Assistant configuration files and rebuild entity and actions list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration. | `False`
-Send report as notification |`action`| Home assistant notification action to send report via, e.g. `persistent_notification.create`. See compatibility note below.| ``
-Notification action data |`data`| A json object with additional notification action parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
-Message chunk size |`chunk_size`| Maximum message size in bytes. Some notification actions, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
+⚙️ Force configuration parsing |`parse_config`| Forces watchman to parse Home Assistant configuration files and rebuild entity and actions list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration. | `False`
+⚙️ Send report as notification |`action`| Home assistant notification action to send report via, e.g. `persistent_notification.create`. See compatibility note below.| ``
+⚙️ Notification action data |`data`| A json object with additional notification action parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
+⚙️ Message chunk size |`chunk_size`| Maximum message size in bytes. Some notification actions, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
 
 
-### A useless example sending report as persitent notification
+### A (useless) example sending report as persitent notification
 ```yaml
 action: watchman.report
 data:
@@ -111,24 +107,23 @@ Tip: Safe Mode can be disabled by deleting the watchman.lock (or watchman_dev.lo
 
 ## Example of a watchman report
 Please note that the ASCII table format is only used when report is saved to a file. For notification actions watchman uses plain text list due to presentation limitations.
+### Icons meaning:
+* 👥 - A group in UI Helpers which contains flagged entity
+* 🧩 - A template entiry in UI Helpers which contains flagged entity
+* 📄 - Regular configuration file which contains flagged entity
+
 ```
 -== WATCHMAN REPORT ==-
 
--== Missing 1 action(s) from 38 found in your config:
-+--------------------------------+---------+------------------------------------------+
-| Action                         | State   | Location                                 |
-+--------------------------------+---------+------------------------------------------+
-| xiaomi_miio.vacuum_goto        | missing | automations.yaml:599,605                 |
-+--------------------------------+---------+------------------------------------------+
-
--== Missing 3 entity(ies) from 216 found in your config:
-+--------------------------------+---------+------------------------------------------+
-| Entity                         | State   | Location                                 |
-+--------------------------------+---------+------------------------------------------+
-| sensor.stats_pm25_10_median    | unavail | customize.yaml:14                        |
-| sensor.xiaomi_miio_sensor      | unavail | automations.yaml:231,1348                |
-| vacuum.roborock_s5max          | unavail | automations.yaml:589,603,610,1569        |
-+--------------------------------+---------+------------------------------------------+
+-== Missing 3 entity(ies) from 114 found in your config:
++--------------------------------+----------+----------------------------------------+
+| Entity ID                      | State    | Location                               |
++--------------------------------+----------+----------------------------------------+
+| binary_sensor.oops             | unknown  | 👥 Group: "A helper created in the UI" |
+| sensor.does_not_exist          | missing  | 🧩 Template: "Another helper "         |
+| binary_sensor.tasks_payments   | unavail  | 📄 .storage/lovelace:95                |
+|                                |          | 📄 automations.yaml:271                |
++--------------------------------+----------+----------------------------------------+
 
 -== Report created on 03 Feb 2022 17:18:55
 -== Parsed 200 files in 0.96s., ignored 66 files
