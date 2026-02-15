@@ -345,6 +345,16 @@ def _is_part_of_concatenation(text: str, match: re.Match) -> bool:
 
     return False
 
+def _sanitize_jinja_comments(text: str) -> str:
+    """Replace Jinja comments with newlines to preserve line numbers."""
+    def repl(match):
+        return "\n" * match.group(0).count("\n")
+
+    # We use non-greedy matching .*? inside {# ... #}
+    # DOTALL flag is needed so . matches newlines
+    return re.sub(r"{#.*?#}", repl, text, flags=re.DOTALL)
+
+
 def _recursive_search(
     data: Any,
     breadcrumbs: list[Any],
@@ -470,19 +480,25 @@ def _recursive_search(
         if key_name and str(key_name).lower() in IGNORED_VALUE_KEYS:
             return
 
+        # Sanitize Jinja comments to avoid false positives inside comments
+        # We process a copy so we don't modify the original 'data' object which might have attributes
+        processed_data = _sanitize_jinja_comments(data)
+
         # ESPHome Mode: Only process value if key_name is allowed
         if is_esphome:
             if not key_name or str(key_name).lower() not in ESPHOME_ALLOWED_KEYS:
                 return
 
         # Handle Action Templates
+        # Check original 'data' for template markers because 'processed_data' might have had them stripped (e.g. comments)
+        # but we still want to process line offsets correctly if it was a template structure.
         if expected_item_type == "service" and is_template(data):
             # Check if this is a block scalar (starts with > or |)
             # If so, the content physically starts on the next line relative to line_no
             is_block_scalar = getattr(data, "style", None) in (">", "|")
             base_offset = 1 if is_block_scalar else 0
 
-            for line, line_type, offset in _yield_template_lines(data):
+            for line, line_type, offset in _yield_template_lines(processed_data):
                 # Calculate precise line number
                 current_line = (line_no or 0) + offset + base_offset
 
@@ -516,7 +532,7 @@ def _recursive_search(
         # Standard Processing
         # Check for Entities
         _scan_string_for_entities(
-            data,
+            processed_data,
             results,
             line_no or 0,
             key_name,
@@ -526,7 +542,7 @@ def _recursive_search(
         )
 
         # Check for Services (e.g. "service: light.turn_on" inside a string template)
-        matches_svc = list(_SERVICE_PATTERN.finditer(data))
+        matches_svc = list(_SERVICE_PATTERN.finditer(processed_data))
         for match in matches_svc:
             service_id = match.group(1)
 
