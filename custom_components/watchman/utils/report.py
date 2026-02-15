@@ -315,7 +315,8 @@ async def async_report_to_notification(
     action = ".".join(action_str.split(".")[1:])
 
     data = {} if service_data is None else service_data.copy()
-    if "notification_id" not in data:
+    # only inject notification_id for persistent_notification service
+    if domain == "persistent_notification" and "notification_id" not in data:
         data["notification_id"] = "watchman_report"
 
     _LOGGER.debug(f"SERVICE_DATA {data}")
