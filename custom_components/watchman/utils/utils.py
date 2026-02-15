@@ -204,7 +204,10 @@ def get_entity_state(
             state = "disabled"
     else:
         state = str(entity_state.state).replace("unavailable", "unavail")
-        if split_entity_id(entry)[0] == "input_button" and state == "unknown":
+        if (
+            split_entity_id(entry)[0] in ["input_button", "button", "scene"]
+            and state == "unknown"
+        ):
             state = "available"
 
     return state, name
