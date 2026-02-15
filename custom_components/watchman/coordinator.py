@@ -176,6 +176,9 @@ def check_single_entity_status( # noqa: PLR0911
         reg_entry = ctx.entity_registry.async_get(entry)
         current_state, _ = get_entity_state(hass, entry, registry_entry=reg_entry)
 
+        if current_state in ctx.ignored_states:
+            return None
+
         # Fast exit for healthy entities
         if current_state not in ("missing", "unknown", "unavail", "disabled"):
             return None
@@ -218,9 +221,9 @@ def renew_missing_items_list(
     missing_items = {}
     is_entity = item_type == "entity"
 
-    # Specific check for actions if 'missing' is ignored
+    # optimization: flagged action can only be in "missing" state
+    # so we don't need to process them at all if "missing" is in ignored states
     if not is_entity and "missing" in ctx.ignored_states:
-        _LOGGER.info("MISSING state set as ignored in config, so watchman ignores missing actions.")
         return missing_items
 
     for entry, data in parsed_list.items():
