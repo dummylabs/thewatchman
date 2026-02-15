@@ -12,10 +12,11 @@ JSON_FILE_EXTS = {'.config_entries'}
 STORAGE_WHITELIST_PATTERNS = {'core.config_entries', 'lovelace*'}
 MAX_FILE_SIZE = 500 * 1024  # 500 KB
 
+
+# DO NOT EXTEND this list for missing integration domains; use HA_DOMAINS instead.
 # A fallback list of Home Assistant entity platforms for the CLI parser.
 # This list is used ONLY when the 'homeassistant' library is not importable.
 # If the library is present, this list is overwritten by the official constants.
-# DO NOT EXTEND this list for missing integration domains; use HA_DOMAINS instead.
 PLATFORMS = [
     "ai_task", "air_quality", "alarm_control_panel", "assist_satellite", "binary_sensor", "button",
     "calendar", "camera", "climate", "conversation", "cover", "date", "datetime", "device_tracker",
@@ -26,9 +27,9 @@ PLATFORMS = [
 ]
 
 
-# Integration domains used as a fallback for the standalone CLI parser.
+# Integration domains complementing the PLATFORMS list
 # In runtime, this list is merged with `hass.config.components`.
-# It includes standard domains (e.g., 'automation') and common integrations for testing.
+# It includes standard domains (e.g., 'automation') and common integrations
 HA_DOMAINS = [
     "automation", "script", "group", "zone", "person", "sun", "input_boolean", "input_button",
     "input_datetime", "input_number", "input_select", "input_text", "timer", "counter",
@@ -41,7 +42,7 @@ HA_DOMAINS = [
 # following patterns are ignored by watchman as they are neither entities, nor actions
 BUNDLED_IGNORED_ITEMS = [
     "timer.cancelled", "timer.finished", "timer.started", "timer.restarted",
-    "timer.paused", "event.*", "date.*", "time.*", "map.*", "homeassistant.*"
+    "timer.paused", "event.*", "date.*", "time.*", "map.*", "homeassistant.*", "lovelace.*"
 ]
 
 
