@@ -3,13 +3,14 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import label_registry as lr
+from homeassistant.helpers import issue_registry as ir, label_registry as lr
 
 from .const import (
     CONF_ACTION_NAME,
     CONF_ALLOWED_SERVICE_PARAMS,
     CONF_CHUNK_SIZE,
     CONF_CREATE_FILE,
+    CONF_FORCE_PARSING,
     CONF_IGNORED_LABELS,
     CONF_PARSE_CONFIG,
     CONF_REPORT_PATH,
@@ -92,14 +93,23 @@ class WatchmanServicesSetup:
 
         _LOGGER.debug(f"User requested report params={call.data}")
 
-        if call.data.get(CONF_PARSE_CONFIG, False):
-            # Blocking wait for a fresh scan
-            await self.coordinator.async_force_parse()
-        else:
-            # FIX: Ensure sensors perform a FULL check to match the generated report,
-            # ignoring the incremental optimization.
-            self.coordinator._force_full_rescan = True
-            await self.coordinator.async_request_refresh()
+        if CONF_PARSE_CONFIG in call.data:
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                "deprecated_parse_config_parameter",
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="deprecated_service_param",
+                translation_placeholders={
+                    "deprecated_param": CONF_PARSE_CONFIG,
+                },
+            )
+
+        force_parsing = call.data.get(CONF_FORCE_PARSING, call.data.get(CONF_PARSE_CONFIG, False))
+
+        # Always trigger a parser run (default: incremental, unless forced)
+        await self.coordinator.async_force_parse(ignore_mtime=force_parsing)
 
         # call notification action even when send notification = False
         if send_notification or action_name:

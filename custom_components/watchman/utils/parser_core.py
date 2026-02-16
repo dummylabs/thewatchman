@@ -944,10 +944,11 @@ class WatchmanParser:
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
         enforce_file_size: bool = True,
+        ignore_mtime: bool = False,
     ) -> ParseResult | None:
         """Orchestrates the scanning process.
 
-        If force = True, unmodified files will be scanned again
+        If ignore_mtime = True, unmodified files will be scanned again
         """
         start_time = time.monotonic()
         try:
@@ -1004,13 +1005,16 @@ class WatchmanParser:
 
                 if row:
                     last_scan_str, file_id = row
-                    try:
-                        last_scan_dt = datetime.datetime.fromisoformat(last_scan_str)
-                        file_mtime_dt = datetime.datetime.fromtimestamp(mtime)
-                        if file_mtime_dt > last_scan_dt:
-                            should_scan = True
-                    except ValueError:
+                    if ignore_mtime:
                         should_scan = True
+                    else:
+                        try:
+                            last_scan_dt = datetime.datetime.fromisoformat(last_scan_str)
+                            file_mtime_dt = datetime.datetime.fromtimestamp(mtime)
+                            if file_mtime_dt > last_scan_dt:
+                                should_scan = True
+                        except ValueError:
+                            should_scan = True
                 else:
                     should_scan = True
 
@@ -1235,17 +1239,17 @@ class WatchmanParser:
         root_path: str,
         ignored_files: list[str],
         *,
-        force: bool = False,
+        ignore_mtime: bool = False,
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
         enforce_file_size: bool = True,
     ) -> tuple[list[str], list[str], int, int, dict, ParseResult | None]:
-        """Main parse function.
+        """Parse configuration files (main function).
 
         Params:
             root_path: where to scan
             ignored_files: file paths which should be ignored during scan
-            force (bool): if false, files witch unchanged modification time will be not be parsed
+            ignore_mtime (bool): if false, files witch unchanged modification time will be not be parsed
             custom_domains: additional domains provided by customer integrations which should not be ignored by WM, e.g. xiaomi_miio.*
             base_path: root path to make file paths relative in the database
 
@@ -1264,6 +1268,7 @@ class WatchmanParser:
             custom_domains=custom_domains,
             base_path=base_path,
             enforce_file_size=enforce_file_size,
+            ignore_mtime=ignore_mtime,
         )
 
         try:

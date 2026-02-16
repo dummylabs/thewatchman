@@ -675,7 +675,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self._execute_parse(), "watchman_parse"
         )
 
-    async def async_force_parse(self) -> Any:
+    async def async_force_parse(self, ignore_mtime: bool = False) -> Any:
         """Execute a blocking parse for the report service.
 
         Returns a Task/Coroutine that finishes when parsing is complete.
@@ -697,9 +697,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         # Otherwise, run immediately
         _LOGGER.debug("Force parse requested. Starting immediately.")
-        return await self._execute_parse()
+        return await self._execute_parse(ignore_mtime=ignore_mtime)
 
-    async def _execute_parse(self) -> None:
+    async def _execute_parse(self, ignore_mtime: bool = False) -> None:
         """Execute the heavy parsing logic."""
         if self.safe_mode:
             _LOGGER.warning("_execute_parse: Watchman is in Safe Mode. Skipping parse.")
@@ -718,7 +718,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             ignored_files = get_config(self.hass, CONF_IGNORED_FILES, [])
 
             # Perform the scan
-            if parse_result := await self.hub.async_parse(ignored_files):
+            if parse_result := await self.hub.async_parse(ignored_files, ignore_mtime=ignore_mtime):
                 self._last_parse_time = time.time()
                 await self.async_save_stats(parse_result)
                 # After scan, we definitely need full rescan of items status

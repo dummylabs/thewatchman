@@ -70,9 +70,9 @@
                     "name": "Paramètres des données d'action de notification",
                     "description": "Paramètres facultatifs pour l'action de notification (e.g. `titre : Rapport`)"
                 },
-                "parse_config": {
-                    "name": "Force l'analyse de la configuration",
-                    "description": "Analyser les fichiers de configuration avant de générer le rapport. Cette opération est généralement effectuée automatiquement par Watchman ; cette option n'est donc généralement pas requise."
+                "force_parsing": {
+                    "name": "Forcer une réanalyse complète",
+                    "description": "Ignorer le cache et forcer la réanalyse de tous les fichiers de configuration, quelle que soit leur date de modification. Par défaut : Faux. À utiliser uniquement si vous suspectez des problèmes de cache."
                 },
                 "chunk_size": {
                     "name": "Taille du segment du message de notification",
@@ -100,6 +100,10 @@
         "deprecated_text_entity": {
             "title": "L'entité {entity_id} est obsolète",
             "description": "L'utilisation de `{entity_id}` est obsolète et sera supprimée dans une future version de Watchman. Veuillez reconfigurer vos automatisations pour utiliser l'action `watchman.set_ignored_labels`."
+        },
+        "deprecated_service_param": {
+            "title": "Le paramètre de service {deprecated_param} est obsolète",
+            "description": "L'utilisation du paramètre de rapport `{deprecated_param}` est obsolète et sera supprimée dans une future version de Watchman. Voir la documentation sur https://github.com/dummylabs/thewatchman"
         }
     },
     "entity": {
@@ -146,4 +150,3 @@
         }
     }
 }
-

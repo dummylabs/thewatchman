@@ -2,15 +2,21 @@ report:
     name: Report
     description: Run watchman report
     fields:
-        parse_config:
-            example: true
-            default: false
-            required: false
-            selector:
-                boolean:
         advanced_options:
             collapsed: true
             fields:
+                create_file:
+                    example: true
+                    default: true
+                    required: false
+                    selector:
+                        boolean:
+                force_parsing:
+                    example: true
+                    default: false
+                    required: false
+                    selector:
+                        boolean:
                 action:
                     example: "persistent_notification.create"
                     required: false
@@ -30,12 +36,6 @@ report:
                             min: 0
                             max: 100000
                             mode: box
-                create_file:
-                    example: true
-                    default: true
-                    required: false
-                    selector:
-                        boolean:
 
 set_ignored_labels:
     name: Set ignored labels
