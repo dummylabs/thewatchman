@@ -103,7 +103,7 @@
         },
         "deprecated_service_param": {
             "title": "Parameter služby {deprecated_param} je zastaraný",
-            "description": "Používanie parametra prehľadu `{deprecated_param}` je zastarané a v budúcej verzii Watchman bude odstránené. Pozrite si dokumentáciu na https://github.com/dummylabs/thewatchman"
+            "description": "Používanie parametra prehľadu `{deprecated_param}` je zastarané a v budúcej verzii Watchman bude odstránené. Pozrite si dokumentáciu na {url}"
         }
     },
     "entity": {

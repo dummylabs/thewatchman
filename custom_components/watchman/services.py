@@ -17,6 +17,7 @@ from .const import (
     CONF_SEND_NOTIFICATION,
     CONF_SERVICE_DATA,
     CONF_SERVICE_NAME,
+    DOC_URL,
     DOMAIN,
     LABELS_SERVICE_NAME,
     REPORT_SERVICE_NAME,
@@ -103,6 +104,7 @@ class WatchmanServicesSetup:
                 translation_key="deprecated_service_param",
                 translation_placeholders={
                     "deprecated_param": CONF_PARSE_CONFIG,
+                    "url": DOC_URL,
                 },
             )
 

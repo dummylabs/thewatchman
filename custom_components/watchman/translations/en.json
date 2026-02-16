@@ -103,7 +103,7 @@
         },
         "deprecated_service_param": {
             "title": "Service parameter {deprecated_param} is deprecated",
-            "description": "The use of `{deprecated_param}` report parameter is deprecated and will be removed in a future version of Watchman. See documentation at https://github.com/dummylabs/thewatchman"
+            "description": "The use of `{deprecated_param}` report parameter is deprecated and will be removed in a future version of Watchman. See documentation at {url}"
         }
     },
     "entity": {

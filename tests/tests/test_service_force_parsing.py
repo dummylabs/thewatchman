@@ -7,6 +7,7 @@ from custom_components.watchman.const import (
     CONF_PARSE_CONFIG,
     DOMAIN,
     REPORT_SERVICE_NAME,
+    DOC_URL,
 )
 
 @pytest.fixture
@@ -30,6 +31,7 @@ async def mock_coordinator(hass):
         COORD_DATA_MISSING_ENTITIES,
         COORD_DATA_PARSE_DURATION,
         COORD_DATA_PROCESSED_FILES,
+        DOC_URL,
     )
 
     with patch("custom_components.watchman.WatchmanCoordinator") as mock_coord_cls, \
@@ -103,6 +105,7 @@ async def test_report_service_legacy_parse_config(hass: HomeAssistant, mock_coor
         assert args[2] == "deprecated_parse_config_parameter"
         assert kwargs["translation_key"] == "deprecated_service_param"
         assert kwargs["translation_placeholders"]["deprecated_param"] == CONF_PARSE_CONFIG
+        assert kwargs["translation_placeholders"]["url"] == DOC_URL
 
 async def test_report_service_default(hass: HomeAssistant, mock_coordinator):
     """Test calling report service with default parameters (False)."""

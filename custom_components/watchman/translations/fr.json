@@ -103,7 +103,7 @@
         },
         "deprecated_service_param": {
             "title": "Le paramètre de service {deprecated_param} est obsolète",
-            "description": "L'utilisation du paramètre de rapport `{deprecated_param}` est obsolète et sera supprimée dans une future version de Watchman. Voir la documentation sur https://github.com/dummylabs/thewatchman"
+            "description": "L'utilisation du paramètre de rapport `{deprecated_param}` est obsolète et sera supprimée dans une future version de Watchman. Voir la documentation sur {url}"
         }
     },
     "entity": {

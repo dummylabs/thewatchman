@@ -35,6 +35,8 @@ PACKAGE_NAME = f"custom_components.{DOMAIN}"
 REPORT_SERVICE_NAME = "report"
 LABELS_SERVICE_NAME = "set_ignored_labels"
 
+DOC_URL = "https://github.com/dummylabs/thewatchman"
+
 HASS_DATA_CANCEL_HANDLERS = "cancel_handlers"
 
 COORD_DATA_MISSING_ENTITIES = "entities_missing"
