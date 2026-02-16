@@ -25,7 +25,8 @@
                     "ignored_labels": "Ignored labels:",
                     "check_lovelace": "Parse UI controlled dashboards",
                     "startup_delay": "Startup delay for watchman sensors initialization",
-                    "log_obfuscate": "Obfuscate sensitive data in logs"
+                    "log_obfuscate": "Obfuscate sensitive data in logs",
+                    "enforce_file_size": "Enforce max file size limit"
                 },
                 "data_description": {
                     "included_folders": "Comma-separated list of folders where watchman should look for config files",
@@ -34,7 +35,8 @@
                     "ignored_files": "Comma-separated list of config files excluded from tracking",
                     "ignored_labels": "Use labels to exclude entities from tracking",
                     "log_obfuscate": "Whether to mask entity and action names in debug logs for privacy",
-                    "exclude_disabled_automation": "Exclude entities used only by disabled automations"
+                    "exclude_disabled_automation": "Exclude entities used only by disabled automations",
+                    "enforce_file_size": "Disable this to parse files larger than {max_size_kb}KB. This might increase parsing time and memory usage."
                 },
                 "sections": {
                     "appearance_location_options": {

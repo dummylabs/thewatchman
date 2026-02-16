@@ -15,6 +15,7 @@ from homeassistant.helpers import entity_registry as er
 
 from ..const import (
     CONF_COLUMNS_WIDTH,
+    CONF_ENFORCE_FILE_SIZE,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
     CONF_FRIENDLY_NAMES,
     CONF_HEADER,
@@ -111,6 +112,7 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
         CONF_EXCLUDE_DISABLED_AUTOMATION,
         CONF_STARTUP_DELAY,
         CONF_LOG_OBFUSCATE,
+        CONF_ENFORCE_FILE_SIZE,
     ]:
         return get_val(entry.data, key)
 

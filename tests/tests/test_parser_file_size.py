@@ -34,5 +34,5 @@ def test_large_file_skipped(parser_client, tmp_path, caplog):
     assert "sensor.valid" in entities
 
     # Verify large file skipped (log message)
-    assert "is too large" in caplog.text
+    assert "skipped due to size" in caplog.text
     assert str(large_file) in caplog.text
