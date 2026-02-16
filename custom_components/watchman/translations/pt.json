@@ -21,6 +21,7 @@
                     "ignored_items": "Entidades e ações ignoradas:",
                     "ignored_states": "Excluir entidades com os estados abaixo do relatório:",
                     "exclude_disabled_automation": "Excluir automações desativadas",
+                    "enforce_file_size": "Impor limite máximo de tamanho de arquivo",
                     "ignored_files": "Arquivos ignorados:",
                     "ignored_labels": "Etiquetas ignoradas:",
                     "check_lovelace": "Analisar dashboards controlados pela UI",
@@ -32,6 +33,7 @@
                     "ignored_items": "Lista de entidades e ações separadas por vírgulas excluídas do rastreamento",
                     "ignored_states": "Lista de estados separados por vírgulas excluídos do rastreamento",
                     "exclude_disabled_automation": "Excluir entidades usadas apenas por automações desativadas",
+                    "enforce_file_size": "Desative isto para analisar arquivos maiores que {max_size_kb}KB. Isso pode aumentar o tempo de análise e o uso de memória.",
                     "ignored_files": "Lista de arquivos de configuração separados por vírgulas excluídos do rastreamento",
                     "ignored_labels": "Usar etiquetas para excluir entidades do rastreamento",
                     "log_obfuscate": "Se os nomes de entidades e serviços devem ser ocultados nos logs para privacidade"
@@ -99,5 +101,49 @@
             "title": "A entidade {entity_id} está obsoleta",
             "description": "O uso de `{entity_id}` é obsoleto e será removido em uma versão futura do Watchman. Por favor, reconfigure suas automações para usar a ação `watchman.set_ignored_labels`."
         }
+    },
+    "entity": {
+        "sensor": {
+            "last_updated": {
+                "name": "Última atualização"
+            },
+            "missing_entities": {
+                "name": "Entidades em falta"
+            },
+            "missing_actions": {
+                "name": "Ações em falta"
+            },
+            "status": {
+                "name": "Estado",
+                "state": {
+                    "waiting_for_ha": "A aguardar início do HA",
+                    "parsing": "A analisar configuração",
+                    "idle": "Ocioso"
+                }
+            },
+            "parse_duration": {
+                "name": "Duração da análise"
+            },
+            "last_parse": {
+                "name": "Última análise"
+            },
+            "processed_files": {
+                "name": "Ficheiros processados"
+            },
+            "ignored_files": {
+                "name": "Ficheiros ignorados"
+            }
+        },
+        "button": {
+            "create_report_file": {
+                "name": "Criar ficheiro de relatório"
+            }
+        },
+        "text": {
+            "ignored_labels": {
+                "name": "Etiquetas ignoradas"
+            }
+        }
     }
 }
+
