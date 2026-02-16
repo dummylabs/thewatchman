@@ -21,6 +21,7 @@
                     "ignored_items": "Ignorované entity a akcie:",
                     "ignored_states": "Vylúčiť entity s nasledujúcimi stavmi z prehľadu:",
                     "exclude_disabled_automation": "Vylúčiť zakázané automatizácie",
+                    "enforce_file_size": "Vynútiť limit maximálnej veľkosti súboru",
                     "ignored_files": "Ignorované súbory:",
                     "ignored_labels": "Ignorované štítky:",
                     "check_lovelace": "Analyzovať ovládané UI ovládacie panely",
@@ -32,6 +33,7 @@
                     "ignored_items": "Čiarkami oddelený zoznam entít a akcií vylúčených zo sledovania",
                     "ignored_states": "Čiarkami oddelený zoznam stavov vylúčených zo sledovania",
                     "exclude_disabled_automation": "Vylúčiť entity použité iba v deaktivovaných automatizáciách",
+                    "enforce_file_size": "Vypnite túto možnosť, ak chcete analyzovať súbory väčšie ako {max_size_kb}KB. Môže to zvýšiť čas analýzy a využitie pamäte.",
                     "ignored_files": "Čiarkami oddelený zoznam konfiguračných súborov vylúčených zo sledovania",
                     "ignored_labels": "Použiť štítky na vylúčenie entít zo sledovania",
                     "log_obfuscate": "Či sa majú v logoch z dôvodu ochrany osobných údajov maskovať názvy entít a služieb"
@@ -99,5 +101,49 @@
             "title": "Entita {entity_id} je zastaraná",
             "description": "Používanie `{entity_id}` je zastarané a v budúcej verzii Watchman bude odstránené. Prekonfigurujte prosím svoje automatizácie na používanie akcie `watchman.set_ignored_labels`."
         }
+    },
+    "entity": {
+        "sensor": {
+            "last_updated": {
+                "name": "Posledná aktualizácia"
+            },
+            "missing_entities": {
+                "name": "Chýbajúce entity"
+            },
+            "missing_actions": {
+                "name": "Chýbajúce akcie"
+            },
+            "status": {
+                "name": "Stav",
+                "state": {
+                    "waiting_for_ha": "Čakanie na štart HA",
+                    "parsing": "Analýza konfigurácie",
+                    "idle": "Nečinný"
+                }
+            },
+            "parse_duration": {
+                "name": "Trvanie analýzy"
+            },
+            "last_parse": {
+                "name": "Posledná analýza"
+            },
+            "processed_files": {
+                "name": "Spracované súbory"
+            },
+            "ignored_files": {
+                "name": "Ignorované súbory"
+            }
+        },
+        "button": {
+            "create_report_file": {
+                "name": "Vytvoriť súbor prehľadu"
+            }
+        },
+        "text": {
+            "ignored_labels": {
+                "name": "Ignorované štítky"
+            }
+        }
     }
 }
+
