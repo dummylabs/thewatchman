@@ -12,6 +12,7 @@ from homeassistant.loader import async_get_integration
 
 from .const import (
     CONF_COLUMNS_WIDTH,
+    CONF_ENFORCE_FILE_SIZE,
     CONF_FRIENDLY_NAMES,
     CONF_HEADER,
     CONF_IGNORED_FILES,
@@ -308,6 +309,11 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             _LOGGER.info("Migrating Watchman entry to minor version 4")
             # Do not initialize ignored_labels here to allow text entity to restore state lazily
             current_minor = 4
+
+        if current_minor < 5:
+            _LOGGER.info("Migrating Watchman entry to minor version 5")
+            data[CONF_ENFORCE_FILE_SIZE] = DEFAULT_OPTIONS.get(CONF_ENFORCE_FILE_SIZE, True)
+            current_minor = 5
 
         if current_minor != config_entry.minor_version:
             hass.config_entries.async_update_entry(

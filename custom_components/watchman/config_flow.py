@@ -17,6 +17,7 @@ from homeassistant.helpers import config_validation as cv, selector
 
 from .const import (
     CONF_COLUMNS_WIDTH,
+    CONF_ENFORCE_FILE_SIZE,
     CONF_EXCLUDE_DISABLED_AUTOMATION,
     CONF_FRIENDLY_NAMES,
     CONF_HEADER,
@@ -36,6 +37,7 @@ from .const import (
     MONITORED_STATES,
 )
 from .utils.logger import _LOGGER
+from .utils.parser_const import MAX_FILE_SIZE
 from .utils.utils import async_is_valid_path, get_val
 
 INCLUDED_FOLDERS_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.string]))
@@ -71,6 +73,9 @@ def _get_data_schema() -> vol.Schema:
             ): cv.boolean,
             vol.Optional(
                 CONF_LOG_OBFUSCATE,
+            ): cv.boolean,
+            vol.Optional(
+                CONF_ENFORCE_FILE_SIZE,
             ): cv.boolean,
             vol.Required(CONF_SECTION_APPEARANCE_LOCATION): data_entry_flow.section(
                 vol.Schema(
@@ -212,6 +217,7 @@ class OptionsFlowHandler(OptionsFlow):
             )
             placeholders = dict(placeholders)
             placeholders["url"] = "https://github.com/dummylabs/thewatchman#configuration"
+            placeholders["max_size_kb"] = str(int(MAX_FILE_SIZE / 1024))
             return self.async_show_form(
                 step_id="init",
                 data_schema=self.add_suggested_values_to_schema(
@@ -229,6 +235,7 @@ class OptionsFlowHandler(OptionsFlow):
                 self.config_entry.data,
             ),
             description_placeholders={
-                "url": "https://github.com/dummylabs/thewatchman#configuration"
+                "url": "https://github.com/dummylabs/thewatchman#configuration",
+                "max_size_kb": str(int(MAX_FILE_SIZE / 1024)),
             },
         )

@@ -664,15 +664,7 @@ def process_file_sync(filepath: str, entity_pattern: re.Pattern = _ENTITY_PATTER
 
     try:
         path = Path(filepath)
-        file_size = path.stat().st_size
-        if file_size > MAX_FILE_SIZE:
-            _LOGGER.error(
-                f"File {filepath} is too large ({file_size} bytes), skipping. Max size: {MAX_FILE_SIZE} bytes."
-            )
-            return 0, [], file_type
-
         content = path.read_text(encoding="utf-8")
-
         # Call the engine
         items = _parse_content(content, file_type, filepath, _LOGGER, entity_pattern)
 
@@ -705,7 +697,7 @@ def _is_file_ignored(path_obj: Path, cwd: Path, ignored_patterns: list[str]) -> 
     return False
 
 
-def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
+def _scan_files_sync(root_path: str, ignored_patterns: list[str], enforce_file_size: bool = True) -> tuple[list[dict[str, Any]], int]:
     """Scan files syncronously using os.walk (blocking).
 
     Executed as a single job in the executor.
@@ -734,6 +726,12 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
             # Stat
             try:
                 stat_res = abs_path_obj.stat()
+                if enforce_file_size and stat_res.st_size > MAX_FILE_SIZE:
+                    _LOGGER.warning(f"Parser: file {abs_path_obj} skipped due to size ({stat_res.st_size} > {MAX_FILE_SIZE}).")
+                    _LOGGER.warning('Switch off "Enforce max file size limit" in the integration options to parse large files.')
+                    ignored_count += 1
+                    continue
+
                 scanned_files.append(
                     {
                         "path": str(abs_path_obj),
@@ -769,6 +767,12 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str]) -> tuple[list[
 
                 try:
                     stat_res = file_path_obj.stat()
+                    if enforce_file_size and stat_res.st_size > MAX_FILE_SIZE:
+                        _LOGGER.warning(f"Parser: file {abs_path_obj} skipped due to size ({stat_res.st_size} > {MAX_FILE_SIZE}).")
+                        _LOGGER.warning('Switch off "Enforce max file size limit" in the integration options to parse large files.')
+                        ignored_count += 1
+                        continue
+
                     scanned_files.append(
                         {
                             "path": str(file_path_obj),
@@ -925,21 +929,21 @@ class WatchmanParser:
             path.unlink(missing_ok=True)
             return self._create_fresh_db(db_path)
 
-    async def _async_scan_files(self, root_path: str, ignored_patterns: list[str]) -> tuple[list[dict[str, Any]], int]:
+    async def _async_scan_files(self, root_path: str, ignored_patterns: list[str], enforce_file_size: bool = True) -> tuple[list[dict[str, Any]], int]:
         """Phase 1: Synchronous file scanning (offloaded to thread).
 
         Calls _scan_files_sync in executor.
         """
-        return await self.executor(_scan_files_sync, root_path, ignored_patterns)
+        return await self.executor(_scan_files_sync, root_path, ignored_patterns, enforce_file_size)
 
     async def async_scan(
         self,
         root_path: str,
         ignored_files: list[str],
         *,
-        force: bool = False,
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
+        enforce_file_size: bool = True,
     ) -> ParseResult | None:
         """Orchestrates the scanning process.
 
@@ -961,7 +965,7 @@ class WatchmanParser:
             )
             scan_time = time.monotonic()
             files_scanned, ignored_count = await self._async_scan_files(
-                root_path, ignored_files
+                root_path, ignored_files, enforce_file_size
             )
             _LOGGER.debug(
                 f"Parser (Scan): Found {len(files_scanned)} files in {(time.monotonic() - scan_time):.3f} sec"
@@ -1003,7 +1007,7 @@ class WatchmanParser:
                     try:
                         last_scan_dt = datetime.datetime.fromisoformat(last_scan_str)
                         file_mtime_dt = datetime.datetime.fromtimestamp(mtime)
-                        if force or file_mtime_dt > last_scan_dt:
+                        if file_mtime_dt > last_scan_dt:
                             should_scan = True
                     except ValueError:
                         should_scan = True
@@ -1234,6 +1238,7 @@ class WatchmanParser:
         force: bool = False,
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
+        enforce_file_size: bool = True,
     ) -> tuple[list[str], list[str], int, int, dict, ParseResult | None]:
         """Main parse function.
 
@@ -1256,9 +1261,9 @@ class WatchmanParser:
         parse_result = await self.async_scan(
             root_path,
             ignored_files,
-            force=force,
             custom_domains=custom_domains,
             base_path=base_path,
+            enforce_file_size=enforce_file_size,
         )
 
         try:
