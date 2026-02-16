@@ -18,59 +18,19 @@ async def mock_coordinator(hass):
     config_entry = MockConfigEntry(domain=DOMAIN, data={}, entry_id="test_entry")
     config_entry.add_to_hass(hass)
 
-    coordinator = AsyncMock()
-    coordinator.async_force_parse = AsyncMock()
-
-    # We need to setup the integration partially or mock the services setup
-    # Because we are testing the service call, we need the service registered.
-    # The easiest way is to let the component set up, then patch the coordinator.
-    from custom_components.watchman.const import (
-        COORD_DATA_IGNORED_FILES,
-        COORD_DATA_LAST_PARSE,
-        COORD_DATA_MISSING_ACTIONS,
-        COORD_DATA_MISSING_ENTITIES,
-        COORD_DATA_PARSE_DURATION,
-        COORD_DATA_PROCESSED_FILES,
-        DOC_URL,
-    )
-
-    with patch("custom_components.watchman.WatchmanCoordinator") as mock_coord_cls, \
-         patch("custom_components.watchman.services.async_report_to_file"), \
-         patch("custom_components.watchman.services.async_report_to_notification"), \
-         patch("custom_components.watchman.coordinator.WatchmanCoordinator") as mock_coord_cls_coord, \
-         patch("custom_components.watchman.utils.report.get_entry", return_value=config_entry), \
-         patch("custom_components.watchman.utils.report.parsing_stats", new_callable=AsyncMock) as mock_stats:
-
-        mock_stats.return_value = ("2023-01-01 12:00:00", 1.5, 0.1, 0.1)
-
-        mock_coord_cls.return_value = coordinator
-        mock_coord_cls_coord.return_value = coordinator
-        coordinator.async_get_detailed_report_data = AsyncMock(return_value={})
-        coordinator._build_filter_context = MagicMock()
-        coordinator.async_get_last_parse_duration = AsyncMock(return_value=1.5)
-        coordinator.last_check_duration = 0.1
-        # Prevent auto-mocking of config_entry which causes RuntimeWarnings when accessed as dict
-        coordinator.config_entry = config_entry
-        # async_set_updated_data is synchronous in DataUpdateCoordinator, but AsyncMock makes it async
-        coordinator.async_set_updated_data = MagicMock()
-        # async_add_listener is also synchronous
-        coordinator.async_add_listener = MagicMock()
-
-        # Mock data dict for stats lookup in report.py
-        coordinator.data = {
-            COORD_DATA_PROCESSED_FILES: 0,
-            COORD_DATA_IGNORED_FILES: 0,
-            COORD_DATA_PARSE_DURATION: 0.0,
-            COORD_DATA_LAST_PARSE: None,
-            COORD_DATA_MISSING_ACTIONS: 0,
-            COORD_DATA_MISSING_ENTITIES: 0,
-        }
-        coordinator.hub.async_get_all_items = AsyncMock(return_value={"entities": {}, "services": {}})
+    # Let the real component setup, but mock side-effects
+    with patch("custom_components.watchman.services.async_report_to_file"), \
+         patch("custom_components.watchman.services.async_report_to_notification"):
 
         assert await hass.config_entries.async_setup(config_entry.entry_id)
         await hass.async_block_till_done()
 
-    return coordinator
+    # Retrieve the REAL coordinator created by the integration setup
+    coordinator = config_entry.runtime_data.coordinator
+
+    # Patch ONLY the async_force_parse method
+    with patch.object(coordinator, "async_force_parse", new_callable=AsyncMock):
+        yield coordinator
 
 async def test_report_service_force_parsing(hass: HomeAssistant, mock_coordinator):
     """Test calling report service with force_parsing=True."""
