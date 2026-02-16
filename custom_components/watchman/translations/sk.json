@@ -70,9 +70,9 @@
                     "name": "Parametre údajov notifikačnej akcie",
                     "description": "Voliteľné parametre pre notifikačnú akciu (napr. `title: Prehľad`)"
                 },
-                "parse_config": {
-                    "name": "Vynútená analýza konfigurácie",
-                    "description": "Analyzovať konfiguračné súbory pred generovaním prehľadu. Zvyčajne to vykonáva automaticky Watchman, takže táto príznak nie je zvyčajne potrebná."
+                "force_parsing": {
+                    "name": "Vynútiť úplnú reanalýzu",
+                    "description": "Obísť vyrovnávaciu pamäť a vynútiť opätovnú analýzu všetkých konfiguračných súborov bez ohľadu na čas úpravy. Predvolené: False. Použite iba v prípade podozrenia na problémy s vyrovnávacou pamäťou."
                 },
                 "chunk_size": {
                     "name": "Veľkosť časti notifikačnej správy",
@@ -100,6 +100,10 @@
         "deprecated_text_entity": {
             "title": "Entita {entity_id} je zastaraná",
             "description": "Používanie `{entity_id}` je zastarané a v budúcej verzii Watchman bude odstránené. Prekonfigurujte prosím svoje automatizácie na používanie akcie `watchman.set_ignored_labels`."
+        },
+        "deprecated_service_param": {
+            "title": "Parameter služby {deprecated_param} je zastaraný",
+            "description": "Používanie parametra prehľadu `{deprecated_param}` je zastarané a v budúcej verzii Watchman bude odstránené. Pozrite si dokumentáciu na {url}"
         }
     },
     "entity": {
@@ -146,4 +150,3 @@
         }
     }
 }
-

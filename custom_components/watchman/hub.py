@@ -112,7 +112,7 @@ class WatchmanHub:
         return {"entities": entities, "services": services}
 
     async def async_parse(
-        self, ignored_files: list[str]
+        self, ignored_files: list[str], ignore_mtime: bool = False
     ) -> ParseResult | None:
         """Asynchronous wrapper for the parse method."""
         if self._is_scanning:
@@ -137,6 +137,7 @@ class WatchmanHub:
                 custom_domains=custom_domains,
                 base_path=self.hass.config.config_dir,
                 enforce_file_size=enforce_file_size,
+                ignore_mtime=ignore_mtime,
             )
 
             self.cached_items = {}

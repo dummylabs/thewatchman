@@ -35,6 +35,8 @@ PACKAGE_NAME = f"custom_components.{DOMAIN}"
 REPORT_SERVICE_NAME = "report"
 LABELS_SERVICE_NAME = "set_ignored_labels"
 
+DOC_URL = "https://github.com/dummylabs/thewatchman"
+
 HASS_DATA_CANCEL_HANDLERS = "cancel_handlers"
 
 COORD_DATA_MISSING_ENTITIES = "entities_missing"
@@ -65,6 +67,7 @@ CONF_CHUNK_SIZE = "chunk_size"
 CONF_CREATE_FILE = "create_file"
 CONF_SEND_NOTIFICATION = "send_notification"
 CONF_PARSE_CONFIG = "parse_config"
+CONF_FORCE_PARSING = "force_parsing"
 CONF_COLUMNS_WIDTH = "columns_width"
 CONF_STARTUP_DELAY = "startup_delay"
 CONF_FRIENDLY_NAMES = "friendly_names"
@@ -79,6 +82,7 @@ CONF_ALLOWED_SERVICE_PARAMS = [
     CONF_CREATE_FILE,
     CONF_SEND_NOTIFICATION,
     CONF_PARSE_CONFIG,
+    CONF_FORCE_PARSING,
     CONF_SERVICE_DATA,
 ]
 

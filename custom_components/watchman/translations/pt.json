@@ -70,9 +70,9 @@
                     "name": "Parâmetros de dados da ação de notificação",
                     "description": "Parâmetros opcionais para a ação de notificação (por exemplo, `title: Relatório`)"
                 },
-                "parse_config": {
-                    "name": "Forçar a análise da configuração",
-                    "description": "Analisar os arquivos de configuração antes de gerar o relatório. Normalmente, isso é feito automaticamente pelo Watchman, então esta flag geralmente não é necessária."
+                "force_parsing": {
+                    "name": "Forçar reanálise completa",
+                    "description": "Ignorar o cache e forçar a reanálise de todos os arquivos de configuração, independentemente da data de modificação. Padrão: Falso. Use apenas se suspeitar de problemas de cache."
                 },
                 "chunk_size": {
                     "name": "Tamanho do bloco da mensagem de notificação",
@@ -100,6 +100,10 @@
         "deprecated_text_entity": {
             "title": "A entidade {entity_id} está obsoleta",
             "description": "O uso de `{entity_id}` é obsoleto e será removido em uma versão futura do Watchman. Por favor, reconfigure suas automações para usar a ação `watchman.set_ignored_labels`."
+        },
+        "deprecated_service_param": {
+            "title": "O parâmetro de serviço {deprecated_param} está obsoleto",
+            "description": "O uso do parâmetro de relatório `{deprecated_param}` está obsoleto e será removido numa versão futura do Watchman. Consulte a documentação em {url}"
         }
     },
     "entity": {
@@ -146,4 +150,3 @@
         }
     }
 }
-

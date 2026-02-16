@@ -60,7 +60,7 @@
             "fields": {
                 "create_file": {
                     "name": "Create file report",
-                    "description": "Whether report file should be created (Usually True)"
+                    "description": "Whether text report file should be created"
                 },
                 "action": {
                     "name": "Send report as notification",
@@ -70,9 +70,9 @@
                     "name": "Notification action data parameters",
                     "description": "Optional parameters for notification action (e.g. `title: Report`)"
                 },
-                "parse_config": {
-                    "name": "Force configuration parsing",
-                    "description": "Parse configuration files before generating the report. Usually, this is done automatically by Watchman, so this flag is typically not required."
+                "force_parsing": {
+                    "name": "Force full configuration rescan",
+                    "description": "Bypass the cache and force re-parsing of all configuration files regardless of modification time. Default is False. Use only if you suspect cache issues."
                 },
                 "chunk_size": {
                     "name": "Notification message chunk size",
@@ -100,6 +100,10 @@
         "deprecated_text_entity": {
             "title": "Entity {entity_id} is deprecated",
             "description": "The use of `{entity_id}` is deprecated and will be removed in a future version of Watchman. Please reconfigure your automations to use the `watchman.set_ignored_labels` action."
+        },
+        "deprecated_service_param": {
+            "title": "Service parameter {deprecated_param} is deprecated",
+            "description": "The use of `{deprecated_param}` report parameter is deprecated and will be removed in a future version of Watchman. See documentation at {url}"
         }
     },
     "entity": {
