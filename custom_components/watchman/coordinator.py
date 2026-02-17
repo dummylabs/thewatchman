@@ -284,6 +284,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._dirty_entities: set[str] = set()
         self._missing_entities_cache: dict[str, Any] = {}
         self._missing_actions_cache: dict[str, Any] = {}
+        self._parsed_entity_list_cache: dict[str, Any] = {}
+        self._parsed_service_list_cache: dict[str, Any] = {}
         self._force_full_rescan: bool = True
 
         self.data = {
@@ -909,6 +911,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             all_items = await self.hub.async_get_all_items()
             parsed_service_list = all_items["services"]
             parsed_entity_list = all_items["entities"]
+
+            self._parsed_entity_list_cache = parsed_entity_list
+            self._parsed_service_list_cache = parsed_service_list
 
             ctx = self._build_filter_context()
 
