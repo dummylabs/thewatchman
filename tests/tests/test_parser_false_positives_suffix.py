@@ -21,7 +21,9 @@ def test_false_positives_suffix(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "false_positives_suffix.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     # Valid entities should be present
     assert "sensor.camera_1" in entities

@@ -1243,7 +1243,7 @@ class WatchmanParser:
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
         enforce_file_size: bool = True,
-    ) -> tuple[list[str], list[str], int, int, dict, ParseResult | None]:
+    ) -> ParseResult | None:
         """Parse configuration files (main function).
 
         Params:
@@ -1254,15 +1254,10 @@ class WatchmanParser:
             base_path: root path to make file paths relative in the database
 
         Returns:
-            parsed_entity_list (list): Unique entity_ids (item_type='entity').
-            parsed_service_list (list): Unique services (item_type='service').
-            parsed_files_count (int): Number of entries in processed_files.
-            ignored_files_count (int): Always 0 (stub).
-            entity_to_automations (dict): Empty dictionary (stub).
             parse_result (ParseResult): Operational statistics.
 
         """
-        parse_result = await self.async_scan(
+        return await self.async_scan(
             root_path,
             ignored_files,
             custom_domains=custom_domains,
@@ -1270,43 +1265,3 @@ class WatchmanParser:
             enforce_file_size=enforce_file_size,
             ignore_mtime=ignore_mtime,
         )
-
-        try:
-            with self._db_session() as conn:
-                cursor = conn.cursor()
-                # parsed_entity_list
-                cursor.execute(
-                    "SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'entity'"
-                )
-                parsed_entity_list = [row[0] for row in cursor.fetchall()]
-
-                # parsed_service_list
-                cursor.execute(
-                    "SELECT DISTINCT entity_id FROM found_items WHERE item_type = 'service'"
-                )
-                parsed_service_list = [row[0] for row in cursor.fetchall()]
-
-                # parsed_files_count
-                cursor.execute("SELECT COUNT(*) FROM processed_files")
-                parsed_files_count = cursor.fetchone()[0]
-
-                # ignored_files_count
-                ignored_files_count = (
-                    parse_result.ignored_files_count if parse_result else 0
-                )
-
-            entity_to_automations = {}
-
-            return (
-                parsed_entity_list,
-                parsed_service_list,
-                parsed_files_count,
-                ignored_files_count,
-                entity_to_automations,
-                parse_result,
-            )
-        except sqlite3.OperationalError:
-            _LOGGER.error(
-                "Database locked during result fetching in parse(), returning empty results."
-            )
-            return ([], [], 0, 0, {}, None)

@@ -76,9 +76,10 @@ def test_parse_core_config_entries(parser_client, tmp_path):
     # This implies we might need to add it to whitelist too if it's not there.
     # Let's check the current whitelist in parser_const.py later. For now, we assume if it's not whitelisted, the test will fail as expected (baseline).
     
-    parsed_entities, parsed_services, _, _, _, _ = asyncio.run(
-        parser_client.async_parse(str(tmp_path), [])
-    )
+    asyncio.run(parser_client.async_parse(str(tmp_path), []))
+    items = parser_client.get_found_items(item_type='all')
+    parsed_entities = [item[0] for item in items if item[3] == 'entity']
+    parsed_services = [item[0] for item in items if item[3] == 'service']
     
     # Assertions
     

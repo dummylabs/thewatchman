@@ -124,14 +124,7 @@ class WatchmanHub:
             custom_domains = get_domains(self.hass)
             enforce_file_size = get_config(self.hass, CONF_ENFORCE_FILE_SIZE, True)
 
-            (
-                _entities,
-                _services,
-                _files_parsed,
-                _files_ignored,
-                _ent_to_auto,
-                parse_result,
-            ) = await self._parser.async_parse(
+            parse_result = await self._parser.async_parse(
                 self.hass.config.config_dir,
                 ignored_files,
                 custom_domains=custom_domains,

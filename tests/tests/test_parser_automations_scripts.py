@@ -23,7 +23,10 @@ def test_automations_parsing(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "automations.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
+    services = [item[0] for item in items if item[3] == 'service']
 
     # Check Entities
     assert "binary_sensor.motion_sensor" in entities
@@ -49,7 +52,10 @@ def test_scripts_parsing(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "scripts.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
+    services = [item[0] for item in items if item[3] == 'service']
 
     assert "vacuum.robot_cleaner" in entities
     assert "vacuum.start" in services
@@ -69,7 +75,7 @@ def test_package_mixed_contexts(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "package_example.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    _, _, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
 
     # 1. Automation Context
     context1 = parser_client.get_automation_context('input_boolean.package_trigger')

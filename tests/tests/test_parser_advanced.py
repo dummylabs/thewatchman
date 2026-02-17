@@ -28,7 +28,9 @@ def test_ignored_patterns(parser_client, new_test_data_dir, tmp_path):
     shutil.copy(source_file, dest_file)
 
     # Scan the temp directory which contains ONLY the file we want to test
-    entities, _, _, _, _, _ = asyncio.run(parser_client.async_parse(str(dest_dir), []))
+    asyncio.run(parser_client.async_parse(str(dest_dir), []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     # H:1 Underscore Suffix
     assert "sensor.temp_var_" not in entities
@@ -60,7 +62,10 @@ def test_ignored_keys(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "keys_ignored.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
+    services = [item[0] for item in items if item[3] == 'service']
 
     assert "light.example_entity" not in entities
     assert "sensor.test" not in entities
@@ -74,7 +79,9 @@ def test_custom_tags(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "custom_tags.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, _, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     # !secret http_password resolves to string "http_password", not an entity.
     # !secret "sensor.secret_sensor" resolves to string "sensor.secret_sensor".
@@ -89,7 +96,10 @@ def test_templates_and_prefixes(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "templates.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
+    services = [item[0] for item in items if item[3] == 'service']
 
     # H:11 Embedded Services
     assert "light.turn_on" in services
