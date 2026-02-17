@@ -3,9 +3,16 @@
 ![version](https://img.shields.io/github/v/release/dummylabs/thewatchman)
 [![Community Forum][forum-shield]][forum]
 
-Home Assistant setups evolve over time—entities can disappear, and services/actions may be renamed by integrations. Watchman helps you spot these changes early by scanning your configuration for references to missing or renamed entities, so you can fix issues before automations break.
+Home Assistant setups evolve over time—entities can disappear, and services/actions may be renamed by integrations. Watchman helps you spot these changes early by scanning your configuration for references to missing or renamed entities, so you can fix issues before automations break. [Discussion on Home Assistant Community Forum](https://community.home-assistant.io/t/watchman-keeps-track-of-missing-entities-and-services-in-your-config-files/390391)
 
-[Discussion on Home Assistant Community Forum](https://community.home-assistant.io/t/watchman-keeps-track-of-missing-entities-and-services-in-your-config-files/390391)
+## Table of contents
+* [Quick Start](#quick-start)
+* [Configuration Options](#configuration-options)
+* [Built-in Actions](#actions)
+* [Diagnostic Sensors](#diagnostic-sensors)
+* [Report Example](#example-of-a-watchman-report)
+* [FAQ](#frequently-asked-questions)
+* [Reviews](#youtube-reviews)
 
 ## Quick start
 1. Go to the "Integrations" section on HACS, click "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS".
@@ -28,7 +35,6 @@ Watchman does not try to discover every missing or unavailable entity in your Ho
 
 Option | Description | Example
 ------------ | ------------- | -------------
-⚙️ Folders to watch | Comma-separated list of folders to scan for entities and actions recursively. | `/config`
 ⚙️ Ignored entities and actions | Comma-separated list of items to ignore. The entity/action will be excluded from the report if their name matches a rule from the ignore list. Wildcards are supported, see [example](https://github.com/dummylabs/thewatchman?tab=readme-ov-file#ignored-entities-and-actions-formely-known-as-services-option-example) below. | `sensor.my_sensor1, sensor.my_sensor2`
 ⚙️ Ignored labels  | Any entity with these labels will be be excluded from the report. You can update the list of ignored labels via automation using the `watchman.set_ignored_labels` action.  | `ignore_watchman`
 ⚙️ Exclude entity states | Select which states will be excluded from the report | Checkboxes in UI
@@ -36,12 +42,15 @@ Option | Description | Example
 ⚙️ Startup delay | By default, watchman's sensors are updated by `homeassistant_started` event. Some integrations may require extra time for intiialization so that their entities/actions may not yet be ready during watchman check. This is especially true for single-board computers like Raspberry PI. This option allows to postpone startup sensors update for certain amount of seconds. | `0`
 ⚙️ Exclude entities used by disabled automations | If enabled, entities referenced only by disabled automations will be excluded from the report. | UI flag
 ⚙️ Obfuscate sensitive data in logs | By default, potentially sensitive data, such as entity IDs, are masked in debug logs. This option enables the display of full entity names and actions in log files. | UI flag 
+⚙️ Enforce max file size limit | Switch off max file size limit for parser if you have warning messages about large files in log.  | UI flag
 ⚙️ Report location | Report location and filename. | `/config/watchman_report.txt`
 ⚙️ Custom header for the report | Custom header for watchman report. | `-== Watchman Report ==-`
 ⚙️ Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`
 ⚙️ Add friendly names | Add friendly name of the entity to the report whenever possible. | UI flag
 
-
+<details>
+<summary>Examples for ignored files and entities</summary>
+  
 ### Ignored files option example
 * Ignore a file: `*/automations.yaml`
 * Ignore all files in the folder: `/config/esphome/*`
@@ -52,19 +61,26 @@ Option | Description | Example
 * Ignore an entity: `person.dummylabs`
 * Ignore everything in sensor domain: `sensor.*`
 * Ignore any entity/action which name ends with "_ble": `*.*_ble`
+</details>
 
-## Report Action Parameters
-The text version of the report can be generated using `watchman.report` action from Developer Tools UI, an automation or a script. Default location is `/config/thewatchman_report.txt`, which can be changed in the UI configuration. A long report can be split into several messages (chunks) due to limitations imposed by some notification actions (e.g., telegram). Action behaviour can be altered with additional optional parameters:
+## Actions
+### `report` Action
+
+The `watchman.report` action provides instant output as a YAML response in the Developer Tools > Actions dialog. Additionally, a text version of the report can be generated using the `create_file: true` parameter. The action's behavior can be altered with additional optional parameters:
 
 Parameter | YAML key | Description | Default
 ------------ | ------------- | -------------| -------------
-⚙️ Force configuration parsing |`parse_config`| Forces watchman to parse Home Assistant configuration files and rebuild entity and actions list. Usually this is not required as watchman will automatically parse files once Home Assistant restarts or tries to reload its configuration. | `False`
+⚙️ Create file report | `create_file` | Create a nicely formatted text report. Default location is `/config/thewatchman_report.txt`, which can be changed in the UI configuration. | `True`
+⚙️ Force parsing |`force_parsing`| When `force_parsing=True`, files unmodified since the previous parsing attempt will be parsed again. | `False`
 ⚙️ Send report as notification |`action`| Home assistant notification action to send report via, e.g. `persistent_notification.create`. See compatibility note below.| ``
 ⚙️ Notification action data |`data`| A json object with additional notification action parameters. See [example](https://github.com/dummylabs/thewatchman#send-report-via-telegram-bot) below.  | `None`
-⚙️ Message chunk size |`chunk_size`| Maximum message size in bytes. Some notification actions, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `3500`
+⚙️ Message chunk size |`chunk_size`| Maximum message size in bytes. Some notification actions, e.g., Telegram, refuse to deliver a message if its size is greater than some internal limit. If report text size exceeds `chunk_size`, the report will be sent in several subsequent notifications. `0` value will disable chunking. | `None`
 
+Note: The `parse_config` parameter is deprecated and will be removed in the next version of Watchman. Please remove it from your automations, as it no longer has any effect. For more information, see PR #291.
 
-### A (useless) example sending report as persitent notification
+<details>
+<summary>A (useless) example sending report as persitent notification</summary>
+  
 ```yaml
 action: watchman.report
 data:
@@ -75,12 +91,13 @@ data:
   chunk_size: 3500
   create_file: true`
 ```
+</details>
 
-## Sensors
+### `set_ignored_labels` action
 
-> [!NOTE]
-> Versions prior to 0.6.4 had a sensor named `sensor.watchman_missing_services`. Latest versions use another name: `sensor.watchman_missing_actions` if integration was installed from scratch (new user).
-> Existing users who upgraded from previous versions will have old sensor name to preserve compatibilty with their scripts and dashboards. They can rename sensor themselves or just remove integration and install it again.
+Use this action to dynamically change the rules for entities and actions that Watchman should ignore based on your conditions. In order to do this, you must mark your entities with the relevant labels.
+
+## Diagnostic Sensors
 
 Besides of the report, integration provides a few diagnostic sensors which can be used within automations or dashboards:
 Sensor                             | Meaning
@@ -94,7 +111,7 @@ Sensor                             | Meaning
 `sensor.watchman_processed_files`  | The number of configuration files processed by Wathcman. 
 `sensor.watchman_ignored_files`    | The number of ignored configuration files.
 
-## Status Meanings
+### Status Meanings
 The status indicates what Watchman is currently doing:
 
 - **Idle**: Doing nothing; everything is working fine.
@@ -104,8 +121,7 @@ The status indicates what Watchman is currently doing:
 - **Safe Mode**: Watchman detected that Home Assistant restarted during an unfinished parse, which might indicate a freezing problem. It will not process events, sensors, or files.
 Tip: Safe Mode can be disabled by deleting the watchman.lock (or watchman_dev.lock) file in the .storage folder, or simply by reinstalling the integration.
 
-
-## Example of a watchman report
+### Example of a watchman report
 Please note that the ASCII table format is only used when report is saved to a file. For notification actions watchman uses plain text list due to presentation limitations.
 ### Icons meaning:
 * 👥 - A group in UI Helpers which contains flagged entity
@@ -130,6 +146,17 @@ Please note that the ASCII table format is only used when report is saved to a f
 -== Generated in: 0.01s. Validated in: 0.00s.
 ```
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/action state and generate text version of the report.
+
+## Frequently asked questions
+
+### Why did the visual UI editor disappear?
+Due to how Home Assistant caches action parameters, opening an existing automation that contains the deprecated `parse_config` key will cause the action block to safely fall back to "YAML mode". This is a standard Home Assistant behavior designed to prevent the accidental deletion of unrecognized parameters.
+
+**How to restore the visual UI editor:**
+
+Delete the `parse_config:...` line entirely from action parameters. The visual editor will immediately be restored. 
+<img width="1984" height="528" alt="fix-ui" src="https://github.com/user-attachments/assets/268874f9-fb36-4a6e-a9ae-73ab1609cdac" />
+
 
 ## Youtube Reviews
 ### Everything Smart Home channel
