@@ -56,7 +56,7 @@ async def test_report_service_legacy_parse_config(hass: HomeAssistant, mock_coor
             blocking=True,
         )
 
-        mock_coordinator.async_force_parse.assert_called_once_with(ignore_mtime=True)
+        mock_coordinator.async_force_parse.assert_called_once_with(ignore_mtime=False)
 
         # Verify issue created
         mock_create_issue.assert_called_once()
