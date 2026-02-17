@@ -20,7 +20,9 @@ def test_template_false_positive(parser_client, new_test_data_dir):
     yaml_dir = str(yaml_file.parent)
 
     # Parse just this file (but scanning dir scans all, so rely on specific entity checks)
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     # Check entity in action target
     # NOTE: todo.cleaning is in 'action' block.
@@ -36,7 +38,9 @@ def test_automation_context_regression(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "automation_context_regression.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     entity_id = "input_boolean.mode_cleaning_house"
     assert entity_id in entities
@@ -52,7 +56,9 @@ def test_root_automation(parser_client, new_test_data_dir):
     yaml_file = Path(new_test_data_dir) / "yaml_config" / "root_automation.yaml"
     yaml_dir = str(yaml_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     entity_id = "sensor.root_trigger"
     assert entity_id in entities

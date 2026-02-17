@@ -24,7 +24,10 @@ def test_basic_yaml_parsing(parser_client, new_test_data_dir):
     yaml_dir = str(yaml_file.parent)
 
     # Parse the directory
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
+    services = [item[0] for item in items if item[3] == 'service']
 
     # Check Entities
     assert "sensor.skylight" in entities, "Should detect entity in template"
@@ -48,9 +51,10 @@ def test_json_files_ignored(parser_client, new_test_data_dir):
 
     # We pass the file path, but the scanner internal filter should reject it based on extension
     # Scan the directory
-    entities, services, files_parsed, _, _, _ = asyncio.run(
-        parser_client.async_parse(json_dir, [])
-    )
+    asyncio.run(parser_client.async_parse(json_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
+    services = [item[0] for item in items if item[3] == 'service']
 
     # dashboard.json is ignored. .storage/lovelace_dashboards is whitelisted and parsed.
     # But wait, this test expects everything to be ignored?
@@ -86,7 +90,9 @@ def test_extensionless_json_parsing(parser_client, new_test_data_dir):
     )
     root_dir = str(Path(new_test_data_dir) / "json_config")
 
-    entities, _, _, _, _, _ = asyncio.run(parser_client.async_parse(root_dir, []))
+    asyncio.run(parser_client.async_parse(root_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     assert "sensor.storage_sensor_1" in entities
     assert "sensor.storage_sensor_2" in entities
@@ -98,7 +104,10 @@ def test_invalid_file_extension(parser_client, new_test_data_dir):
     txt_file = Path(new_test_data_dir) / "yaml_config" / "invalid_file.txt"
     yaml_dir = str(txt_file.parent)
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
+    services = [item[0] for item in items if item[3] == 'service']
 
     assert "sensor.invalid_file_test" not in entities
     assert "light.invalid_file_test" not in services

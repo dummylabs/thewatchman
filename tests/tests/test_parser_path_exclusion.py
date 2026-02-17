@@ -25,7 +25,9 @@ def test_path_exclusion(parser_client, new_test_data_dir):
     # But since we put it in yaml_config, it might parse other files too.
     # We should filter results or check just for our specific entities.
 
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(yaml_dir, []))
+    asyncio.run(parser_client.async_parse(yaml_dir, []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     assert "person.valid_entity" in entities
     assert "person.space_preceded" in entities

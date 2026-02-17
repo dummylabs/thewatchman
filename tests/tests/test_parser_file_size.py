@@ -28,7 +28,9 @@ def test_large_file_skipped(parser_client, tmp_path, caplog):
     normal_file.write_text("sensor:\n  - platform: template\n    sensors:\n      test: \n        value_template: '{{ states.sensor.valid }}'", encoding="utf-8")
 
     # Parse
-    entities, _, _, _, _, _ = asyncio.run(parser_client.async_parse(str(config_dir), []))
+    asyncio.run(parser_client.async_parse(str(config_dir), []))
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
 
     # Verify normal file parsed
     assert "sensor.valid" in entities

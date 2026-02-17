@@ -26,7 +26,11 @@ async def test_lovelace_dynamic_discovery(parser_client, tmp_path):
             shutil.copy(file_path, storage_dir / file_path.name)
     
     # 3. Run Parser on the tmp_path
-    parsed_entities, _, _, _, _, _ = await parser_client.async_parse(str(tmp_path), [])
+    await parser_client.async_parse(str(tmp_path), [])
+    
+    # Get results from DB
+    items = parser_client.get_found_items(item_type='all')
+    parsed_entities = [item[0] for item in items if item[3] == 'entity']
     
     # 4. Assertions for Lovelace Files (Dynamic Discovery)
     assert "sensor.test_main" in parsed_entities, "Should find entity in 'lovelace'"

@@ -31,7 +31,11 @@ sensor:
     test_file.write_text(yaml_content, encoding="utf-8")
     
     # Parse the directory
-    entities, services, _, _, _, _ = asyncio.run(parser_client.async_parse(str(tmp_path), []))
+    asyncio.run(parser_client.async_parse(str(tmp_path), []))
+    
+    # Get results from DB
+    items = parser_client.get_found_items(item_type='all')
+    entities = [item[0] for item in items if item[3] == 'entity']
     
     # Assertions
     assert "sensor.valid_entity" in entities, "Should find valid entity 1"
