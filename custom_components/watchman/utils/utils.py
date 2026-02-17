@@ -4,6 +4,7 @@ from collections.abc import AsyncGenerator
 import fnmatch
 import os
 import re
+from textwrap import wrap
 from types import MappingProxyType
 from typing import Any
 
@@ -249,3 +250,21 @@ def obfuscate_id(item_id: Any) -> Any:
             masked_suffix += char
 
     return f"{domain}.{prefix}{masked_suffix}"
+
+
+def format_locations(data: Any, width: int, extra: str | None = None) -> str:
+    """Format file locations and line numbers into a string."""
+    if data and isinstance(data, dict):
+        lines = []
+        for key, val in data.items():
+            lines.append(f"{key}:{','.join([str(v) for v in val])}")
+        out = "\n".join(lines)
+    else:
+        out = str(data) if not extra else f"{data} ('{extra}')"
+
+    if width > 0:
+        wrapped_lines = []
+        for line in out.split("\n"):
+            wrapped_lines.extend(wrap(line, width))
+        return "\n".join([line.ljust(width) for line in wrapped_lines])
+    return out

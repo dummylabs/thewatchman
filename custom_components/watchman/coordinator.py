@@ -57,8 +57,8 @@ from .const import (
 )
 from .utils.logger import _LOGGER, INDENT
 from .utils.parser_core import ParseResult
-from .utils.report import fill
 from .utils.utils import (
+    format_locations,
     get_config,
     get_entity_state,
     is_action,
@@ -505,7 +505,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     "id": entity,
                     "state": state,
                     "friendly_name": name or "",
-                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                    "occurrences": format_locations(parsed_entity_list[entity]["locations"], 0),
                 }
             )
 
@@ -513,7 +513,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         service_attrs = [
             {
                 "id": service,
-                "occurrences": fill(parsed_service_list[service]["locations"], 0),
+                "occurrences": format_locations(parsed_service_list[service]["locations"], 0),
             }
             for service in services_missing
         ]
@@ -958,7 +958,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                         "id": entity,
                         "state": state,
                         "friendly_name": name or "",
-                        "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                        "occurrences": format_locations(parsed_entity_list[entity]["locations"], 0),
                     }
                 )
 
@@ -966,11 +966,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             service_attrs = [
                 {
                     "id": service,
-                    "occurrences": fill(parsed_service_list[service]["locations"], 0),
+                    "occurrences": format_locations(parsed_service_list[service]["locations"], 0),
                 }
                 for service in services_missing
             ]
-
             new_data = {
                 COORD_DATA_MISSING_ENTITIES: len(entities_missing),
                 COORD_DATA_MISSING_ACTIONS: len(services_missing),

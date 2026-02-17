@@ -24,8 +24,9 @@ from ..const import (
     REPORT_ENTRY_TYPE_ENTITY,
     REPORT_ENTRY_TYPE_SERVICE,
 )
+from ..coordinator import renew_missing_items_list
 from .logger import _LOGGER
-from .utils import get_config, get_entity_state, get_entry, is_action
+from .utils import format_locations, get_config, get_entity_state, get_entry, is_action
 
 
 async def parsing_stats(hass: HomeAssistant, start_time: float) -> tuple[str, float, float, float]:
@@ -53,7 +54,6 @@ async def report(
     chunk_size: int | None = None,
 ) -> list[str]:
     """Generate a report of missing entities and services."""
-    from ..coordinator import renew_missing_items_list
     start_time = time.time()
     entry = get_entry(hass)
     coordinator = entry.runtime_data.coordinator
@@ -147,8 +147,8 @@ def table_renderer(
         table.field_names = ["Action ID", "State", "Location"]
         for service in missing_items:
             row = [
-                fill(service, columns_width[0]),
-                fill("missing", columns_width[1]),
+                format_locations(service, columns_width[0]),
+                format_locations("missing", columns_width[1]),
                 format_occurrences(parsed_list[service]["occurrences"], columns_width[2]),
             ]
             table.add_row(row)
@@ -162,8 +162,8 @@ def table_renderer(
             state, name = get_entity_state(hass, entity, friendly_names=friendly_names)
             table.add_row(
                 [
-                    fill(entity, columns_width[0], name),
-                    fill(state, columns_width[1]),
+                    format_locations(entity, columns_width[0], name),
+                    format_locations(state, columns_width[1]),
                     format_occurrences(parsed_list[entity]["occurrences"], columns_width[2]),
                 ]
             )
@@ -239,24 +239,6 @@ def format_occurrences(occurrences: list[dict[str, Any]], width: int) -> str:
             wrapped_lines.extend(wrap(line, width))
         return "\n".join([line.ljust(width) for line in wrapped_lines])
 
-    return out
-
-
-def fill(data: Any, width: int, extra: str | None = None) -> str:
-    """Arrange data by table column width."""
-    if data and isinstance(data, dict):
-        lines = []
-        for key, val in data.items():
-            lines.append(f"{key}:{','.join([str(v) for v in val])}")
-        out = "\n".join(lines)
-    else:
-        out = str(data) if not extra else f"{data} ('{extra}')"
-
-    if width > 0:
-        wrapped_lines = []
-        for line in out.split("\n"):
-            wrapped_lines.extend(wrap(line, width))
-        return "\n".join([line.ljust(width) for line in wrapped_lines])
     return out
 
 
