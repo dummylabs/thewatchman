@@ -53,19 +53,14 @@ async def report(
     chunk_size: int | None = None,
 ) -> list[str]:
     """Generate a report of missing entities and services."""
-    from ..const import CONF_EXCLUDE_DISABLED_AUTOMATION
     from ..coordinator import renew_missing_items_list
-
     start_time = time.time()
     entry = get_entry(hass)
     coordinator = entry.runtime_data.coordinator
 
-    # OPTIMIZATION: One-Pass Data Retrieval
     all_items = await coordinator.hub.async_get_all_items()
     service_list = all_items["services"]
     entity_list = all_items["entities"]
-
-    # Build filter context once
     ctx = coordinator._build_filter_context()
 
     missing_services = renew_missing_items_list(

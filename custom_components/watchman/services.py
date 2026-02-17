@@ -108,7 +108,7 @@ class WatchmanServicesSetup:
                 },
             )
 
-        force_parsing = call.data.get(CONF_FORCE_PARSING, call.data.get(CONF_PARSE_CONFIG, False))
+        force_parsing = call.data.get(CONF_FORCE_PARSING, False)
 
         # Always trigger a parser run (default: incremental, unless forced)
         await self.coordinator.async_force_parse(ignore_mtime=force_parsing)
