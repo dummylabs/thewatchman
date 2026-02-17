@@ -64,7 +64,7 @@ Option | Description | Example
 </details>
 
 ## Actions
-### `report` Action
+### ⚡ `report` Action
 
 The `watchman.report` action provides instant output as a YAML response in the Developer Tools > Actions dialog. Additionally, a text version of the report can be generated using the `create_file: true` parameter. The action's behavior can be altered with additional optional parameters:
 
@@ -93,7 +93,7 @@ data:
 ```
 </details>
 
-### `set_ignored_labels` action
+### ⚡ `set_ignored_labels` action
 
 Use this action to dynamically change the rules for entities and actions that Watchman should ignore based on your conditions. In order to do this, you must mark your entities with the relevant labels.
 
