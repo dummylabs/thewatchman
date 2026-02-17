@@ -16,10 +16,10 @@ Home Assistant setups evolve over time—entities can disappear, and services/ac
 
 ## Quick start
 1. Go to the "Integrations" section on HACS, click "Explore and download repositories" and search for "watchman", then click "Download this repository with HACS".
-2. Restart Home Assistant, go to Settings->Devices & Services->Add Integration and select Watchman integration. If integration not found, try to empty your browser cache and reload page.
+2. Restart Home Assistant, go to Settings->Devices & Services->Add Integration and select Watchman integration. 
 3. Go to Developer Tools -> Actions, type `watchman` and select `Watchman: report` action then press "Perform Action" button. Examine report output or check `watchman_report.txt` file in your configuration directory.
 
-Refer to the [Configuration section](https://github.com/dummylabs/thewatchman#configuration) for further fine-tuning.
+Refer to the [Configuration Options](#configuration-options) for further fine-tuning.
 
 ## What does it do
 Watchman is a custom integration for Home Assistant that scans your YAML configuration files and collects referenced entities (sensors, timers, input_select, etc.) and services/actions. It then checks each entity’s current state and reports those that are missing or unavailable. For services/actions, it verifies that they exist in Home Assistant’s registry. The result can be saved as a nicely formatted text table or sent via your preferred notification method (unless the notification target itself is missing 😄). See an [example of a report](https://github.com/dummylabs/thewatchman#example-of-a-watchman-report) below.
