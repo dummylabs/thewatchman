@@ -31,6 +31,16 @@ PARSE_COOLDOWN = 60
 # delay before start parsing
 DEFAULT_DELAY = 10
 
+STATELESS_DOMAINS = (
+    "button",
+    "input_button",
+    "scene",
+    "event",
+    "notify",
+    "stt",
+    "wake_word",
+)
+
 PACKAGE_NAME = f"custom_components.{DOMAIN}"
 REPORT_SERVICE_NAME = "report"
 LABELS_SERVICE_NAME = "set_ignored_labels"

@@ -29,6 +29,7 @@ from ..const import (
     CONF_STARTUP_DELAY,
     DEFAULT_OPTIONS,
     DOMAIN_DATA,
+    STATELESS_DOMAINS,
 )
 from .logger import _LOGGER, INDENT
 
@@ -207,7 +208,7 @@ def get_entity_state(
     else:
         state = str(entity_state.state).replace("unavailable", "unavail")
         if (
-            split_entity_id(entry)[0] in ["input_button", "button", "scene"]
+            split_entity_id(entry)[0] in STATELESS_DOMAINS
             and state == "unknown"
         ):
             state = "available"
