@@ -11,7 +11,7 @@ on:
 
 jobs:
   test-devcontainer:
-    name: Test in DevContainer (Python 3.13, HA 2026.2.0)
+    name: Test in DevContainer (Python 3.13)
     runs-on: ubuntu-latest
     if: github.event_name != 'schedule'
     steps:
@@ -28,7 +28,7 @@ jobs:
         with:
           # The action will detect .devcontainer/devcontainer.json and Dockerfile
           # and execute postCreateCommand to setup dependencies
-          runCmd: uv run ./scripts/test_ha.py --version 2026.2.0 -p no:xdist
+          runCmd: uv run ./scripts/test_ha.py -p no:xdist
 
   test-beta-devcontainer:
     name: Test on Beta HA (Python 3.13)

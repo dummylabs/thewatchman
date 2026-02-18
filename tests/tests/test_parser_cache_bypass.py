@@ -30,6 +30,10 @@ async def test_parser_ignore_mtime_bypass(hass, parser):
     test_file = hass.config.path("test_bypass.yaml")
     with open(test_file, "w") as f:
         f.write("sensor:\n  - platform: template\n")
+
+    # Set mtime to the past to prevent Docker host/container clock skew from causing false positives
+    past_time = time.time() - 10
+    os.utime(test_file, (past_time, past_time))
     
     try:
         # 2. Initial Parse

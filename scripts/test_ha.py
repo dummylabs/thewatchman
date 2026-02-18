@@ -5,49 +5,45 @@ import sys
 import os
 from pathlib import Path
 
-def get_ha_constraints(version):
-    """Return the URL for HA constraints for a given version."""
-    if version in ["latest", "rc", "dev"]:
-        branch = "master" if version == "dev" else "rc" if version == "rc" else "master"
-        return f"https://raw.githubusercontent.com/home-assistant/core/{branch}/homeassistant/package_constraints.txt"
-    return f"https://raw.githubusercontent.com/home-assistant/core/{version}/homeassistant/package_constraints.txt"
-
 def run_tests(ha_version, pytest_args):
     """Run tests for a specific HA version using uv."""
-    print(f"--- Preparing environment for Home Assistant {ha_version} ---")
-    
-    # 1. Base command
-    cmd = [
-        "uv", "run",
-        "--upgrade",
-    ]
-    
-    # 2. Version handling and prerelease flag
-    if ha_version in ["latest", "rc", "dev"]:
-        cmd.extend(["--with", "homeassistant"])
-        if ha_version in ["rc", "dev"]:
-            cmd.append("--prerelease=allow")
+    if ha_version:
+        print(f"--- Preparing environment for Home Assistant {ha_version} ---")
     else:
-        cmd.extend(["--with", f"homeassistant=={ha_version}"])
-        
-    cmd.extend(["--with", "pytest-homeassistant-custom-component"])
-    
+        print("--- Running tests using locked environment (uv.lock) ---")
+
+    # 1. Base command
+    cmd = ["uv", "run"]
+    if not ha_version:
+        cmd.append("--frozen")
+
+    if ha_version:
+        # 2. Version handling and prerelease flag
+        if ha_version in ["latest", "rc", "dev"]:
+            cmd.extend(["--with", "homeassistant"])
+            if ha_version in ["rc", "dev"]:
+                cmd.append("--prerelease=allow")
+        else:
+            cmd.extend(["--with", f"homeassistant=={ha_version}"])
+
+        cmd.extend(["--with", "pytest-homeassistant-custom-component"])
+
     # 3. Determine and print actual HA version
     version_check_cmd = cmd + [
-        "python", "-c", 
+        "python", "-c",
         "import homeassistant.const as hc; print(f'\\n[+] Testing against Home Assistant Version: {hc.__version__}\\n')"
     ]
-    
+
     try:
         # Run version check (this also primes the environment)
         subprocess.run(version_check_cmd, check=True)
     except subprocess.CalledProcessError:
         print("[-] Failed to determine Home Assistant version.")
-        
+
     # 4. Run tests
     test_cmd = cmd + ["pytest"] + pytest_args
     print(f"Running: {' '.join(test_cmd)}")
-    
+
     try:
         result = subprocess.run(test_cmd, check=True)
         return result.returncode
@@ -57,7 +53,7 @@ def run_tests(ha_version, pytest_args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tests against specific HA version")
-    parser.add_argument("--version", default="2025.4.4", help="HA version to test against (e.g. 2024.12.0)")
+    parser.add_argument("--version", default=None, help="HA version to test against (e.g. 2026.2.0)")
 
     # We use parse_known_args to allow passing flags directly to pytest without --
     args, pytest_args = parser.parse_known_args()
