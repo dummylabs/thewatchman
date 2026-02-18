@@ -125,7 +125,17 @@ SENSOR_PARSE_DURATION = "parse_duration"
 SENSOR_LAST_PARSE = "last_parse"
 SENSOR_PROCESSED_FILES = "processed_files"
 SENSOR_IGNORED_FILES = "ignored_files"
-MONITORED_STATES = ["unavailable", "unknown", "missing", "disabled"]
+
+# registry_disabled is artificial state as HA doesn't have `disabled`
+# state in the state machine. Disabled entity simpy does not exists
+# in Entity Registry
+TRACKED_STATE_REGISTRY_DISABLED = "registry_disabled"
+TRACKED_STATE_MISSING = "missing"
+TRACKED_STATE_UNAVAILABLE = "unavailable"
+TRACKED_STATE_UNKNOWN = "unknown"
+
+# entity and aciton states which are monitored by Watchman
+MONITORED_STATES = [TRACKED_STATE_UNAVAILABLE, TRACKED_STATE_UNKNOWN, TRACKED_STATE_MISSING, TRACKED_STATE_REGISTRY_DISABLED]
 
 STATE_WAITING_HA = "waiting_for_ha"
 STATE_PARSING = "parsing"
