@@ -3,7 +3,6 @@
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from textwrap import wrap
 import time
 from typing import Any
 
@@ -23,7 +22,13 @@ from ..const import (
     REPORT_ENTRY_TYPE_SERVICE,
 )
 from .logger import _LOGGER
-from .utils import format_locations, get_config, get_entity_state, is_action
+from .utils import (
+    format_column_text,
+    format_occurrences,
+    get_config,
+    get_entity_state,
+    is_action,
+)
 
 
 async def parsing_stats(hass: HomeAssistant, parse_duration: float, last_check_duration: float, start_time: float) -> tuple[str, float, float, float]:
@@ -129,8 +134,8 @@ def table_renderer(
         table.field_names = ["Action ID", "State", "Location"]
         for service in missing_items:
             row = [
-                format_locations(service, columns_width[0]),
-                format_locations("missing", columns_width[1]),
+                format_column_text(service, columns_width[0]),
+                format_column_text("missing", columns_width[1]),
                 format_occurrences(parsed_list[service]["occurrences"], columns_width[2]),
             ]
             table.add_row(row)
@@ -144,8 +149,8 @@ def table_renderer(
             state, name = get_entity_state(hass, entity, friendly_names=friendly_names)
             table.add_row(
                 [
-                    format_locations(entity, columns_width[0], name),
-                    format_locations(state, columns_width[1]),
+                    format_column_text(entity, columns_width[0], name),
+                    format_column_text(state, columns_width[1]),
                     format_occurrences(parsed_list[entity]["occurrences"], columns_width[2]),
                 ]
             )
@@ -179,49 +184,6 @@ def text_renderer(
 
         return result
     return f"Text render error: unknown entry type: {entry_type}"
-
-
-def format_occurrences(occurrences: list[dict[str, Any]], width: int) -> str:
-    """Format occurrence locations, handling UI helpers gracefully."""
-    helpers = set()
-    files = {}
-
-    for occ in occurrences:
-        context = occ.get("context")
-        path = occ["path"]
-        line = occ["line"]
-
-        # Check for UI Helper
-        if context and context.get("parent_type", "").startswith("helper_"):
-            p_type = context["parent_type"].replace("helper_", "").capitalize()
-            alias = context.get("parent_alias") or "Unknown"
-
-            emoji = ""
-            if p_type == "Group":
-                emoji = "👥"
-            elif p_type == "Template":
-                emoji = "🧩"
-
-            helpers.add(f'{emoji} {p_type}: "{alias}"')
-        else:
-            # Standard File
-            if path not in files:
-                files[path] = []
-            files[path].append(str(line))
-
-    lines = sorted(helpers)
-    for path, line_numer_list in files.items():
-        lines.append(f"📄 {path}:{','.join(line_numer_list)}")
-
-    out = "\n".join(lines)
-
-    if width > 0:
-        wrapped_lines = []
-        for line in out.split("\n"):
-            wrapped_lines.extend(wrap(line, width))
-        return "\n".join([line.ljust(width) for line in wrapped_lines])
-
-    return out
 
 
 def get_columns_width(user_width: list[int] | None) -> list[int]:

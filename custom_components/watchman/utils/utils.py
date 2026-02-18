@@ -252,15 +252,9 @@ def obfuscate_id(item_id: Any) -> Any:
     return f"{domain}.{prefix}{masked_suffix}"
 
 
-def format_locations(data: Any, width: int, extra: str | None = None) -> str:
-    """Format file locations and line numbers into a string."""
-    if data and isinstance(data, dict):
-        lines = []
-        for key, val in data.items():
-            lines.append(f"{key}:{','.join([str(v) for v in val])}")
-        out = "\n".join(lines)
-    else:
-        out = str(data) if not extra else f"{data} ('{extra}')"
+def format_column_text(data: Any, width: int, extra: str | None = None) -> str:
+    """Format string into a column, applying wrapping and padding."""
+    out = str(data) if not extra else f"{data} ('{extra}')"
 
     if width > 0:
         wrapped_lines = []
@@ -268,3 +262,39 @@ def format_locations(data: Any, width: int, extra: str | None = None) -> str:
             wrapped_lines.extend(wrap(line, width))
         return "\n".join([line.ljust(width) for line in wrapped_lines])
     return out
+
+
+def format_occurrences(occurrences: list[dict[str, Any]], width: int) -> str:
+    """Format occurrence locations, handling UI helpers gracefully."""
+    helpers = set()
+    files = {}
+
+    for occ in occurrences:
+        context = occ.get("context")
+        path = occ["path"]
+        line = occ["line"]
+
+        # Check for UI Helper
+        if context and context.get("parent_type", "").startswith("helper_"):
+            p_type = context["parent_type"].replace("helper_", "").capitalize()
+            alias = context.get("parent_alias") or "Unknown"
+
+            emoji = ""
+            if p_type == "Group":
+                emoji = "👥"
+            elif p_type == "Template":
+                emoji = "🧩"
+
+            helpers.add(f'{emoji} {p_type}: "{alias}"')
+        else:
+            # Standard File
+            if path not in files:
+                files[path] = []
+            files[path].append(str(line))
+
+    lines = sorted(helpers)
+    for path, line_numer_list in sorted(files.items()):
+        lines.append(f"📄 {path}:{','.join(line_numer_list)}")
+
+    out = "\n".join(lines)
+    return format_column_text(out, width)
