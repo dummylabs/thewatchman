@@ -18,7 +18,7 @@ from homeassistant.helpers import entity_registry as er
 
 
 # Mock stats to ensure deterministic output for snapshots
-async def mock_stats(hass, start_time):
+async def mock_stats(hass, parse_duration, last_check_duration, start_time):
     """Mock function for report stats."""
     return ("01 Jan 2026 12:00:00", 1.23, 5, 0.1234)
 

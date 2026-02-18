@@ -17,6 +17,9 @@ from .const import (
     CONF_SEND_NOTIFICATION,
     CONF_SERVICE_DATA,
     CONF_SERVICE_NAME,
+    COORD_DATA_IGNORED_FILES,
+    COORD_DATA_PARSE_DURATION,
+    COORD_DATA_PROCESSED_FILES,
     DOC_URL,
     DOMAIN,
     LABELS_SERVICE_NAME,
@@ -112,16 +115,30 @@ class WatchmanServicesSetup:
 
         # Always trigger a parser run (default: incremental, unless forced)
         await self.coordinator.async_force_parse(ignore_mtime=force_parsing)
+        # TODO: coordinator._*_cache are not immediately updated after async_force_parse
+        # so cache is not 100% fresh and may does not correspond to latest parsing results
+        # we have to run await coordinator.async_request_refresh() somehow
+
+        report_data = {
+            "missing_entities": self.coordinator._missing_entities_cache,
+            "missing_services": self.coordinator._missing_actions_cache,
+            "parsed_entity_list": self.coordinator._parsed_entity_list_cache,
+            "parsed_service_list": self.coordinator._parsed_service_list_cache,
+            "files_parsed": self.coordinator.data.get(COORD_DATA_PROCESSED_FILES, 0),
+            "files_ignored": self.coordinator.data.get(COORD_DATA_IGNORED_FILES, 0),
+            "parse_duration": self.coordinator.data.get(COORD_DATA_PARSE_DURATION, 0.0),
+            "last_check_duration": self.coordinator.last_check_duration,
+        }
 
         # call notification action even when send notification = False
         if send_notification or action_name:
             await async_report_to_notification(
-                self.hass, action_name, action_data, chunk_size
+                self.hass, action_name, action_data, chunk_size, report_data
             )
 
         if create_file:
             try:
-                await async_report_to_file(self.hass, path)
+                await async_report_to_file(self.hass, path, report_data)
             except OSError as exception:
                 raise ServiceValidationError(
                     f"Unable to write report to file '{exception.filename}': {exception.strerror} [Error:{exception.errno}]"

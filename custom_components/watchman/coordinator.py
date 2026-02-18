@@ -57,8 +57,8 @@ from .const import (
 )
 from .utils.logger import _LOGGER, INDENT
 from .utils.parser_core import ParseResult
-from .utils.report import fill
 from .utils.utils import (
+    format_occurrences,
     get_config,
     get_entity_state,
     is_action,
@@ -284,6 +284,8 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         self._dirty_entities: set[str] = set()
         self._missing_entities_cache: dict[str, Any] = {}
         self._missing_actions_cache: dict[str, Any] = {}
+        self._parsed_entity_list_cache: dict[str, Any] = {}
+        self._parsed_service_list_cache: dict[str, Any] = {}
         self._force_full_rescan: bool = True
 
         self.data = {
@@ -505,7 +507,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     "id": entity,
                     "state": state,
                     "friendly_name": name or "",
-                    "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                    "occurrences": format_occurrences(parsed_entity_list[entity]["occurrences"], 0),
                 }
             )
 
@@ -513,7 +515,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         service_attrs = [
             {
                 "id": service,
-                "occurrences": fill(parsed_service_list[service]["locations"], 0),
+                "occurrences": format_occurrences(parsed_service_list[service]["occurrences"], 0),
             }
             for service in services_missing
         ]
@@ -910,6 +912,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             parsed_service_list = all_items["services"]
             parsed_entity_list = all_items["entities"]
 
+            self._parsed_entity_list_cache = parsed_entity_list
+            self._parsed_service_list_cache = parsed_service_list
+
             ctx = self._build_filter_context()
 
             # Logic Fork: Full vs Partial
@@ -958,7 +963,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                         "id": entity,
                         "state": state,
                         "friendly_name": name or "",
-                        "occurrences": fill(parsed_entity_list[entity]["locations"], 0),
+                        "occurrences": format_occurrences(parsed_entity_list[entity]["occurrences"], 0),
                     }
                 )
 
@@ -966,11 +971,10 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             service_attrs = [
                 {
                     "id": service,
-                    "occurrences": fill(parsed_service_list[service]["locations"], 0),
+                    "occurrences": format_occurrences(parsed_service_list[service]["occurrences"], 0),
                 }
                 for service in services_missing
             ]
-
             new_data = {
                 COORD_DATA_MISSING_ENTITIES: len(entities_missing),
                 COORD_DATA_MISSING_ACTIONS: len(services_missing),
