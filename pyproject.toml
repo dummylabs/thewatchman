@@ -94,3 +94,6 @@ disable = [
   "unexpected-keyword-arg",
   "used-before-assignment",
 ]
+
+[tool.syrupy]
+snapshot_path = "tests/__snapshots__"
