@@ -28,14 +28,7 @@ jobs:
         with:
           # The action will detect .devcontainer/devcontainer.json and Dockerfile
           # and execute postCreateCommand to setup dependencies
-          runCmd: uv run ./scripts/test_ha.py -p no:xdist --snapshot-update
-
-      - name: Debug Snapshot Diff
-        if: always()
-        run: |
-          echo "=== GIT DIFF START ==="
-          git diff
-          echo "=== GIT DIFF END ==="
+          runCmd: uv run ./scripts/test_ha.py -p no:xdist
 
   test-beta-devcontainer:
     name: Test on Beta HA (Python 3.13)

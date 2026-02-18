@@ -6,7 +6,7 @@ from custom_components.watchman.utils.parser_core import _scan_string_for_entiti
 def load_test_data():
     """Load test cases from YAML file."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_file = os.path.join(current_dir, "..", "data", "test_parser_template_prefix.yaml")
+    data_file = os.path.join(current_dir, "data", "test_parser_template_prefix.yaml")
     
     with open(data_file, 'r') as stream:
         return yaml.safe_load(stream)

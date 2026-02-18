@@ -6,10 +6,9 @@ from custom_components.watchman.utils.parser_core import _ENTITY_PATTERN
 
 def load_test_data():
     """Load test cases from YAML file."""
-    # Use relative path from this test file to the data file
-    # This test file is in tests/tests/, data is in tests/data/
+    # This test file is in tests/, data is in tests/data/
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_file = os.path.join(current_dir, "..", "..", "tests", "data", "test_regex_edge_cases.yaml")
+    data_file = os.path.join(current_dir, "data", "test_regex_edge_cases.yaml")
     
     with open(data_file, 'r') as stream:
         return yaml.safe_load(stream)

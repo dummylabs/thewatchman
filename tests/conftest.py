@@ -25,8 +25,8 @@ def patch_debouncer():
 
 @pytest.fixture
 def new_test_data_dir():
-    """Return the path to the new_tests/data directory."""
-    return str(Path(__file__).parent.parent / "data")
+    """Return the path to the tests/data directory."""
+    return str(Path(__file__).parent / "data")
 
 @pytest.fixture(autouse=True)
 def cleanup_watchman_files(new_test_data_dir):
