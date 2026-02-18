@@ -31,6 +31,10 @@ from ..const import (
     DEFAULT_OPTIONS,
     DOMAIN_DATA,
     STATELESS_DOMAINS,
+    TRACKED_STATE_MISSING,
+    TRACKED_STATE_REGISTRY_DISABLED,
+    TRACKED_STATE_UNAVAILABLE,
+    TRACKED_STATE_UNKNOWN,
 )
 from .logger import _LOGGER, INDENT
 
@@ -199,22 +203,31 @@ def get_entity_state(
             name = entity_state.name
 
     if not entity_state:
-        state = "missing"
+        state = TRACKED_STATE_MISSING
         if registry_entry is None:
             entity_registry = er.async_get(hass)
             registry_entry = entity_registry.async_get(entry)
 
         if registry_entry and registry_entry.disabled_by:
-            state = "disabled"
+            state = TRACKED_STATE_REGISTRY_DISABLED
     else:
-        state = str(entity_state.state).replace("unavailable", "unavail")
+        state = str(entity_state.state)
         if (
             split_entity_id(entry)[0] in STATELESS_DOMAINS
-            and state == "unknown"
+            and state == TRACKED_STATE_UNKNOWN
         ):
             state = "available"
 
     return state, name
+
+
+def format_state(state: str) -> str:
+    """Format state for reports and UI (presentation logic)."""
+    if state == TRACKED_STATE_REGISTRY_DISABLED:
+        return "disabled"
+    if state == TRACKED_STATE_UNAVAILABLE:
+        return "unavail"
+    return state
 
 
 def obfuscate_id(item_id: Any) -> Any:

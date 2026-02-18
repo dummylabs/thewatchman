@@ -25,6 +25,7 @@ from .logger import _LOGGER
 from .utils import (
     format_column_text,
     format_occurrences,
+    format_state,
     get_config,
     get_entity_state,
     is_action,
@@ -150,7 +151,7 @@ def table_renderer(
             table.add_row(
                 [
                     format_column_text(entity, columns_width[0], name),
-                    format_column_text(state, columns_width[1]),
+                    format_column_text(format_state(state), columns_width[1]),
                     format_occurrences(parsed_list[entity]["occurrences"], columns_width[2]),
                 ]
             )
@@ -180,7 +181,7 @@ def text_renderer(
             state, name = get_entity_state(hass, entity, friendly_names=friendly_names)
             entity_col = entity if not name else f"{entity} ('{name}')"
             loc = format_occurrences(parsed_list[entity]["occurrences"], 0)
-            result += f"{entity_col} [{state}] in: {loc}\n"
+            result += f"{entity_col} [{format_state(state)}] in: {loc}\n"
 
         return result
     return f"Text render error: unknown entry type: {entry_type}"

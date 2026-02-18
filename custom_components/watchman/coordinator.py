@@ -55,10 +55,11 @@ from .const import (
     WATCHED_EVENTS,
     WATCHED_SERVICES,
 )
-from .utils.logger import _LOGGER, INDENT
+from .utils.logger import _LOGGER
 from .utils.parser_core import ParseResult
 from .utils.utils import (
     format_occurrences,
+    format_state,
     get_config,
     get_entity_state,
     is_action,
@@ -176,11 +177,12 @@ def check_single_entity_status( # noqa: PLR0911
         reg_entry = ctx.entity_registry.async_get(entry)
         current_state, _ = get_entity_state(hass, entry, registry_entry=reg_entry)
 
-        if current_state in ctx.ignored_states:
+        # Fast exit for healthy entities
+        # Only report if state is in MONITORED_STATES
+        if current_state not in MONITORED_STATES:
             return None
 
-        # Fast exit for healthy entities
-        if current_state not in ("missing", "unknown", "unavail", "disabled"):
+        if current_state in ctx.ignored_states:
             return None
 
         # Cross-validation: If missing, check if it's actually an action
@@ -505,7 +507,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             entity_attrs.append(
                 {
                     "id": entity,
-                    "state": state,
+                    "state": format_state(state),
                     "friendly_name": name or "",
                     "occurrences": format_occurrences(parsed_entity_list[entity]["occurrences"], 0),
                 }
@@ -572,7 +574,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         for entity_id, occurrences in missing_entities.items():
             reg_entry = ctx.entity_registry.async_get(entity_id)
             state, _ = get_entity_state(self.hass, entity_id, registry_entry=reg_entry)
-            entities_list.extend(flatten_occurrences(entity_id, occurrences, state))
+            entities_list.extend(flatten_occurrences(entity_id, occurrences, format_state(state)))
 
         actions_list = []
         for service_id, occurrences in missing_services.items():
@@ -961,7 +963,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 entity_attrs.append(
                     {
                         "id": entity,
-                        "state": state,
+                        "state": format_state(state),
                         "friendly_name": name or "",
                         "occurrences": format_occurrences(parsed_entity_list[entity]["occurrences"], 0),
                     }
