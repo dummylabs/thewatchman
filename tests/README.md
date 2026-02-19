@@ -11,7 +11,7 @@ To ensure snapshot consistency with Linux CI, run tests using the Docker wrapper
 ./scripts/test_local --version 2026.2.0
 
 # Run specific test file
-./scripts/test_local tests/tests/test_init.py
+./scripts/test_local tests/test_init.py
 
 # Update snapshots
 ./scripts/test_local --snapshot-update
@@ -40,4 +40,4 @@ Command | Description
 ------- | -----------
 `./scripts/test_local` | **Standard way to run tests**
 `./scripts/test_local --durations=10` | Show slowest 10 tests
-`./scripts/test_local tests/tests/test_init.py` | Run specific test file
+`./scripts/test_local tests/test_init.py` | Run specific test file
