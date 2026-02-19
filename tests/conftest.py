@@ -7,6 +7,13 @@ import pytest
 
 from homeassistant.helpers.debounce import Debouncer
 
+from syrupy import SnapshotAssertion
+from syrupy.extensions.amber import AmberSnapshotExtension
+
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Override snapshot to always use standard Amber extension with __snapshots__ dir."""
+    return snapshot.use_extension(AmberSnapshotExtension)
 
 # Enable custom component loading
 @pytest.fixture(autouse=True)
@@ -40,7 +47,7 @@ def cleanup_watchman_files(new_test_data_dir):
         file_path = storage_dir / filename
         if file_path.exists():
             file_path.unlink()
-    
+
     # Also clean journal/wal/shm files
     for path in storage_dir.glob("watchman*.db-*"):
         path.unlink(missing_ok=True)
