@@ -2864,7 +2864,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "homeassistant", specifier = "==2026.2.0" },
+    { name = "homeassistant", specifier = ">=2025.4.4" },
     { name = "prettytable", specifier = ">=3.17.0" },
 ]
 
