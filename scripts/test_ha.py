@@ -27,7 +27,7 @@ def run_tests(ha_version, pytest_args):
             cmd.extend(["--with", f"homeassistant=={ha_version}"])
 
         cmd.extend(["--with", "pytest-homeassistant-custom-component"])
-        cmd.extend(["--with", "syrupy>=5.0.0", "--with", "pytest>=8.0.0"])
+        #cmd.extend(["--with", "syrupy>=5.0.0", "--with", "pytest>=8.0.0"])
 
     # 3. Determine and print actual HA version
     version_check_cmd = cmd + [

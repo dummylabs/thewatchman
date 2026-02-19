@@ -29,7 +29,7 @@ testpaths = [
     "tests",
 ]
 asyncio_mode = "auto"
-addopts = "-p no:xdist --snapshot-dirname=__snapshots__"
+addopts = "-p no:xdist"
 
 [tool.ruff]
 #line-length = 88
