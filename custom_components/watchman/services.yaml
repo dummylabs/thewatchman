@@ -2,15 +2,15 @@ report:
     name: Report
     description: Run watchman report
     fields:
+        create_file:
+            example: true
+            default: true
+            required: false
+            selector:
+                boolean:
         advanced_options:
             collapsed: true
             fields:
-                create_file:
-                    example: true
-                    default: true
-                    required: false
-                    selector:
-                        boolean:
                 force_parsing:
                     example: true
                     default: false
