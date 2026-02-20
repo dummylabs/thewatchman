@@ -149,6 +149,47 @@ async def test_force_rescan_during_cooldown(hass: HomeAssistant, mock_hub_parse)
         await hass.async_block_till_done()
 
 
+async def test_force_parse_cancels_pending_delay(hass: HomeAssistant, mock_hub_parse):
+    """Test that async_force_parse cancels pending delay timer even when no cooldown is active."""
+    config_entry = await async_init_integration(hass)
+    try:
+        coordinator: WatchmanCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+
+        # Reset mock and coordinator state
+        mock_hub_parse.reset_mock()
+        if coordinator.safe_mode:
+            coordinator.update_status(STATE_IDLE)
+        coordinator._last_parse_time = 0  # Ensure no cooldown
+
+        # 1. Request rescan with delay
+        coordinator.request_parser_rescan(reason="test_delay", delay=30)
+        
+        # 2. Assert precondition: delay active, cooldown inactive
+        assert coordinator._delay_unsub is not None
+        assert coordinator._cooldown_unsub is None
+
+        # 3. Call async_force_parse
+        await coordinator.async_force_parse()
+        await hass.async_block_till_done()
+
+        # 4. Assert delay timer is cancelled (THIS SHOULD FAIL with current bug)
+        assert coordinator._delay_unsub is None, "async_force_parse must cancel pending delay timer even when no cooldown is active"
+
+        # 5. Record parse count
+        parse_count_after_force = mock_hub_parse.call_count
+
+        # 6. Advance time past the original delay (30s)
+        import asyncio
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=35))
+        await hass.async_block_till_done()
+        await asyncio.sleep(0.2)
+
+        # 7. Assert no duplicate parse occurred
+        assert mock_hub_parse.call_count == parse_count_after_force, "Stale delay timer fired after async_force_parse — duplicate parse detected"
+
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
 
 
 async def test_smart_debounce_priority(hass: HomeAssistant, mock_hub_parse):

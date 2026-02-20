@@ -690,9 +690,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             self._cooldown_unsub = None
 
         # Cancel pending delay
-            if self._delay_unsub:
-                self._delay_unsub.cancel()
-                self._delay_unsub = None
+        if self._delay_unsub:
+            self._delay_unsub.cancel()
+            self._delay_unsub = None
 
         # If already running, return the running task
         if self._parse_task and not self._parse_task.done():
