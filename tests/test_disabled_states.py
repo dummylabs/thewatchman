@@ -23,6 +23,7 @@ def test_active_entity_with_disabled_state():
     ctx.ignored_states = []
     ctx.exclude_disabled = False
     ctx.automation_map = {}
+    ctx.script_map = {}
     ctx.entity_registry = MagicMock()
     
     entry = "sensor.ups_beeper"
@@ -57,6 +58,7 @@ def test_registry_disabled_entity_is_still_reported():
     ctx.ignored_states = []
     ctx.exclude_disabled = False
     ctx.automation_map = {}
+    ctx.script_map = {}
     ctx.entity_registry = MagicMock()
     
     entry = "sensor.truly_disabled"
@@ -132,6 +134,7 @@ def test_ignored_states_configuration_is_respected():
         ctx.ignored_labels = set()
         ctx.exclude_disabled = False
         ctx.automation_map = {}
+        ctx.script_map = {}
         ctx.entity_registry = mock_registry
         
         # Input data

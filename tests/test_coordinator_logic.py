@@ -12,6 +12,7 @@ def test_check_single_entity_status_false_positive_action():
     ctx.ignored_states = []
     ctx.exclude_disabled = False
     ctx.automation_map = {}
+    ctx.script_map = {}
     ctx.entity_registry = MagicMock()
     
     entry = "light.living_room"
@@ -48,6 +49,7 @@ def test_check_single_entity_status_false_positive_entity():
     ctx.ignored_states = []
     ctx.exclude_disabled = False
     ctx.automation_map = {}
+    ctx.script_map = {}
     ctx.entity_registry = MagicMock()
     
     entry = "script.turn_on"
@@ -76,6 +78,7 @@ def test_cross_validation_with_service_template():
     ctx.ignored_states = []
     ctx.exclude_disabled = False
     ctx.automation_map = {}
+    ctx.script_map = {}
     ctx.entity_registry = MagicMock()
     
     entry = "light.turn_on"
@@ -92,4 +95,3 @@ def test_cross_validation_with_service_template():
         result = check_single_entity_status(hass, entry, data, ctx, "entity")
         
         assert result is None
-
