@@ -76,6 +76,7 @@ class FilterContext:
     entity_registry: er.EntityRegistry
     disabled_automations: set[str]
     automation_map: dict[str, str]
+    script_map: dict[str, str]
     ignored_states: set[str]
     ignored_labels: set[str]
     exclude_disabled: bool
@@ -85,6 +86,7 @@ def _resolve_automations(
     hass: HomeAssistant,
     raw_automations: Iterable[str],
     automation_map: dict[str, str],
+    script_map: dict[str, str],
     ent_reg: er.EntityRegistry,
 ) -> set[str]:
     """Resolve parser parent IDs to Home Assistant entity IDs."""
@@ -96,13 +98,18 @@ def _resolve_automations(
             automations.add(automation_map[p_id])
             continue
 
-        # 2. Script ID match (by key)
+        # 2. Script Unique ID match
+        if p_id in script_map:
+            automations.add(script_map[p_id])
+            continue
+
+        # 3. Script ID match (by key)
         script_id = f"script.{p_id}"
         if hass.states.get(script_id) or ent_reg.async_get(script_id):
             automations.add(script_id)
             continue
 
-        # 3. Fallback
+        # 4. Fallback
         automations.add(p_id)
     return automations
 
@@ -120,7 +127,13 @@ def _is_safe_to_report(
     """
     occurrences = data["locations"]
     raw_automations = data["automations"]
-    automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
+    automations = _resolve_automations(
+        hass,
+        raw_automations,
+        ctx.automation_map,
+        ctx.script_map,
+        ctx.entity_registry,
+    )
 
     if ctx.exclude_disabled and automations:
         all_parents_disabled = True
@@ -320,6 +333,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         ignored_labels = set(self.config_entry.data.get(CONF_IGNORED_LABELS, []))
 
         automation_map = {}
+        script_map = {}
         disabled_automations = set()
 
 
@@ -333,6 +347,12 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
             if exclude_disabled and entry.disabled_by:
                 disabled_automations.add(entry.entity_id)
+
+        # 1b. Registry pass for scripts: map unique_id to entity_id
+        for entry in ent_reg.entities.values():
+            if entry.domain != "script" or not entry.unique_id:
+                continue
+            script_map[entry.unique_id] = entry.entity_id
 
         num_disabled_auto = len(disabled_automations)
         num_off_auto = 0
@@ -360,6 +380,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             entity_registry=ent_reg,
             disabled_automations=disabled_automations,
             automation_map=automation_map,
+            script_map=script_map,
             ignored_states=ignored_states_mapped,
             ignored_labels=ignored_labels,
             exclude_disabled=exclude_disabled,

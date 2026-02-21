@@ -99,3 +99,41 @@ async def test_registry_disabled_automation_warning_suppression(hass):
             # Check for disabled_auto warning
             disabled_warned = any("automation.disabled_auto" in w for w in warnings)
             assert not disabled_warned, "Should NOT warn about registry-disabled automation"
+
+
+def test_script_unique_id_resolves_without_false_automation_warning():
+    """Script unique_id in parser context should resolve to script entity_id."""
+    hass = MagicMock()
+    set_obfuscation_config(False)
+
+    # Entity under evaluation is missing/unavailable -> forces context resolution path.
+    hass.states.get.side_effect = lambda entity_id: (
+        MagicMock() if entity_id == "script.bd_eg_raum_reinigen" else None
+    )
+
+    ctx = MagicMock(spec=FilterContext)
+    ctx.ignored_labels = set()
+    ctx.ignored_states = []
+    ctx.exclude_disabled = False
+    ctx.automation_map = {}
+    ctx.script_map = {"x22_eg_clean_room": "script.bd_eg_raum_reinigen"}
+    ctx.entity_registry = MagicMock()
+
+    parsed_list = {
+        "vacuum.hw_eg_saugroboter": {
+            "automations": ["x22_eg_clean_room"],
+            "locations": {"scripts.yaml": [46]},
+            "occurrences": [],
+        }
+    }
+
+    with (
+        patch("custom_components.watchman.coordinator.get_entity_state", return_value=("missing", None)),
+        patch("custom_components.watchman.coordinator.is_action", return_value=False),
+        patch("custom_components.watchman.coordinator._LOGGER") as mock_logger,
+    ):
+        renew_missing_items_list(hass, parsed_list, ctx, "entity")
+        warnings = [call.args[0] for call in mock_logger.warning.call_args_list]
+        assert not any("x22_eg_clean_room" in w for w in warnings), (
+            "False warning expected to be suppressed when script unique_id resolves"
+        )
