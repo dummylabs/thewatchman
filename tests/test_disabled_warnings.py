@@ -115,8 +115,7 @@ def test_script_unique_id_resolves_without_false_automation_warning():
     ctx.ignored_labels = set()
     ctx.ignored_states = []
     ctx.exclude_disabled = False
-    ctx.automation_map = {}
-    ctx.script_map = {"x22_eg_clean_room": "script.bd_eg_raum_reinigen"}
+    ctx.automation_map = {"x22_eg_clean_room": "script.bd_eg_raum_reinigen"}
     ctx.entity_registry = MagicMock()
 
     parsed_list = {
