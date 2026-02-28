@@ -58,8 +58,11 @@ IGNORED_BRANCH_KEYS = {'url', 'example', 'description', 'event_type', 'logger'}
 ACTION_KEYS = {'service', 'action', 'service_template', 'perform_action'}
 
 # Keys where the parser ignores the immediate string value (to avoid false positives)
-# but continues recursion if the value is a complex structure
-IGNORED_VALUE_KEYS = {'trigger', 'triggers'}
+# but continues recursion if the value is a complex structure.
+# 'condition' (singular) covers HA 2025.12+ Purpose-specific condition intents
+# (e.g. `condition: person.is_not_home`). 'conditions' (plural) is NOT listed here
+# because its value is always a list — recursion handles it without hitting the str branch.
+IGNORED_VALUE_KEYS = {'trigger', 'triggers', 'condition'}
 
 # Domains to parse in core.config_entries
 CONFIG_ENTRY_DOMAINS = {'group', 'template'}

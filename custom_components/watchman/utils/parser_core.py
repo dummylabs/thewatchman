@@ -475,10 +475,11 @@ def _recursive_search(
         line_no = getattr(data, "line", None)
         key_name = parent_key
 
-        # ignore _values_ of the key from IGNORED_VALUE_KEYS
-        # this does not prevent parser to traverse in if there are nested keys
+        # Ignore direct string values of IGNORED_VALUE_KEYS (e.g. trigger, condition intents)
+        # EXCEPT when the value is a Jinja2 template — those must be scanned for entities (Heuristic 21).
         if key_name and str(key_name).lower() in IGNORED_VALUE_KEYS:
-            return
+            if not is_template(data):
+                return
 
         # Sanitize Jinja comments to avoid false positives inside comments
         # We process a copy so we don't modify the original 'data' object which might have attributes

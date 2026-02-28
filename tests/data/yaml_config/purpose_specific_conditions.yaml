@@ -1,0 +1,32 @@
+# Fixture: purpose-specific condition intents (HA 2025.12+)
+# Covers four scenarios tested in test_parser_purpose_specific_conditions.py
+
+automation:
+  - id: "test_purpose_specific_automation"
+    alias: "Purpose-Specific Conditions Test"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.motion_sensor
+    condition:
+      # Scenario 1: purpose-specific condition intent — must NOT be extracted as entity
+      - condition: person.is_not_home
+        target:
+          # Scenario 2: nested entity_id inside the same block — MUST be extracted
+          entity_id: person.xxxxxxxxxx
+        options:
+          behavior: any
+      # Scenario 3: Jinja2 template under condition: — light.kitchen MUST be extracted
+      - condition: "{{ is_state('light.kitchen', 'on') }}"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.living_room
+
+  # Scenario 4: Jinja2 template under trigger: — sensor.outdoor_temp MUST be extracted
+  - id: "test_trigger_template_automation"
+    alias: "Trigger Template Test"
+    trigger: "{{ states('sensor.outdoor_temp') | float > 30 }}"
+    action:
+      - service: fan.turn_on
+        target:
+          entity_id: fan.bedroom
