@@ -1,0 +1,11 @@
+- id: "auto_consistency_test"
+  alias: "Test Automation For Report Consistency"
+  trigger: []
+  condition:
+    - condition: state
+      entity_id: sensor.missing_from_automation
+      state: "on"
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: light.living_room

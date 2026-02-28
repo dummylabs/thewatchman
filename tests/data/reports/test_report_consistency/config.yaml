@@ -1,0 +1,6 @@
+# Parentless entity: referenced in a plain file with no automation/script/helper context.
+binary_sensor:
+  - platform: template
+    sensors:
+      consistency_check:
+        value_template: "{{ is_state('sensor.missing_parentless', 'on') }}"

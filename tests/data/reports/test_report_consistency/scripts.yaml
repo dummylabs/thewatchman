@@ -1,0 +1,12 @@
+# Test data for report consistency tests.
+# This script intentionally references a missing entity (in a condition) and
+# a missing action (in a service call) so we can verify that script-parented
+# items appear correctly in both the text file report and the YAML service response.
+
+test_script_report_consistency:
+  alias: "Test Script For Report Consistency"
+  sequence:
+    - condition: state
+      entity_id: sensor.missing_from_script
+      state: "on"
+    - service: script.missing_script_action
