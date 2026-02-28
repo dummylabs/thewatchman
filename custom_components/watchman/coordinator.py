@@ -82,27 +82,19 @@ class FilterContext:
 
 
 def _resolve_automations(
-    hass: HomeAssistant,
     raw_automations: Iterable[str],
     automation_map: dict[str, str],
-    ent_reg: er.EntityRegistry,
 ) -> set[str]:
     """Resolve parser parent IDs to Home Assistant entity IDs."""
     automations = set()
 
     for p_id in raw_automations:
-        # 1. Automation Unique ID match
+        # 1. Unique ID match (automation/script)
         if p_id in automation_map:
             automations.add(automation_map[p_id])
             continue
 
-        # 2. Script ID match (by key)
-        script_id = f"script.{p_id}"
-        if hass.states.get(script_id) or ent_reg.async_get(script_id):
-            automations.add(script_id)
-            continue
-
-        # 3. Fallback
+        # 2. Fallback
         automations.add(p_id)
     return automations
 
@@ -120,7 +112,10 @@ def _is_safe_to_report(
     """
     occurrences = data["locations"]
     raw_automations = data["automations"]
-    automations = _resolve_automations(hass, raw_automations, ctx.automation_map, ctx.entity_registry)
+    automations = _resolve_automations(
+        raw_automations,
+        ctx.automation_map,
+    )
 
     if ctx.exclude_disabled and automations:
         all_parents_disabled = True
@@ -323,16 +318,19 @@ class WatchmanCoordinator(DataUpdateCoordinator):
         disabled_automations = set()
 
 
-        # 1. Registry Pass: Map unique_id and check disabled_by
+        # 1. Registry pass: map unique_id -> entity_id for automation/script.
+        # For automations, also collect disabled entries when configured.
         for entry in ent_reg.entities.values():
-            if entry.domain != "automation":
+            if entry.domain == "automation":
+                # Map unique_id to entity_id
+                automation_map[entry.unique_id] = entry.entity_id
+
+                if exclude_disabled and entry.disabled_by:
+                    disabled_automations.add(entry.entity_id)
                 continue
 
-            # Map unique_id to entity_id
-            automation_map[entry.unique_id] = entry.entity_id
-
-            if exclude_disabled and entry.disabled_by:
-                disabled_automations.add(entry.entity_id)
+            if entry.domain == "script" and entry.unique_id:
+                automation_map[entry.unique_id] = entry.entity_id
 
         num_disabled_auto = len(disabled_automations)
         num_off_auto = 0

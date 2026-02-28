@@ -92,4 +92,3 @@ def test_cross_validation_with_service_template():
         result = check_single_entity_status(hass, entry, data, ctx, "entity")
         
         assert result is None
-
