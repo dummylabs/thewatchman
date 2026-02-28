@@ -1,0 +1,22 @@
+{
+  "data": {
+    "entries": [
+      {
+        "entry_id": "entry_helper_group_consistency",
+        "domain": "group",
+        "title": "Consistency Test Group",
+        "data": {
+          "entities": ["sensor.miss_helper_group"]
+        }
+      },
+      {
+        "entry_id": "entry_helper_template_consistency",
+        "domain": "template",
+        "title": "Consistency Test Template",
+        "options": {
+          "template_data": "{{ states('sensor.miss_helper_tmpl') }}"
+        }
+      }
+    ]
+  }
+}

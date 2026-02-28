@@ -1,0 +1,17 @@
+{
+  "key": "lovelace",
+  "data": {
+    "config": {
+      "views": [
+        {
+          "cards": [
+            {
+              "type": "entities",
+              "entities": ["sensor.missing_from_lovelace"]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
