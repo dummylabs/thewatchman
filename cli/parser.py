@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 from pathlib import Path
+import sqlite3
 import sys
 
 CONF_IGNORED_FILES: "*/blueprints/*, */custom_components/*, */esphome/*"
@@ -64,11 +65,12 @@ def print_table(headers, data, max_width=None):
 def main():
     parser = argparse.ArgumentParser(description="Watchman Prototype Parser (CLI)")
     # list of paths divided by space
-    parser.add_argument("path", nargs='?', default=str(Path.cwd()), help="Root path to scan (default: current dir)")
+    parser.add_argument("path", nargs='?', default=None, help="Root path to scan (default: current dir)")
     # -ignore "*.log" --ignore "*.tmp"
     parser.add_argument("--ignore", action='append', help="Glob patterns to ignore")
     parser.add_argument("--force", action='store_true', help="Force rescan of all files")
     parser.add_argument("--db-path", default="watchman.db", help="Path to SQLite database")
+    parser.add_argument("--dump-db", help="Dump content of the provided SQLite database without scanning. Conflicting args: path, --force, --ignore")
     parser.add_argument("--no-files", action='store_true', help="Hide the list of processed files")
     parser.add_argument("--no-items", action='store_true', help="Hide the list of found items")
     parser.add_argument("--stable-output", action='store_true', help="Exclude changing data (ID, Scan Date) from output for regression testing")
@@ -82,9 +84,6 @@ def main():
         pass
 
     args = parser.parse_args()
-
-    root_path = args.path
-    ignored_files = args.ignore or []
 
     # Configure logging
     log_level = logging.DEBUG if args.debug else logging.ERROR
@@ -101,17 +100,61 @@ def main():
         force=True  # Ensure we override any existing config
     )
 
-    client = WatchmanParser(args.db_path)
+    if args.dump_db:
+        if args.path:
+            parser.error("The 'path' argument is not allowed with --dump-db")
+        if args.force:
+            parser.error("--force is not allowed with --dump-db")
+        if args.ignore:
+            parser.error("--ignore is not allowed with --dump-db")
+        
+        db_path = args.dump_db
+        if not os.path.exists(db_path):
+            print(f"Error: Database file '{db_path}' not found.", file=sys.stderr)
+            sys.exit(1)
 
-    logging.info(f"Calling client.scan with: root_path={root_path}, ignored_files={ignored_files}, ignore_mtime={args.force}, base_path={root_path}")
-    # We call scan directly. Logic for configuration change detection is inside WatchmanParser.scan
-    import asyncio
-    asyncio.run(client.async_scan(root_path, ignored_files, ignore_mtime=args.force, base_path=root_path))
+        try:
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Fetch processed files
+                cursor.execute("""
+                    SELECT file_id, path, file_type, entity_count, scan_date
+                    FROM processed_files
+                    ORDER BY path
+                """)
+                processed_files = cursor.fetchall()
+
+                # Fetch found items
+                cursor.execute("""
+                    SELECT fi.entity_id, pf.path, fi.line, fi.item_type, fi.parent_type, fi.parent_alias, fi.parent_id
+                    FROM found_items fi
+                    JOIN processed_files pf ON fi.file_id = pf.file_id
+                    ORDER BY pf.path, fi.line
+                """)
+                all_items = cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Database error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    else:
+        root_path = args.path if args.path else str(Path.cwd())
+        ignored_files = args.ignore or []
+        
+        client = WatchmanParser(args.db_path)
+
+        logging.info(f"Calling client.scan with: root_path={root_path}, ignored_files={ignored_files}, ignore_mtime={args.force}, base_path={root_path}")
+        # We call scan directly. Logic for configuration change detection is inside WatchmanParser.scan
+        import asyncio
+        asyncio.run(client.async_scan(root_path, ignored_files, ignore_mtime=args.force, base_path=root_path))
+        
+        processed_files = client.get_processed_files()
+        all_items = client.get_found_items('all')
 
     # Output results matching original format
     if not args.no_files:
         print_header("Processed Files")
-        rows = client.get_processed_files()
+        rows = processed_files
         # rows: [(file_id, path, file_type, entity_count, scan_date), ...]
         
         headers = ["ID", "Path", "Type", "Count", "Scan Date"]
@@ -124,9 +167,6 @@ def main():
             rows = [ (r[1], r[2], r[3]) for r in rows ]
         
         print_table(headers, rows, max_width=60)
-
-    # Fetch all items to compute summary and display table
-    all_items = client.get_found_items('all')
 
     if not args.no_items:
         print_header("Found Items")
