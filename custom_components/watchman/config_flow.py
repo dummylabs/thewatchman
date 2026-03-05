@@ -48,18 +48,24 @@ COLUMNS_WIDTH_SCHEMA = vol.Schema(vol.All(cv.ensure_list, [cv.positive_int]))
 
 
 def _get_data_schema() -> vol.Schema:
-    select = selector.TextSelector(selector.TextSelectorConfig(multiline=True))
+    chip_selector = selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[],
+            multiple=True,
+            custom_value=True,
+        )
+    )
     return vol.Schema(
         {
             vol.Optional(
                 CONF_IGNORED_ITEMS,
-            ): select,
+            ): chip_selector,
             vol.Optional(
                 CONF_IGNORED_STATES,
             ): cv.multi_select(MONITORED_STATES),
             vol.Optional(
                 CONF_IGNORED_FILES,
-            ): select,
+            ): chip_selector,
             vol.Optional(
                 CONF_IGNORED_LABELS,
             ): selector.LabelSelector(
@@ -194,13 +200,13 @@ class OptionsFlowHandler(OptionsFlow):
                     CONF_IGNORED_FILES in self.config_entry.data
                     and CONF_IGNORED_FILES not in user_input
                 ):
-                    user_input[CONF_IGNORED_FILES] = ""
+                    user_input[CONF_IGNORED_FILES] = []
 
                 if (
                     CONF_IGNORED_ITEMS in self.config_entry.data
                     and CONF_IGNORED_ITEMS not in user_input
                 ):
-                    user_input[CONF_IGNORED_ITEMS] = ""
+                    user_input[CONF_IGNORED_ITEMS] = []
 
                 # see met.no code, without update_entry the EXISTING entry
                 # will not be updated with user input, but entry.options will do

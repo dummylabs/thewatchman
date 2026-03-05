@@ -30,11 +30,11 @@
                 },
                 "data_description": {
                     "included_folders": "Čiarkami oddelený zoznam priečinkov, kde by mal watchman hľadať konfiguračné súbory",
-                    "ignored_items": "Čiarkami oddelený zoznam entít a akcií vylúčených zo sledovania",
+                    "ignored_items": "Pridajte entity a akcie na vylúčenie zo sledovania. Podporuje glob vzory (napr. switch.*)",
                     "ignored_states": "Čiarkami oddelený zoznam stavov vylúčených zo sledovania",
                     "exclude_disabled_automation": "Vylúčiť entity použité iba v deaktivovaných automatizáciách",
                     "enforce_file_size": "Vypnite túto možnosť, ak chcete analyzovať súbory väčšie ako {max_size_kb}KB. Môže to zvýšiť čas analýzy a využitie pamäte.",
-                    "ignored_files": "Čiarkami oddelený zoznam konfiguračných súborov vylúčených zo sledovania",
+                    "ignored_files": "Pridajte glob vzory súborov na vylúčenie zo sledovania (napr. */esphome/*)",
                     "ignored_labels": "Použiť štítky na vylúčenie entít zo sledovania",
                     "log_obfuscate": "Či sa majú v logoch z dôvodu ochrany osobných údajov maskovať názvy entít a služieb"
                 },
