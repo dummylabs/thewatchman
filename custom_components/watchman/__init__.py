@@ -1,5 +1,6 @@
 """The Watchman integration."""
 
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -224,19 +225,23 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             "Start Watchman configuration entry migration to version 2. Source data: %s",
             config_entry.options,
         )
-        data = DEFAULT_OPTIONS
+        data = deepcopy(DEFAULT_OPTIONS)
 
         data[CONF_IGNORED_STATES] = config_entry.options.get(CONF_IGNORED_STATES, [])
 
         if CONF_IGNORED_ITEMS in config_entry.options:
-            data[CONF_IGNORED_ITEMS] = ",".join(
-                str(x) for x in config_entry.options[CONF_IGNORED_ITEMS]
-            )
+            data[CONF_IGNORED_ITEMS] = [
+                str(x).strip()
+                for x in config_entry.options[CONF_IGNORED_ITEMS]
+                if str(x).strip()
+            ]
 
         if CONF_IGNORED_FILES in config_entry.options:
-            data[CONF_IGNORED_FILES] = ",".join(
-                str(x) for x in config_entry.options[CONF_IGNORED_FILES]
-            )
+            data[CONF_IGNORED_FILES] = [
+                str(x).strip()
+                for x in config_entry.options[CONF_IGNORED_FILES]
+                if str(x).strip()
+            ]
 
         if CONF_FRIENDLY_NAMES in config_entry.options:
             data[CONF_SECTION_APPEARANCE_LOCATION][CONF_FRIENDLY_NAMES] = (
@@ -314,6 +319,16 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             _LOGGER.info("Migrating Watchman entry to minor version 5")
             data[CONF_ENFORCE_FILE_SIZE] = DEFAULT_OPTIONS.get(CONF_ENFORCE_FILE_SIZE, True)
             current_minor = 5
+
+        if current_minor < 6:
+            _LOGGER.info(
+                "Migrating Watchman entry to minor version 6: converting ignored_items and ignored_files from str to list"
+            )
+            for key in (CONF_IGNORED_ITEMS, CONF_IGNORED_FILES):
+                val = data.get(key, "")
+                if isinstance(val, str):
+                    data[key] = [x.strip() for x in val.split(",") if x.strip()]
+            current_minor = 6
 
         if current_minor != config_entry.minor_version:
             hass.config_entries.async_update_entry(

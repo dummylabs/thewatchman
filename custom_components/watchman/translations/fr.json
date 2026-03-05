@@ -30,11 +30,11 @@
                 },
                 "data_description": {
                     "included_folders": "Liste séparée par des virgules des dossiers dans lesquels Watchman doit rechercher les fichiers de configuration",
-                    "ignored_items": "Liste séparée par des virgules des entités et des actions exclues du suivi",
+                    "ignored_items": "Ajoutez des entités et des actions à exclure du suivi. Prend en charge les motifs glob (ex. switch.*)",
                     "ignored_states": "Liste séparée par des virgules des États exclus du suivi",
                     "exclude_disabled_automation": "Exclure les entités utilisées uniquement par des automatisations désactivées",
                     "enforce_file_size": "Désactivez cette option pour analyser les fichiers de plus de {max_size_kb}Ko. Cela pourrait augmenter le temps d'analyse et l'utilisation de la mémoire.",
-                    "ignored_files": "Liste séparée par des virgules des fichiers de configuration exclus du suivi",
+                    "ignored_files": "Ajoutez des motifs glob de fichiers à exclure du suivi (ex. */esphome/*)",
                     "ignored_labels": "Utiliser des étiquettes pour exclure des entités du suivi",
                     "log_obfuscate": "Masquer les noms d'entités et de services dans les journaux pour la confidentialité"
                 },
