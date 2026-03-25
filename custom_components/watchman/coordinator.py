@@ -345,20 +345,11 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Found {num_off_auto} automations in 'off' state and {num_disabled_auto} registry-disabled automations.")
             _LOGGER.debug("They will be excluded from report due to user settings.")
 
-        # Normalize ignored states (e.g. unavail -> unavailable if needed, or handle in loop)
-        # For now, we pass raw config list and handle mapping in the loop for backward compatibility
-        ignored_states_mapped = set()
-        for s in ignored_states:
-             if s == "unavailable":
-                 ignored_states_mapped.add("unavail")
-             else:
-                 ignored_states_mapped.add(s)
-
         self._filter_context_cache = FilterContext(
             entity_registry=ent_reg,
             disabled_automations=disabled_automations,
             automation_map=automation_map,
-            ignored_states=ignored_states_mapped,
+            ignored_states=set(ignored_states),
             ignored_labels=ignored_labels,
             exclude_disabled=exclude_disabled,
         )
