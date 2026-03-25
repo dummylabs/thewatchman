@@ -91,3 +91,60 @@ async def test_report_generation_snapshot(hass, new_test_data_dir, tmp_path, sna
     finally:
         await hass.config_entries.async_unload(config_entry.entry_id)
         await hass.async_block_till_done()
+
+
+@patch("custom_components.watchman.utils.report.parsing_stats", new=mock_stats)
+@pytest.mark.asyncio
+async def test_report_excludes_unavailable_when_ignored(hass, new_test_data_dir, tmp_path):
+    """Test that ignored unavailable state excludes entities from the report."""
+    config_dir = str(Path(new_test_data_dir) / "reports" / "test_report_generation")
+
+    hass.config.config_dir = config_dir
+
+    def mock_path_side_effect(*args):
+        return str(tmp_path.joinpath(*args))
+
+    hass.config.path = MagicMock(side_effect=mock_path_side_effect)
+
+    report_file = tmp_path / "watchman_report.txt"
+
+    config_entry = await async_init_integration(
+        hass,
+        add_params={
+            CONF_INCLUDED_FOLDERS: config_dir,
+            CONF_SECTION_APPEARANCE_LOCATION: {
+                CONF_REPORT_PATH: str(report_file),
+            },
+            CONF_IGNORED_STATES: ["unavailable"],
+        },
+    )
+
+    try:
+        hass.states.async_set("sensor.outside_temp", "25.0")
+        hass.states.async_set("light.living_room", "on")
+        hass.states.async_set("binary_sensor.motion_sensor", "unavailable")
+        hass.states.async_set("input_boolean.unknown_boolean", "unknown")
+
+        for domain in ["light", "switch", "alarm_control_panel", "vacuum", "script", "notify", "automation"]:
+            hass.services.async_register(domain, "turn_on", lambda x: None)
+            hass.services.async_register(domain, "turn_off", lambda x: None)
+            hass.services.async_register(domain, "toggle", lambda x: None)
+
+        hass.services.async_register("alarm_control_panel", "arm_home", lambda x: None)
+        hass.services.async_register("vacuum", "start", lambda x: None)
+        hass.services.async_register("notify", "telegram", lambda x: None)
+        hass.services.async_register("notify", "persistent_notification", lambda x: None)
+        hass.services.async_register("notify", "mobile_app_phone", lambda x: None)
+
+        await hass.services.async_call(DOMAIN, "report")
+        await hass.async_block_till_done()
+
+        assert report_file.exists()
+
+        content = report_file.read_text(encoding="utf-8")
+
+        assert "binary_sensor.motion_sensor" not in content
+        assert "input_boolean.unknown_boolean" in content
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
