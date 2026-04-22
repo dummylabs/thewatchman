@@ -147,6 +147,41 @@ Please note that the ASCII table format is only used when report is saved to a f
 ```
 The legend at the bottom of the report shows time consumed by 3 coherent stages: parse configuration files, validate each entity/action state and generate text version of the report.
 
+### Consuming the `references` attribute
+
+`sensor.watchman_missing_entities` and `sensor.watchman_missing_actions` expose a `references` attribute alongside the existing `occurrences` string. `references` is a list of structured per-occurrence dicts, each with:
+
+| Key            | Type         | Notes                                                                           |
+|----------------|--------------|---------------------------------------------------------------------------------|
+| `path`         | `str`        | File path the reference was found in.                                           |
+| `line`         | `int`        | Line number in the source file.                                                 |
+| `parent_type`  | `str \| None`| `automation`, `script`, `helper_template`, `helper_group`, or `null`.           |
+| `parent_id`    | `str \| None`| Automation/script id, or the config-entry uuid for UI helpers.                  |
+| `parent_alias` | `str \| None`| Friendly alias of the containing automation/script/helper.                      |
+
+All three `parent_*` keys are `null` for references found in Lovelace storage files (view/card context is not tracked). The pre-rendered `occurrences` string is unchanged.
+
+Example Lovelace markdown card that builds clickable links to the automation/script editor for each missing reference:
+
+```yaml
+type: markdown
+content: |
+  {% for e in state_attr('sensor.watchman_missing_entities', 'entities') %}
+  ### {{ e.friendly_name or e.id }} (`{{ e.state }}`)
+  {% for r in e.references %}
+  {% if r.parent_type == 'automation' %}
+  - [{{ r.parent_alias }}](/config/automation/edit/{{ r.parent_id }})
+  {% elif r.parent_type == 'script' %}
+  - [Script: {{ r.parent_alias }}](/config/script/edit/{{ r.parent_id }})
+  {% elif r.parent_type and r.parent_type.startswith('helper_') %}
+  - [{{ r.parent_type.split('_')[1] | capitalize }}: {{ r.parent_alias }}](/config/entities/?config_entry={{ r.parent_id }})
+  {% else %}
+  - `{{ r.path }}:{{ r.line }}`
+  {% endif %}
+  {% endfor %}
+  {% endfor %}
+```
+
 ## Frequently asked questions
 
 ### Why did the visual UI editor disappear?
