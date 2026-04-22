@@ -152,6 +152,26 @@ def _is_available(state: Any) -> bool:
     return val not in ("unavailable", "unknown", "missing", "None")
 
 
+def _build_references(occurrences: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Flatten per-occurrence parser context for sensor attributes.
+
+    Returns a list of flat dicts with `path`, `line`, `parent_type`,
+    `parent_id`, `parent_alias`. Missing context fields are `None` so
+    Jinja templates can safely check `is none`.
+    """
+    out = []
+    for occ in occurrences:
+        ctx = occ.get("context") or {}
+        out.append({
+            "path": occ["path"],
+            "line": occ["line"],
+            "parent_type": ctx.get("parent_type"),
+            "parent_id": ctx.get("parent_id"),
+            "parent_alias": ctx.get("parent_alias"),
+        })
+    return out
+
+
 def check_single_entity_status( # noqa: PLR0911
     hass: HomeAssistant,
     entry: str,
@@ -499,6 +519,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     "state": format_state(state),
                     "friendly_name": name or "",
                     "occurrences": format_occurrences(parsed_entity_list[entity]["occurrences"], 0),
+                    "references": _build_references(parsed_entity_list[entity]["occurrences"]),
                 }
             )
 
@@ -507,6 +528,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             {
                 "id": service,
                 "occurrences": format_occurrences(parsed_service_list[service]["occurrences"], 0),
+                "references": _build_references(parsed_service_list[service]["occurrences"]),
             }
             for service in services_missing
         ]
@@ -955,6 +977,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                         "state": format_state(state),
                         "friendly_name": name or "",
                         "occurrences": format_occurrences(parsed_entity_list[entity]["occurrences"], 0),
+                        "references": _build_references(parsed_entity_list[entity]["occurrences"]),
                     }
                 )
 
@@ -963,6 +986,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                 {
                     "id": service,
                     "occurrences": format_occurrences(parsed_service_list[service]["occurrences"], 0),
+                    "references": _build_references(parsed_service_list[service]["occurrences"]),
                 }
                 for service in services_missing
             ]
