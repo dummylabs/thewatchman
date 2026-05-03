@@ -698,7 +698,7 @@ def _is_file_ignored(path_obj: Path, cwd: Path, ignored_patterns: list[str]) -> 
     return False
 
 
-def _scan_files_sync(root_path: str, ignored_patterns: list[str], enforce_file_size: bool = True) -> tuple[list[dict[str, Any]], int]:
+def _scan_files_sync(root_path: str, ignored_patterns: list[str], enforce_file_size: bool = True, max_file_size: int = MAX_FILE_SIZE) -> tuple[list[dict[str, Any]], int]:
     """Scan files syncronously using os.walk (blocking).
 
     Executed as a single job in the executor.
@@ -727,8 +727,8 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str], enforce_file_s
             # Stat
             try:
                 stat_res = abs_path_obj.stat()
-                if enforce_file_size and stat_res.st_size > MAX_FILE_SIZE:
-                    _LOGGER.warning(f"Parser: file {abs_path_obj} skipped due to size ({stat_res.st_size} > {MAX_FILE_SIZE}).")
+                if enforce_file_size and stat_res.st_size > max_file_size:
+                    _LOGGER.warning(f"Parser: file {abs_path_obj} skipped due to size ({stat_res.st_size} > {max_file_size}).")
                     _LOGGER.warning('Switch off "Enforce max file size limit" in the integration options to parse large files.')
                     ignored_count += 1
                     continue
@@ -768,8 +768,8 @@ def _scan_files_sync(root_path: str, ignored_patterns: list[str], enforce_file_s
 
                 try:
                     stat_res = file_path_obj.stat()
-                    if enforce_file_size and stat_res.st_size > MAX_FILE_SIZE:
-                        _LOGGER.warning(f"Parser: file {abs_path_obj} skipped due to size ({stat_res.st_size} > {MAX_FILE_SIZE}).")
+                    if enforce_file_size and stat_res.st_size > max_file_size:
+                        _LOGGER.warning(f"Parser: file {file_path_obj} skipped due to size ({stat_res.st_size} > {max_file_size}).")
                         _LOGGER.warning('Switch off "Enforce max file size limit" in the integration options to parse large files.')
                         ignored_count += 1
                         continue
@@ -930,12 +930,12 @@ class WatchmanParser:
             path.unlink(missing_ok=True)
             return self._create_fresh_db(db_path)
 
-    async def _async_scan_files(self, root_path: str, ignored_patterns: list[str], enforce_file_size: bool = True) -> tuple[list[dict[str, Any]], int]:
+    async def _async_scan_files(self, root_path: str, ignored_patterns: list[str], enforce_file_size: bool = True, max_file_size: int = MAX_FILE_SIZE) -> tuple[list[dict[str, Any]], int]:
         """Phase 1: Synchronous file scanning (offloaded to thread).
 
         Calls _scan_files_sync in executor.
         """
-        return await self.executor(_scan_files_sync, root_path, ignored_patterns, enforce_file_size)
+        return await self.executor(_scan_files_sync, root_path, ignored_patterns, enforce_file_size, max_file_size)
 
     async def async_scan(
         self,
@@ -945,6 +945,7 @@ class WatchmanParser:
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
         enforce_file_size: bool = True,
+        max_file_size: int = MAX_FILE_SIZE,
         ignore_mtime: bool = False,
     ) -> ParseResult | None:
         """Orchestrates the scanning process.
@@ -967,7 +968,7 @@ class WatchmanParser:
             )
             scan_time = time.monotonic()
             files_scanned, ignored_count = await self._async_scan_files(
-                root_path, ignored_files, enforce_file_size
+                root_path, ignored_files, enforce_file_size, max_file_size
             )
             _LOGGER.debug(
                 f"Parser (Scan): Found {len(files_scanned)} files in {(time.monotonic() - scan_time):.3f} sec"
@@ -1244,6 +1245,7 @@ class WatchmanParser:
         custom_domains: list[str] | None = None,
         base_path: str | None = None,
         enforce_file_size: bool = True,
+        max_file_size: int = MAX_FILE_SIZE,
     ) -> ParseResult | None:
         """Parse configuration files (main function).
 
@@ -1253,6 +1255,8 @@ class WatchmanParser:
             ignore_mtime (bool): if false, files witch unchanged modification time will be not be parsed
             custom_domains: additional domains provided by customer integrations which should not be ignored by WM, e.g. xiaomi_miio.*
             base_path: root path to make file paths relative in the database
+            enforce_file_size: whether to enforce max_file_size limit
+            max_file_size: maximum file size in bytes (default: MAX_FILE_SIZE)
 
         Returns:
             parse_result (ParseResult): Operational statistics.
@@ -1264,5 +1268,6 @@ class WatchmanParser:
             custom_domains=custom_domains,
             base_path=base_path,
             enforce_file_size=enforce_file_size,
+            max_file_size=max_file_size,
             ignore_mtime=ignore_mtime,
         )

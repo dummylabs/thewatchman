@@ -26,7 +26,9 @@
                     "ignored_labels": "Ignorované štítky:",
                     "check_lovelace": "Analyzovať ovládané UI ovládacie panely",
                     "startup_delay": "Oneskorenie spustenia pre inicializáciu senzorov watchman",
-                    "log_obfuscate": "Zatmavenie citlivých údajov"
+                    "log_obfuscate": "Zatmavenie citlivých údajov",
+                    "enforce_file_size": "Vynútiť limit maximálnej veľkosti súboru",
+                    "max_file_size": "Maximálna veľkosť súboru (KB)"
                 },
                 "data_description": {
                     "included_folders": "Čiarkami oddelený zoznam priečinkov, kde by mal watchman hľadať konfiguračné súbory",
@@ -36,7 +38,9 @@
                     "enforce_file_size": "Vypnite túto možnosť, ak chcete analyzovať súbory väčšie ako {max_size_kb}KB. Môže to zvýšiť čas analýzy a využitie pamäte.",
                     "ignored_files": "Pridajte glob vzory súborov na vylúčenie zo sledovania (napr. */esphome/*)",
                     "ignored_labels": "Použiť štítky na vylúčenie entít zo sledovania",
-                    "log_obfuscate": "Či sa majú v logoch z dôvodu ochrany osobných údajov maskovať názvy entít a služieb"
+                    "log_obfuscate": "Či sa majú v logoch z dôvodu ochrany osobných údajov maskovať názvy entít a služieb",
+                    "enforce_file_size": "Vypnite túto možnosť, ak chcete analyzovať súbory väčšie ako {max_size_kb}KB. Môže to zvýšiť čas analýzy a využitie pamäte.",
+                    "max_file_size": "Maximálna veľkosť súboru na analýzu v KB. Rozsah: 100-10000. Predvolené: 500KB. Platí iba vtedy, keď je povolená možnosť 'Vynútiť limit maximálnej veľkosti súboru'."
                 },
                 "sections": {
                     "appearance_location_options": {

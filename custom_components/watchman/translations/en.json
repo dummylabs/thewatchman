@@ -26,7 +26,8 @@
                     "check_lovelace": "Parse UI controlled dashboards",
                     "startup_delay": "Startup delay for watchman sensors initialization",
                     "log_obfuscate": "Obfuscate sensitive data in logs",
-                    "enforce_file_size": "Enforce max file size limit"
+                    "enforce_file_size": "Enforce max file size limit",
+                    "max_file_size": "Maximum file size (KB)"
                 },
                 "data_description": {
                     "included_folders": "Comma-separated list of folders where watchman should look for config files",
@@ -36,7 +37,8 @@
                     "ignored_labels": "Use labels to exclude entities from tracking",
                     "log_obfuscate": "Whether to mask entity and action names in debug logs for privacy",
                     "exclude_disabled_automation": "Exclude entities used only by disabled automations",
-                    "enforce_file_size": "Disable this to parse files larger than {max_size_kb}KB. This might increase parsing time and memory usage."
+                    "enforce_file_size": "Disable this to parse files larger than {max_size_kb}KB. This might increase parsing time and memory usage.",
+                    "max_file_size": "Maximum file size to parse in KB. Range: 100-10000. Default: 500KB. Applies only when 'Enforce max file size limit' is enabled."
                 },
                 "sections": {
                     "appearance_location_options": {

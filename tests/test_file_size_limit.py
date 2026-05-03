@@ -12,12 +12,14 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.watchman.const import (
     DOMAIN,
     CONF_ENFORCE_FILE_SIZE,
+    CONF_MAX_FILE_SIZE,
     CONF_STARTUP_DELAY,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_REPORT_PATH,
     CONF_HEADER,
     CONF_COLUMNS_WIDTH,
     DB_FILENAME,
+    DEFAULT_OPTIONS,
 )
 from custom_components.watchman.utils.parser_const import MAX_FILE_SIZE
 
@@ -221,3 +223,85 @@ async def test_parser_file_size_limit_end_to_end(hass: HomeAssistant, large_file
         
         await hass.config_entries.async_unload(config_entry.entry_id)
         await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_options_flow_max_file_size_present_and_persists(hass: HomeAssistant):
+    """Test that max_file_size is present in OptionsFlow schema and persists on change."""
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="test_entry_max_file_size_options",
+        version=2,
+        minor_version=7,
+        data={
+            CONF_ENFORCE_FILE_SIZE: True,
+            CONF_MAX_FILE_SIZE: 500,
+            CONF_STARTUP_DELAY: 0,
+        },
+    )
+    config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch("custom_components.watchman.config_flow.async_is_valid_path", return_value=True):
+        try:
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            assert result["type"] == data_entry_flow.FlowResultType.FORM
+            assert CONF_MAX_FILE_SIZE in result["data_schema"].schema
+
+            user_input = {
+                CONF_ENFORCE_FILE_SIZE: True,
+                CONF_MAX_FILE_SIZE: 1000,
+                CONF_STARTUP_DELAY: 30,
+                CONF_SECTION_APPEARANCE_LOCATION: {
+                    CONF_REPORT_PATH: "/config/report.txt",
+                    CONF_HEADER: "-== Watchman Report ==-",
+                    CONF_COLUMNS_WIDTH: "30, 8, 60",
+                },
+            }
+
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], user_input=user_input
+            )
+            await hass.async_block_till_done()
+
+            assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+            assert config_entry.data[CONF_MAX_FILE_SIZE] == 1000
+        finally:
+            await hass.config_entries.async_unload(config_entry.entry_id)
+            await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_parser_respects_configurable_max_file_size(tmp_path, caplog):
+    """Test parser skips file exceeding custom max_file_size and passes file below it."""
+    from custom_components.watchman.utils.parser_core import WatchmanParser
+
+    db_path = tmp_path / "watchman.db"
+    parser = WatchmanParser(str(db_path))
+
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    # 200 KB file — above 100 KB limit, below 500 KB default
+    medium_file = config_dir / "medium.yaml"
+    medium_file.write_text("#" * (200 * 1024 + 10), encoding="utf-8")
+
+    normal_file = config_dir / "normal.yaml"
+    normal_file.write_text(
+        "sensor:\n  - platform: template\n    sensors:\n      test:\n        value_template: '{{ states.sensor.valid }}'",
+        encoding="utf-8",
+    )
+
+    # With 100 KB limit — medium file should be skipped
+    await parser.async_parse(str(config_dir), [], enforce_file_size=True, max_file_size=100 * 1024)
+    assert "skipped due to size" in caplog.text
+    assert str(medium_file) in caplog.text
+
+    caplog.clear()
+    parser2 = WatchmanParser(str(tmp_path / "watchman2.db"))
+
+    # With 300 KB limit — medium file should pass (200 KB < 300 KB)
+    await parser2.async_parse(str(config_dir), [], enforce_file_size=True, max_file_size=300 * 1024)
+    assert "skipped due to size" not in caplog.text

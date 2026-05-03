@@ -1,0 +1,154 @@
+{
+    "config": {
+        "abort": {
+            "single_instance_allowed": "È consentita solo un'istanza di Watchman"
+        },
+        "step": {}
+    },
+    "options": {
+        "error": {
+            "invalid_included_folders": "included_folders deve essere un elenco di cartelle di configurazione separate da virgole",
+            "invalid_columns_width": "La larghezza della colonna del rapporto deve essere un elenco di 3 numeri interi positivi",
+            "malformed_json": "I dati dell'azione di notifica devono essere un dizionario JSON valido",
+            "unknown_service": "azione sconosciuta: `{service}`",
+            "invalid_report_path": "Il percorso del file di rapporto non è valido, il percorso non esiste"
+        },
+        "step": {
+            "init": {
+                "title": "Impostazioni Watchman",
+                "data": {
+                    "included_folders": "Cartelle da monitorare:",
+                    "ignored_items": "Entità e azioni ignorate:",
+                    "ignored_states": "Escludi dal rapporto le entità con gli stati seguenti:",
+                    "exclude_disabled_automation": "Escludi automazioni disabilitate",
+                    "ignored_files": "File ignorati:",
+                    "ignored_labels": "Etichette ignorate:",
+                    "check_lovelace": "Analizza dashboard controllate dall'interfaccia utente",
+                    "startup_delay": "Ritardo di avvio per l'inizializzazione dei sensori Watchman",
+                    "log_obfuscate": "Offusca dati sensibili nei log",
+                    "enforce_file_size": "Applica limite massimo dimensione file",
+                    "max_file_size": "Dimensione massima del file (KB)"
+                },
+                "data_description": {
+                    "included_folders": "Elenco separato da virgole delle cartelle in cui Watchman deve cercare i file di configurazione",
+                    "ignored_items": "Aggiungi entità e azioni da escludere dal monitoraggio. Supporta pattern glob (es. switch.*)",
+                    "ignored_states": "Elenco separato da virgole degli stati esclusi dal monitoraggio",
+                    "ignored_files": "Aggiungi pattern glob di file da escludere dal monitoraggio (es. */esphome/*)",
+                    "ignored_labels": "Utilizza etichette per escludere entità dal monitoraggio",
+                    "log_obfuscate": "Se mascherare i nomi di entità e azioni nei log per la privacy",
+                    "exclude_disabled_automation": "Escludi entità utilizzate solo da automazioni disabilitate",
+                    "enforce_file_size": "Disabilita questa opzione per analizzare file più grandi di {max_size_kb}KB. Ciò potrebbe aumentare il tempo di analisi e l'utilizzo della memoria.",
+                    "max_file_size": "Dimensione massima del file da analizzare in KB. Intervallo: 100-10000. Predefinito: 500KB. Si applica solo quando 'Applica limite massimo dimensione file' è abilitato."
+                },
+                "sections": {
+                    "appearance_location_options": {
+                        "name": "Aspetto e posizione del rapporto",
+                        "data": {
+                            "columns_width": "Elenco delle larghezze delle colonne del rapporto, es. 30, 7, 60",
+                            "report_header": "Intestazione personalizzata per il rapporto",
+                            "report_path": "Posizione del file di rapporto es. /config/report.txt",
+                            "friendly_names": "Aggiungi nomi descrittivi delle entità al rapporto"
+                        }
+                    }
+                },
+                "description": "[Guida alle impostazioni]({url})"
+            }
+        }
+    },
+    "services": {
+        "report": {
+            "name": "Rapporto",
+            "description": "Esegui il rapporto Watchman",
+            "fields": {
+                "create_file": {
+                    "name": "Crea file di rapporto",
+                    "description": "Se il file di rapporto testuale deve essere creato"
+                },
+                "action": {
+                    "name": "Invia rapporto come notifica",
+                    "description": "Azione di notifica facoltativa per inviare il rapporto (es. `persistent_notification.create`)"
+                },
+                "data": {
+                    "name": "Parametri dati azione di notifica",
+                    "description": "Parametri facoltativi per l'azione di notifica (es. `title: Rapporto`)"
+                },
+                "force_parsing": {
+                    "name": "Forza scansione completa configurazione",
+                    "description": "Ignora la cache e forza la rianalisi di tutti i file di configurazione indipendentemente dall'ora di modifica. Predefinito: False. Utilizzare solo se si sospettano problemi di cache."
+                },
+                "chunk_size": {
+                    "name": "Dimensione blocco messaggio di notifica",
+                    "description": "Dimensione massima del messaggio in byte. Alcuni servizi di notifica limitano la dimensione massima del messaggio. Se la dimensione del rapporto supera chunk_size, verrà inviato in più notifiche successive. (facoltativo)"
+                }
+            },
+            "sections": {
+                "advanced_options": {
+                    "name": "Opzioni avanzate"
+                }
+            }
+        },
+        "set_ignored_labels": {
+            "name": "Imposta etichette ignorate",
+            "description": "Sovrascrivi l'elenco delle etichette da ignorare.",
+            "fields": {
+                "labels": {
+                    "name": "Etichette",
+                    "description": "Elenco delle etichette da ignorare."
+                }
+            }
+        }
+    },
+    "issues": {
+        "deprecated_text_entity": {
+            "title": "L'entità {entity_id} è deprecata",
+            "description": "L'uso di `{entity_id}` è deprecato e verrà rimosso in una versione futura di Watchman. Si prega di riconfigurare le automazioni per utilizzare l'azione `watchman.set_ignored_labels`."
+        },
+        "deprecated_service_param": {
+            "title": "Il parametro del servizio {deprecated_param} è deprecato",
+            "description": "L'uso del parametro di rapporto `{deprecated_param}` è deprecato e verrà rimosso in una versione futura di Watchman. Consultare la documentazione su {url}"
+        }
+    },
+    "entity": {
+        "sensor": {
+            "last_updated": {
+                "name": "Ultimo aggiornamento"
+            },
+            "missing_entities": {
+                "name": "Entità mancanti"
+            },
+            "missing_actions": {
+                "name": "Azioni mancanti"
+            },
+            "status": {
+                "name": "Stato",
+                "state": {
+                    "waiting_for_ha": "In attesa dell'avvio di HA",
+                    "parsing": "Analisi configurazione",
+                    "idle": "Inattivo"
+                }
+            },
+            "parse_duration": {
+                "name": "Durata analisi"
+            },
+            "last_parse": {
+                "name": "Ultima analisi"
+            },
+            "processed_files": {
+                "name": "File elaborati"
+            },
+            "ignored_files": {
+                "name": "File ignorati"
+            }
+        },
+        "button": {
+            "create_report_file": {
+                "name": "Crea file di rapporto"
+            }
+        },
+        "text": {
+            "ignored_labels": {
+                "name": "Etichette ignorate"
+            }
+        }
+    }
+}

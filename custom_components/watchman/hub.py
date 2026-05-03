@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .const import BUNDLED_IGNORED_ITEMS, CONF_ENFORCE_FILE_SIZE, CONF_IGNORED_ITEMS
+from .const import BUNDLED_IGNORED_ITEMS, CONF_ENFORCE_FILE_SIZE, CONF_IGNORED_ITEMS, CONF_MAX_FILE_SIZE
 from .utils.logger import _LOGGER
 from .utils.parser_core import ParseResult, WatchmanParser, get_domains
 from .utils.utils import get_config
@@ -123,6 +123,7 @@ class WatchmanHub:
         try:
             custom_domains = get_domains(self.hass)
             enforce_file_size = get_config(self.hass, CONF_ENFORCE_FILE_SIZE, True)
+            max_file_size = get_config(self.hass, CONF_MAX_FILE_SIZE, 500) * 1024  # Convert KB to bytes
 
             parse_result = await self._parser.async_parse(
                 self.hass.config.config_dir,
@@ -130,6 +131,7 @@ class WatchmanHub:
                 custom_domains=custom_domains,
                 base_path=self.hass.config.config_dir,
                 enforce_file_size=enforce_file_size,
+                max_file_size=max_file_size,
                 ignore_mtime=ignore_mtime,
             )
 

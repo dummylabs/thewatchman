@@ -20,6 +20,7 @@ from .const import (
     CONF_IGNORED_ITEMS,
     CONF_IGNORED_STATES,
     CONF_LOG_OBFUSCATE,
+    CONF_MAX_FILE_SIZE,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_STARTUP_DELAY,
@@ -329,6 +330,11 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
                 if isinstance(val, str):
                     data[key] = [x.strip() for x in val.split(",") if x.strip()]
             current_minor = 6
+
+        if current_minor < 7:
+            _LOGGER.info("Migrating Watchman entry to minor version 7")
+            data[CONF_MAX_FILE_SIZE] = DEFAULT_OPTIONS.get(CONF_MAX_FILE_SIZE, 500)
+            current_minor = 7
 
         if current_minor != config_entry.minor_version:
             hass.config_entries.async_update_entry(

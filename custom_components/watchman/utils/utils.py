@@ -25,6 +25,7 @@ from ..const import (
     CONF_IGNORED_STATES,
     CONF_INCLUDED_FOLDERS,
     CONF_LOG_OBFUSCATE,
+    CONF_MAX_FILE_SIZE,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_STARTUP_DELAY,
@@ -119,6 +120,7 @@ def get_config(hass: HomeAssistant, key: str, default: Any | None = None) -> Any
         CONF_STARTUP_DELAY,
         CONF_LOG_OBFUSCATE,
         CONF_ENFORCE_FILE_SIZE,
+        CONF_MAX_FILE_SIZE,
     ]:
         return get_val(entry.data, key)
 

@@ -26,6 +26,7 @@ from .const import (
     CONF_IGNORED_LABELS,
     CONF_IGNORED_STATES,
     CONF_LOG_OBFUSCATE,
+    CONF_MAX_FILE_SIZE,
     CONF_REPORT_PATH,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_STARTUP_DELAY,
@@ -83,6 +84,9 @@ def _get_data_schema() -> vol.Schema:
             vol.Optional(
                 CONF_ENFORCE_FILE_SIZE,
             ): cv.boolean,
+            vol.Optional(
+                CONF_MAX_FILE_SIZE,
+            ): vol.All(cv.positive_int, vol.Range(min=100, max=10000)),
             vol.Required(CONF_SECTION_APPEARANCE_LOCATION): data_entry_flow.section(
                 vol.Schema(
                     {

@@ -2,6 +2,8 @@
 import pytest
 from custom_components.watchman.const import (
     CONF_LOG_OBFUSCATE,
+    CONF_MAX_FILE_SIZE,
+    DEFAULT_OPTIONS,
     DOMAIN,
 )
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -57,6 +59,29 @@ async def test_options_flow_missing_key_behavior(hass: HomeAssistant):
         
         # And it should be True (default)
         assert config_entry.data.get(CONF_LOG_OBFUSCATE) is True
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_options_flow_missing_max_file_size_migrated(hass: HomeAssistant):
+    """Test that missing max_file_size key is populated with default after migration."""
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="test_entry_max_file_size",
+        version=2,
+        minor_version=6,
+        data={},  # Missing CONF_MAX_FILE_SIZE
+    )
+    config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    try:
+        assert CONF_MAX_FILE_SIZE in config_entry.data
+        assert config_entry.data[CONF_MAX_FILE_SIZE] == DEFAULT_OPTIONS[CONF_MAX_FILE_SIZE]
     finally:
         await hass.config_entries.async_unload(config_entry.entry_id)
         await hass.async_block_till_done()

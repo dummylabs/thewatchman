@@ -43,6 +43,7 @@ Option | Description | Example
 ⚙️ Exclude entities used by disabled automations | If enabled, entities referenced only by disabled automations will be excluded from the report. | UI flag
 ⚙️ Obfuscate sensitive data in logs | By default, potentially sensitive data, such as entity IDs, are masked in debug logs. This option enables the display of full entity names and actions in log files. | UI flag 
 ⚙️ Enforce max file size limit | Switch off max file size limit for parser if you have warning messages about large files in log.  | UI flag
+⚙️ Maximum file size (KB) | Maximum size of a configuration file that watchman will parse. Files exceeding this limit are skipped when "Enforce max file size limit" is enabled. Accepts values between 100 and 10000 KB. | `500`
 ⚙️ Report location | Report location and filename. | `/config/watchman_report.txt`
 ⚙️ Custom header for the report | Custom header for watchman report. | `-== Watchman Report ==-`
 ⚙️ Report's column width | Report's columns width. The list of column widths for the table version of the report. | `30, 7, 60`

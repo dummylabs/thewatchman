@@ -26,7 +26,9 @@
                     "ignored_labels": "Etiquetas ignoradas:",
                     "check_lovelace": "Analisar dashboards controlados pela UI",
                     "startup_delay": "Atraso de inicialização para a inicialização dos sensores do watchman",
-                    "log_obfuscate": "Ofuscar dados sensíveis nos logs"
+                    "log_obfuscate": "Ofuscar dados sensíveis nos logs",
+                    "enforce_file_size": "Impor limite máximo de tamanho de arquivo",
+                    "max_file_size": "Tamanho máximo do ficheiro (KB)"
                 },
                 "data_description": {
                     "included_folders": "Lista de pastas separadas por vírgulas onde o watchman deve procurar arquivos de configuração",
@@ -36,7 +38,9 @@
                     "enforce_file_size": "Desative isto para analisar arquivos maiores que {max_size_kb}KB. Isso pode aumentar o tempo de análise e o uso de memória.",
                     "ignored_files": "Adicione padrões glob de arquivos a excluir do rastreamento (ex. */esphome/*)",
                     "ignored_labels": "Usar etiquetas para excluir entidades do rastreamento",
-                    "log_obfuscate": "Se os nomes de entidades e serviços devem ser ocultados nos logs para privacidade"
+                    "log_obfuscate": "Se os nomes de entidades e serviços devem ser ocultados nos logs para privacidade",
+                    "enforce_file_size": "Desative isto para analisar arquivos maiores que {max_size_kb}KB. Isso pode aumentar o tempo de análise e o uso de memória.",
+                    "max_file_size": "Tamanho máximo do ficheiro a analisar em KB. Intervalo: 100-10000. Padrão: 500KB. Aplica-se apenas quando 'Impor limite máximo de tamanho de arquivo' está ativado."
                 },
                 "sections": {
                     "appearance_location_options": {
