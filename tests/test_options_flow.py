@@ -5,11 +5,13 @@ import pytest
 from custom_components.watchman.const import (
     DOMAIN,
     CONF_IGNORED_LABELS,
+    CONF_IGNORED_STATES,
     CONF_STARTUP_DELAY,
     CONF_SECTION_APPEARANCE_LOCATION,
     CONF_REPORT_PATH,
     CONF_HEADER,
     CONF_COLUMNS_WIDTH,
+    CONFIG_ENTRY_MINOR_VERSION,
 )
 from custom_components.watchman.utils.parser_const import MAX_FILE_SIZE
 from homeassistant.core import HomeAssistant
@@ -96,6 +98,50 @@ async def test_options_flow_labels(hass: HomeAssistant):
 
             # Verify persistence
             assert config_entry.data[CONF_IGNORED_LABELS] == ["test", "private"]
+        finally:
+            await hass.config_entries.async_unload(config_entry.entry_id)
+            await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_options_flow_clears_ignored_states(hass, tmp_path):
+    """Unchecking every ignored state must clear the stored selection."""
+    with patch("custom_components.watchman.config_flow.async_is_valid_path", return_value=True), \
+         patch("custom_components.watchman.DEFAULT_DELAY", 0):
+        config_entry = MockConfigEntry(
+            domain=DOMAIN,
+            unique_id="test_ignored_states",
+            version=2,
+            minor_version=CONFIG_ENTRY_MINOR_VERSION,
+            data={
+                CONF_IGNORED_STATES: ["unavailable"],
+                CONF_STARTUP_DELAY: 0,
+            },
+        )
+        config_entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+
+        try:
+            result = await hass.config_entries.options.async_init(config_entry.entry_id)
+            assert result["type"] == FlowResultType.FORM
+
+            # the form is submitted without `ignored_states`, i.e. nothing is checked
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={
+                    CONF_STARTUP_DELAY: 0,
+                    CONF_SECTION_APPEARANCE_LOCATION: {
+                        CONF_REPORT_PATH: "/config/report.txt",
+                        CONF_HEADER: "-== Watchman Report ==-",
+                        CONF_COLUMNS_WIDTH: "30, 8, 60",
+                    },
+                },
+            )
+            await hass.async_block_till_done()
+
+            assert result["type"] == FlowResultType.CREATE_ENTRY
+            assert config_entry.data[CONF_IGNORED_STATES] == []
         finally:
             await hass.config_entries.async_unload(config_entry.entry_id)
             await hass.async_block_till_done()

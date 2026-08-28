@@ -208,6 +208,14 @@ class OptionsFlowHandler(OptionsFlow):
                 ):
                     user_input[CONF_IGNORED_ITEMS] = []
 
+                # same for `ignored states`: if the user unchecked every state,
+                # the key is absent and the previous selection would survive
+                if (
+                    CONF_IGNORED_STATES in self.config_entry.data
+                    and CONF_IGNORED_STATES not in user_input
+                ):
+                    user_input[CONF_IGNORED_STATES] = []
+
                 # see met.no code, without update_entry the EXISTING entry
                 # will not be updated with user input, but entry.options will do
                 self.hass.config_entries.async_update_entry(

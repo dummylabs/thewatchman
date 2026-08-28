@@ -16,7 +16,13 @@ from homeassistant.const import (
     EVENT_SERVICE_REGISTERED,
     EVENT_SERVICE_REMOVED,
 )
-from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    Event,
+    HomeAssistant,
+    callback,
+    split_entity_id,
+)
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.entity_registry import EVENT_ENTITY_REGISTRY_UPDATED
@@ -50,8 +56,11 @@ from .const import (
     STATE_PENDING,
     STATE_SAFE_MODE,
     STATE_WAITING_HA,
+    STATELESS_DOMAINS,
     STORAGE_KEY,
     STORAGE_VERSION,
+    TRACKED_STATE_MISSING,
+    TRACKED_STATE_UNKNOWN,
     WATCHED_EVENTS,
     WATCHED_SERVICES,
 )
@@ -140,16 +149,19 @@ def _is_safe_to_report(
     return True
 
 
-def _is_available(state: Any) -> bool:
-    """Check if state is available/active.
+def _get_tracked_state(entity_id: str, state: Any) -> str:
+    """Return the state as tracked by Watchman for a state machine value.
 
-    Missing/Unavailable: None, "unavailable", "unknown", "missing"
-    Active: Any other state
+    Mirrors `get_entity_state` for the state change event payload: a missing
+    state object means the entity is not in the state machine ("missing") and
+    stateless domains never report "unknown".
     """
     if state is None:
-        return False
-    val = state.state if hasattr(state, "state") else str(state)
-    return val not in ("unavailable", "unknown", "missing", "None")
+        return TRACKED_STATE_MISSING
+    val = str(state.state if hasattr(state, "state") else state)
+    if val == TRACKED_STATE_UNKNOWN and split_entity_id(entity_id)[0] in STATELESS_DOMAINS:
+        return "available"
+    return val
 
 
 def check_single_entity_status( # noqa: PLR0911
@@ -309,6 +321,9 @@ class WatchmanCoordinator(DataUpdateCoordinator):
             return self._filter_context_cache
 
         _LOGGER.debug("Build FilterContext object for filtering operations")
+        # keep the states watched by the state change listener in sync with
+        # the ignored states used for filtering
+        self._update_checked_states()
         ent_reg = er.async_get(self.hass)
         exclude_disabled = get_config(self.hass, CONF_EXCLUDE_DISABLED_AUTOMATION, False)
         ignored_states = get_config(self.hass, CONF_IGNORED_STATES, [])
@@ -751,17 +766,23 @@ class WatchmanCoordinator(DataUpdateCoordinator):
 
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
+        entity_id = event.data["entity_id"]
 
         # 1. Ignore Attribute Changes (same state value)
         if old_state and new_state and old_state.state == new_state.state:
             return
 
-        # 2. Availability Check
-        if _is_available(old_state) == _is_available(new_state):
-            # Status quo regarding availability (Active->Active or Missing->Missing), ignore.
+        # 2. Reportability check
+        # `checked_states` holds the states watchman reports about, i.e. monitored
+        # states minus the ones ignored by the user. The cached verdict for the
+        # entity only becomes stale if its reportability changed, which also
+        # covers transitions between two monitored states (e.g. missing ->
+        # unavailable when "unavailable" is an ignored state).
+        old_reportable = _get_tracked_state(entity_id, old_state) in self.checked_states
+        new_reportable = _get_tracked_state(entity_id, new_state) in self.checked_states
+        if old_reportable == new_reportable:
             return
 
-        entity_id = event.data["entity_id"]
         # Track dirty entities
         self._dirty_entities.add(entity_id)
         if _LOGGER.isEnabledFor(logging.DEBUG):
