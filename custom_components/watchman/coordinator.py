@@ -830,7 +830,7 @@ class WatchmanCoordinator(DataUpdateCoordinator):
                     return
 
                 # 2. Monitored Entity changes -> Full Rescan
-                if entity_id and entity_id in self.hub._monitored_entities:
+                if entity_id and self.hub.is_monitored_entity(entity_id):
                     # Optimization Note: While we could technically use incremental update here
                     # (by adding to dirty_entities), we opt for a full rescan to guarantee
                     # consistency when metadata changes. This covers low-frequency administrative

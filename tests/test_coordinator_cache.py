@@ -144,3 +144,32 @@ async def test_startup_safety(hass):
     finally:
         await hass.config_entries.async_unload(config_entry.entry_id)
         await hass.async_block_till_done()
+
+@pytest.mark.asyncio
+async def test_registry_update_with_empty_cache(hass, caplog):
+    """Test registry updates are handled while the fast cache is not populated.
+
+    The hub resets `_monitored_entities` to None at the end of every parse and
+    starts out as None, so a registry event can arrive while the cache is empty.
+    The listener must not raise in that window.
+    """
+    config_entry = await async_init_integration(hass)
+    try:
+        coordinator: WatchmanCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+
+        # Simulate the window between a finished parse and the cache rebuild
+        coordinator.hub._monitored_entities = None
+
+        caplog.clear()
+        # A non-automation entity_id, so the automation branch does not short-circuit
+        hass.bus.async_fire(
+            EVENT_ENTITY_REGISTRY_UPDATED,
+            {"action": "update", "entity_id": "sensor.some_entity", "changes": {}},
+        )
+        await hass.async_block_till_done()
+
+        assert "TypeError" not in caplog.text
+        assert "not a container or iterable" not in caplog.text
+    finally:
+        await hass.config_entries.async_unload(config_entry.entry_id)
+        await hass.async_block_till_done()

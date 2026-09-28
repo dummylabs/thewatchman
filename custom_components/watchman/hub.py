@@ -40,6 +40,12 @@ class WatchmanHub:
             return False
         return service_id in self._monitored_services
 
+    def is_monitored_entity(self, entity_id: str) -> bool:
+        """Check if entity is monitored (fast cache check)."""
+        if self._monitored_entities is None:
+            return False
+        return entity_id in self._monitored_entities
+
     async def async_get_all_items(self) -> dict[str, dict[str, Any]]:
         """Return all parsed items (entities and services) in one pass."""
         return await self.hass.async_add_executor_job(self._get_all_items_sync)
